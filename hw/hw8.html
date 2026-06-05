@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW8 · Sec 6.5 (Impulse Functions) · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/plot.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW8 · Sec 6.5 — Impulse Functions</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW8 讲解 — Sec 6.5: Impulse functions</h1>
+    <p class="note">Section 6.5 Problems 1, 2, 3, 13, 15 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../08-laplace-discontinuous.html#impulse">File 08 §6.5</a></p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+      <p>
+        本次 HW 沿用 <a href="../08-laplace-discontinuous.html">File 08</a> 的 notation：$t \geq 0$ 是 independent variable，$y(t)$ 是 dependent variable，$\delta(t-t_0)$ 表示 unit impulse at $t = t_0$，$u_c(t) = u(t-c)$ 表示 Heaviside step function。
+      </p>
+      <p>
+        Sec 6.5 的核心计算就一条：<strong>$\mathcal{L}\{\delta(t-t_0)\} = e^{-st_0}$</strong>（对 $t_0 > 0$）。把这条加进 File 07 已经搭好的 Laplace pipeline 里，整套解题模板就是：
+      </p>
+      <ol>
+        <li>对 ODE 两边取 Laplace transform，左边用 <a href="../07-laplace-basics.html#derivative-property">derivative property</a>，右边 $\delta(t-t_0)$ 换成 $e^{-st_0}$。</li>
+        <li>代入 initial conditions，解出 $Y(s)$ — 一般是分母 $s^2 + ps + q$（characteristic polynomial），分子有 $e^{-t_0 s}$ 项。</li>
+        <li>把 $Y(s)$ 拆成几块，每块要么对应 table 里的标准 transform，要么是某个标准 transform 乘 $e^{-as}$（用 <a href="../08-laplace-discontinuous.html#translation-theorem">translation theorem</a> 还原成 $u_a(t) \cdot f(t-a)$）。</li>
+        <li>必要时做 <a href="../07-laplace-basics.html#partial-fractions">partial fractions</a> 或 completing the square。</li>
+      </ol>
+      <p>
+        前三题（P1–P3）是这套模板的直接应用，每题都是 single ODE with one or two forcing terms。后两题（P13, P15）则是同一个 framework $y'' + y = \sum_k \delta(t - t_k)$ 的两个变种，重点在于<strong>预测</strong>与<strong>定性分析</strong>：通过观察 impulse 的间隔与 natural frequency 的关系，看出 cancellation（P13）还是 resonance-style buildup（P15）。这种"impulses-as-velocity-jumps"的视角比硬算更有洞察力。
+      </p>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) Step function 写法：</strong>题目里的 $u_{10}(t)$ 是 $u(t-10)$ 的简写（textbook 约定）。在 P3 出现，别看错以为是别的函数。<br><br>
+          <strong>(2) Translation theorem 方向：</strong>$\mathcal{L}\{u_a(t) f(t-a)\} = e^{-as} F(s)$ — 别把 $f(t-a)$ 误写成 $f(t)$。inverse 还原时一定要把所有 $t$ 替换成 $t-a$ 再乘 $u_a(t)$。<br><br>
+          <strong>(3) Quadratic with complex roots：</strong>当 characteristic polynomial 的判别式 $< 0$（如 P1, P3 的 $s^2+2s+2$），不要急着用 quadratic formula 直接展开复数 partial fractions — 用 <strong>completing the square</strong> 把它写成 $(s-a)^2 + b^2$，配 $s$-shifting $\mathcal{L}^{-1}\{F(s-a)\} = e^{at} f(t)$ 才是正路。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problem-1">Problem 6.5.1</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.5.1 — Damped oscillator with single impulse</p>
+        <p>
+          求解 IVP 并描述解的定性行为：
+        </p>
+        $$y'' + 2y' + 2y = \delta(t - \pi), \qquad y(0) = 1, \quad y'(0) = 0.$$
+      </div>
+
+      <h3 id="p1-strategy">思路</h3>
+      <p>
+        这是 underdamped oscillator（$s^2+2s+2$ 判别式 $4-8 < 0$）加单个 impulse。Laplace 后分两项：来自 nonzero initial condition $y(0)=1$ 的"自由响应"项，和 $\delta(t-\pi)$ 触发的"impulse 响应"项（带 $e^{-\pi s}$ 因子，用 <a href="../08-laplace-discontinuous.html#translation-theorem">translation theorem</a> 还原）。分母 $s^2+2s+2 = (s+1)^2 + 1$，所有项都是 $e^{-t}\sin t$ / $e^{-t}\cos t$ 这一类。
+      </p>
+
+      <h3 id="p1-solution">解答</h3>
+      <p>
+        <strong>Step 1: 取 Laplace transform。</strong> 用 derivative property $\mathcal{L}\{y''\} = s^2 Y - sy(0) - y'(0)$、$\mathcal{L}\{y'\} = sY - y(0)$、$\mathcal{L}\{\delta(t-\pi)\} = e^{-\pi s}$：
+      </p>
+      $$\begin{aligned}
+        \bigl(s^2 Y - s \cdot 1 - 0\bigr) + 2\bigl(sY - 1\bigr) + 2Y &= e^{-\pi s} \\
+        (s^2 + 2s + 2) Y - s - 2 &= e^{-\pi s} \\
+        Y(s) &= \frac{s + 2}{s^2 + 2s + 2} + \frac{e^{-\pi s}}{s^2 + 2s + 2}.
+      \end{aligned}$$
+
+      <p>
+        <strong>Step 2: Completing the square。</strong> 分母 $s^2 + 2s + 2 = (s+1)^2 + 1$。把第一项改写：
+      </p>
+      $$\frac{s+2}{(s+1)^2 + 1} = \frac{(s+1) + 1}{(s+1)^2 + 1} = \frac{s+1}{(s+1)^2 + 1} + \frac{1}{(s+1)^2 + 1}.$$
+
+      <p>
+        <strong>Step 3: Inverse Laplace。</strong> 由 $s$-shifting，$\mathcal{L}^{-1}\bigl\{\tfrac{s+1}{(s+1)^2+1}\bigr\} = e^{-t}\cos t$，$\mathcal{L}^{-1}\bigl\{\tfrac{1}{(s+1)^2+1}\bigr\} = e^{-t}\sin t$。对第二项 $\frac{e^{-\pi s}}{(s+1)^2+1}$，由 translation theorem：
+      </p>
+      $$\mathcal{L}^{-1}\bigl\{e^{-\pi s} F(s)\bigr\} = u_\pi(t) \cdot f(t - \pi), \quad \text{其中 } f(t) = e^{-t}\sin t.$$
+
+      <p>
+        <strong>Step 4: 合并。</strong> 最终解：
+      </p>
+      $$\boxed{\,y(t) = e^{-t}\cos t + e^{-t}\sin t + u_\pi(t)\, e^{-(t-\pi)} \sin(t - \pi).\,}$$
+
+      <p>
+        <strong>分段形式：</strong>
+      </p>
+      $$y(t) = \begin{cases}
+        e^{-t}(\cos t + \sin t), & 0 \leq t < \pi, \\
+        e^{-t}(\cos t + \sin t) + e^{-(t-\pi)} \sin(t - \pi), & t \geq \pi.
+      \end{cases}$$
+
+      <h3 id="p1-graph">图像</h3>
+      <div class="plot-container">
+        <svg id="p1-svg"></svg>
+        <p class="plot-caption">在 $t = \pi$ 处橙色箭头表示 unit impulse；$y(t)$ 本身 continuous，但 $y'$ 在 $t = \pi$ 处有 jump（曲线斜率突变）。</p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Impulse 作为速度跳跃</p>
+        <p>
+          系统初始位于 $y=1$、速度为 0，按 underdamped oscillation 衰减振荡。在 $t = \pi$ 时，hammer blow 给 $y'$ 注入了一个跳跃 $\Delta y' = 1$（impulse 大小 / leading coefficient $= 1/1$），位移 $y$ 不变但速度突变。此后系统继续按相同 ODE 衰减，但叠加了一个由"$t=\pi$ 时刻 $y(\pi)=$ 当前值、$y'(\pi)=$ 旧值 $+1$"诱发的新自由响应。两段连续但导数有 jump。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problem-2">Problem 6.5.2</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.5.2 — Two impulses that cancel</p>
+        <p>
+          求解 IVP：
+        </p>
+        $$y'' + 4y = \delta(t - \pi) - \delta(t - 2\pi), \qquad y(0) = 0, \quad y'(0) = 0.$$
+      </div>
+
+      <h3 id="p2-strategy">思路</h3>
+      <p>
+        Undamped oscillator with natural frequency $\omega_0 = 2$（period $\pi$）。两个 impulse 间隔正好 $\pi$，等于一个完整周期 — 直觉告诉我们第二个 impulse 应当完全抵消第一个引起的振荡，使 $t > 2\pi$ 后 $y \equiv 0$。Laplace 法验证这点。
+      </p>
+
+      <h3 id="p2-solution">解答</h3>
+      <p>
+        <strong>Step 1: Laplace transform.</strong> Initial conditions 全为 0：
+      </p>
+      $$\begin{aligned}
+        s^2 Y + 4Y &= e^{-\pi s} - e^{-2\pi s}, \\
+        Y(s) &= \frac{e^{-\pi s} - e^{-2\pi s}}{s^2 + 4}.
+      \end{aligned}$$
+
+      <p>
+        <strong>Step 2: Inverse Laplace。</strong> 由 $\mathcal{L}^{-1}\bigl\{\tfrac{1}{s^2+4}\bigr\} = \tfrac{1}{2}\sin 2t$ 和 translation theorem：
+      </p>
+      $$y(t) = \tfrac{1}{2}\, u_\pi(t) \sin 2(t - \pi) - \tfrac{1}{2}\, u_{2\pi}(t) \sin 2(t - 2\pi).$$
+
+      <p>
+        <strong>Step 3: 化简。</strong> 因为 $\sin 2(t - \pi) = \sin(2t - 2\pi) = \sin 2t$（$\sin$ 的周期是 $2\pi$），同理 $\sin 2(t - 2\pi) = \sin 2t$：
+      </p>
+      $$\boxed{\,y(t) = \tfrac{1}{2}\bigl[\,u_\pi(t) - u_{2\pi}(t)\,\bigr] \sin 2t.\,}$$
+
+      <p>
+        <strong>分段形式：</strong>
+      </p>
+      $$y(t) = \begin{cases}
+        0, & 0 \leq t < \pi, \\
+        \tfrac{1}{2}\sin 2t, & \pi \leq t < 2\pi, \\
+        0, & t \geq 2\pi.
+      \end{cases}$$
+
+      <h3 id="p2-graph">图像</h3>
+      <div class="plot-container">
+        <svg id="p2-svg"></svg>
+        <p class="plot-caption">两个橙色箭头：$t = \pi$ 处向上（$+\delta$），$t = 2\pi$ 处向下（$-\delta$）。曲线只在 $[\pi, 2\pi]$ 段振荡，前后都精确为零。</p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 完整周期的抵消</p>
+        <p>
+          第一个 impulse 在 $t=\pi$ 处给 $y'$ 加 $+1$，触发 $\tfrac{1}{2}\sin 2t$ 这个 sinusoid。经过一个完整周期 $\pi$，到 $t = 2\pi$ 时系统状态恰好回到 $y = 0, y' = 1$（位移回零、速度回到刚被 kick 后的值）。第二个 impulse 大小为 $-1$，正好把 $y'$ 从 $+1$ 减回 $0$ — 系统完全静止。这是一个"完美的反 kick"，依赖于 impulse 间隔等于 natural period 这一精确条件。<br><br>
+          换言之：impulses 间隔等于 $\sin$ 的整周期 $\Rightarrow$ 同相位 kick，效果相加（若 sign 相同）或抵消（若 sign 相反）。若间隔等于半周期，则会相互"反相位"地放大或抵消 — 这正是 P13/P15 的主题。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problem-3">Problem 6.5.3</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.5.3 — Mixed delta and step forcing</p>
+        <p>
+          求解 IVP：
+        </p>
+        $$y'' + 2y' + 2y = \delta(t - \pi) + u_{10}(t), \qquad y(0) = 0, \quad y'(0) = \tfrac{1}{2}.$$
+      </div>
+
+      <h3 id="p3-strategy">思路</h3>
+      <p>
+        同 P1 的 underdamped 振子（$s^2+2s+2 = (s+1)^2+1$），但 forcing 有两部分：在 $t=\pi$ 的 impulse 和在 $t=10$ 后持续作用的 unit step。叠加非零初始条件 $y'(0) = 1/2$，最终解有三段贡献。Step forcing 的 inverse 需要对 $\frac{1}{s(s^2+2s+2)}$ 做 <a href="../07-laplace-basics.html#partial-fractions">partial fractions</a>。
+      </p>
+
+      <h3 id="p3-solution">解答</h3>
+      <p>
+        <strong>Step 1: Laplace transform.</strong>
+      </p>
+      $$\begin{aligned}
+        \bigl(s^2 Y - 0 - \tfrac{1}{2}\bigr) + 2\bigl(sY - 0\bigr) + 2Y &= e^{-\pi s} + \frac{e^{-10s}}{s}, \\
+        (s^2 + 2s + 2) Y &= \tfrac{1}{2} + e^{-\pi s} + \frac{e^{-10s}}{s}, \\
+        Y(s) &= \underbrace{\frac{1/2}{(s+1)^2 + 1}}_{\text{(A) initial condition}} + \underbrace{\frac{e^{-\pi s}}{(s+1)^2 + 1}}_{\text{(B) impulse}} + \underbrace{\frac{e^{-10s}}{s\bigl[(s+1)^2 + 1\bigr]}}_{\text{(C) step}}.
+      \end{aligned}$$
+
+      <p>
+        <strong>Step 2: Inverse each piece.</strong>
+      </p>
+      <p>
+        <em>(A) Initial condition piece.</em> $\mathcal{L}^{-1}\bigl\{\tfrac{1/2}{(s+1)^2+1}\bigr\} = \tfrac{1}{2} e^{-t} \sin t$.
+      </p>
+      <p>
+        <em>(B) Impulse piece.</em> 由 translation theorem：$u_\pi(t)\, e^{-(t-\pi)} \sin(t - \pi)$.
+      </p>
+      <p>
+        <em>(C) Step piece.</em> 先对 $\frac{1}{s\bigl[(s+1)^2+1\bigr]} = \frac{1}{s(s^2 + 2s + 2)}$ 做 partial fractions：
+      </p>
+      $$\frac{1}{s(s^2+2s+2)} = \frac{A}{s} + \frac{Bs + C}{s^2 + 2s + 2}.$$
+      <p>
+        通分比对：$1 = A(s^2 + 2s + 2) + (Bs + C)s = (A+B)s^2 + (2A+C)s + 2A$，得 $A = 1/2$, $B = -1/2$, $C = -1$。所以：
+      </p>
+      $$\begin{aligned}
+        \frac{1}{s(s^2+2s+2)} &= \frac{1/2}{s} - \frac{\tfrac{1}{2}s + 1}{(s+1)^2 + 1} \\
+        &= \frac{1/2}{s} - \frac{\tfrac{1}{2}(s+1) + \tfrac{1}{2}}{(s+1)^2 + 1} \\
+        &= \frac{1/2}{s} - \frac{1}{2}\cdot\frac{s+1}{(s+1)^2+1} - \frac{1}{2}\cdot\frac{1}{(s+1)^2+1}.
+      \end{aligned}$$
+      <p>
+        Inverse Laplace：$\tfrac{1}{2} - \tfrac{1}{2} e^{-t}\cos t - \tfrac{1}{2} e^{-t}\sin t$. 由 translation theorem 加上 $u_{10}(t)$ 和参数平移：
+      </p>
+      $$u_{10}(t)\left[\tfrac{1}{2} - \tfrac{1}{2} e^{-(t-10)}\cos(t-10) - \tfrac{1}{2} e^{-(t-10)}\sin(t-10)\right].$$
+
+      <p>
+        <strong>Step 3: 合并。</strong>
+      </p>
+      $$\boxed{\,y(t) = \tfrac{1}{2} e^{-t}\sin t + u_\pi(t)\, e^{-(t-\pi)}\sin(t-\pi) + \tfrac{1}{2}\, u_{10}(t)\left[1 - e^{-(t-10)}\cos(t-10) - e^{-(t-10)}\sin(t-10)\right].\,}$$
+
+      <h3 id="p3-graph">图像</h3>
+      <div class="plot-container">
+        <svg id="p3-svg"></svg>
+        <p class="plot-caption">橙色箭头：$t = \pi$ 处 impulse；竖直虚线：$t = 10$ 处 step function 启动。$t \to \infty$ 时 $y \to 1/2$（steady state）。</p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Steady state $= 1/2$</p>
+        <p>
+          这道题把三种 forcing 来源解耦得很干净：初始 $y'(0) = 1/2$ 触发一个衰减振荡（项 A）；$t=\pi$ 的 impulse 再触发一段（项 B）；$t=10$ 之后 unit step "开"了一个常 forcing。Underdamped 系统在 constant forcing $g(t) = 1$ 下的 steady state 是 $\bar{y} = g_\infty / q_0 = 1/2$（其中 $q_0 = 2$ 是 $s^2+2s+2$ 在 $s=0$ 的值），所以 $t \to \infty$ 时 $y \to 1/2$。短暂的振荡（衰减项）在 $t > 10$ 后逐渐消失，留下稳态。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problem-13">Problem 6.5.13</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.5.13 — Sequence of impulses spaced by $\pi$</p>
+        <p>
+          考虑 undamped oscillator 受一系列 impulse：
+        </p>
+        $$y'' + y = f(t), \qquad y(0) = 0, \quad y'(0) = 0, \qquad f(t) = \sum_{k=1}^{20} \delta(t - k\pi).$$
+        <p>
+          (a) 不解方程，预测解的性质。<br>
+          (b) 解出来验证。<br>
+          (c) 一系列 impulse 结束后会发生什么？
+        </p>
+      </div>
+
+      <h3 id="p13-strategy">思路</h3>
+      <p>
+        Natural frequency $\omega_0 = 1$，$\sin t$ 的 period 是 $2\pi$，half-period 是 $\pi$。impulses 间隔正好是 $\pi$ — 即每个 impulse 都落在前一个 impulse 引发的 $\sin(t-t_k)$ 的<strong>反相位</strong>（节点之后的下一节点）。这意味着<strong>相邻 impulses 互相抵消</strong>，而不是像 resonance 那样叠加。
+      </p>
+
+      <h3 id="p13-prediction">(a) 预测</h3>
+      <p>
+        每个 $\delta(t-k\pi)$ 产生的响应是 $u_{k\pi}(t)\sin(t-k\pi) = (-1)^k u_{k\pi}(t) \sin t$（因为 $\sin(t-k\pi) = (-1)^k \sin t$）。所以累积响应在 $t \in [n\pi, (n+1)\pi)$ 区间为：
+      </p>
+      $$y(t) = \sin t \cdot \sum_{k=1}^{n} (-1)^k = \begin{cases} -\sin t, & n \text{ odd}, \\ 0, & n \text{ even}. \end{cases}$$
+      <p>
+        所以解每个 $\pi$ 区间在 $0$ 和 $-\sin t$ 间切换。<strong>预测：</strong>从 $t = 0$ 开始静止，$[\pi, 2\pi)$ 显示 $-\sin t$，$[2\pi, 3\pi)$ 又回静止，如此交替；20 个 impulse 是偶数，最后一个区间 $t > 20\pi$ 时 $\sum_{k=1}^{20}(-1)^k = 0$，系统重归静止。
+      </p>
+
+      <h3 id="p13-solution">(b) 解</h3>
+      <p>
+        Laplace transform：
+      </p>
+      $$s^2 Y + Y = \sum_{k=1}^{20} e^{-k\pi s}, \qquad Y(s) = \sum_{k=1}^{20} \frac{e^{-k\pi s}}{s^2 + 1}.$$
+      <p>
+        由 $\mathcal{L}^{-1}\bigl\{\tfrac{1}{s^2+1}\bigr\} = \sin t$ 和 translation theorem：
+      </p>
+      $$y(t) = \sum_{k=1}^{20} u_{k\pi}(t)\, \sin(t - k\pi) = \sum_{k=1}^{20} (-1)^k\, u_{k\pi}(t)\, \sin t.$$
+      <p>
+        分段：
+      </p>
+      $$y(t) = \begin{cases}
+        0, & 0 \leq t < \pi, \\
+        -\sin t, & \pi \leq t < 2\pi, \\
+        0, & 2\pi \leq t < 3\pi, \\
+        -\sin t, & 3\pi \leq t < 4\pi, \\
+        \vdots & \\
+        -\sin t, & 19\pi \leq t < 20\pi, \\
+        0, & t \geq 20\pi.
+      \end{cases}$$
+      <p>
+        预测得到验证。
+      </p>
+
+      <h3 id="p13-after">(c) Impulses 结束后</h3>
+      <p>
+        $t \geq 20\pi$ 之后 $y(t) \equiv 0$ — 系统完全静止。<strong>20 个 impulse 两两抵消</strong>（奇数和偶数 impulse 反相位），最后一个 impulse 把残余 oscillation 也归零。如果 impulse 数是奇数（比如 19 个），则结束后会留下 $-\sin t$ 的残余振荡。
+      </p>
+
+      <h3 id="p13-graph">图像（拖动 slider 看 cancellation 过程）</h3>
+      <div class="plot-container">
+        <svg id="p13-svg"></svg>
+        <p class="plot-caption">橙色箭头：已激发的 impulses（间隔 $\pi$）；浅色箭头：尚未激发。拖动 slider 从 $k=0$ 到 $k=20$，观察曲线在 $0$ 和 $-\sin t$ 间交替；偶数 $k$ 重归零，体现"两两抵消"。</p>
+        <div class="plot-controls">
+          <label for="p13-slider">已激发的 impulse 数 $k$ =</label>
+          <span class="plot-readout" id="p13-readout">20</span>
+          <input type="range" id="p13-slider" class="plot-slider" min="0" max="20" value="20" step="1">
+        </div>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 同号 impulses 不代表叠加</p>
+        <p>
+          所有 impulses 在 $f(t)$ 里都是<strong>正号</strong>，初看像是连续 kick 应该越打越猛、振幅越来越大。实际上不然 — 关键不是 impulse 的符号，而是它<strong>相对于已有振荡</strong>的<strong>相位</strong>。$\sin t$ 在 $t = \pi$ 处刚穿越 $0$ 向下走，此时 $\sin(t-\pi) = -\sin t$，所以正号 impulse 实际上注入了一个反相位响应，与之前的振荡相消。这与 P15 的对比就一目了然 — P15 的 impulses 间隔是 $2\pi$（一个完整 period），每个都同相位叠加，那才是真正的 resonance。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problem-15">Problem 6.5.15</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.5.15 — Resonance via odd-multiple impulses</p>
+        <p>
+          同 P13 框架，但 $f(t)$ 改为：
+        </p>
+        $$y'' + y = f(t), \qquad y(0) = 0, \quad y'(0) = 0, \qquad f(t) = \sum_{k=1}^{15} \delta\bigl(t - (2k-1)\pi\bigr).$$
+        <p>
+          (a) 预测。 (b) 验证。 (c) Impulses 结束后。
+        </p>
+      </div>
+
+      <h3 id="p15-strategy">思路</h3>
+      <p>
+        Impulses 在 $t = \pi, 3\pi, 5\pi, \ldots, 29\pi$（共 15 个，间隔 $2\pi$）。注意：现在<strong>相邻 impulses 间隔是一个完整周期</strong> $2\pi$，每个 impulse 落在前一个 impulse 引发振荡的<strong>同相位</strong>位置 — 这是 resonance 条件。每个 impulse 都会让振幅<strong>累加</strong>。
+      </p>
+
+      <h3 id="p15-prediction">(a) 预测</h3>
+      <p>
+        第 $k$ 个 impulse 在 $t = (2k-1)\pi$ 产生响应 $u_{(2k-1)\pi}(t) \sin(t - (2k-1)\pi)$。因为 $(2k-1)$ 是奇数，$\sin(t - (2k-1)\pi) = -\sin t$。所以每个 impulse 都贡献相同的 $-\sin t$ — <strong>所有贡献同号同相位</strong>，单调叠加。
+      </p>
+      <p>
+        <strong>预测：</strong>每个 $2\pi$ 区间过后振幅累加 1。第一个区间 $[\pi, 3\pi)$ 振幅为 1（$y = -\sin t$），$[3\pi, 5\pi)$ 振幅为 2（$y = -2\sin t$），如此类推，到 $[29\pi, \infty)$ 振幅达到 15。
+      </p>
+
+      <h3 id="p15-solution">(b) 解</h3>
+      <p>
+        Laplace：
+      </p>
+      $$s^2 Y + Y = \sum_{k=1}^{15} e^{-(2k-1)\pi s}, \qquad Y(s) = \sum_{k=1}^{15} \frac{e^{-(2k-1)\pi s}}{s^2+1}.$$
+      <p>
+        Inverse：
+      </p>
+      $$y(t) = \sum_{k=1}^{15} u_{(2k-1)\pi}(t)\, \sin\bigl(t - (2k-1)\pi\bigr) = -\sin t \cdot \sum_{k=1}^{15} u_{(2k-1)\pi}(t).$$
+      <p>
+        最后那个 sum 是"到时刻 $t$ 为止已经发生的 impulse 数"。分段：
+      </p>
+      $$y(t) = \begin{cases}
+        0, & 0 \leq t < \pi, \\
+        -\sin t, & \pi \leq t < 3\pi, \\
+        -2\sin t, & 3\pi \leq t < 5\pi, \\
+        -3\sin t, & 5\pi \leq t < 7\pi, \\
+        \vdots & \\
+        -k \sin t, & (2k-1)\pi \leq t < (2k+1)\pi, \\
+        \vdots & \\
+        -15 \sin t, & t \geq 29\pi.
+      \end{cases}$$
+      <p>
+        预测得到验证：振幅每过 $2\pi$ 增加 1，到 $t = 29\pi$ 之后达到 15 并保持。
+      </p>
+
+      <h3 id="p15-after">(c) Impulses 结束后</h3>
+      <p>
+        $t \geq 29\pi$ 之后系统不再受 forcing，作 free oscillation $y(t) = -15\sin t$ — 振幅 15、natural frequency 1 的<strong>持续振荡</strong>。Undamped 系统没有 dissipation，所以这个振荡<strong>永远不会衰减</strong>。
+      </p>
+
+      <h3 id="p15-graph">图像（拖动 slider 看 resonance buildup）</h3>
+      <div class="plot-container">
+        <svg id="p15-svg"></svg>
+        <p class="plot-caption">橙色箭头：已激发的 impulses（间隔 $2\pi$，落在 $t = (2k-1)\pi$）；浅色箭头：尚未激发。拖动 slider 从 $k=0$ 到 $k=15$，观察振幅每过一个完整周期增加 1 — 离散版的 resonance。</p>
+        <div class="plot-controls">
+          <label for="p15-slider">已激发的 impulse 数 $k$ =</label>
+          <span class="plot-readout" id="p15-readout">15</span>
+          <input type="range" id="p15-slider" class="plot-slider" min="0" max="15" value="15" step="1">
+        </div>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Discrete resonance</p>
+        <p>
+          P15 是 Section 3.7（mechanical/electrical resonance with periodic forcing）的离散版。Continuous resonance 是用 $\cos(\omega_0 t)$ 这种<strong>连续</strong>的、与 natural frequency 完全同步的 forcing 让振幅<strong>线性增长</strong>（$y_p \propto t\sin\omega_0 t$）。这里换成离散 impulse 序列，间隔等于 natural period，每个 kick 都把振幅<strong>整数</strong>地加 1，效果一致：振幅<strong>线性增长</strong>（每过 $2\pi$ 加 1）。<br><br>
+          这给了 resonance 一个非常直观的解读：节点之间打 kick — 反向；峰值之间打 kick — 同向累加。物理上对应"荡秋千" — 在恰当的相位推一下，每次都加给秋千能量；推错相位则在抵消能量。
+        </p>
+      </div>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 实际系统中的 resonance</p>
+        <p>
+          这里 P15 给出的"振幅累加到 15 后稳定"是<strong>理想 undamped</strong> 情况。任何实际系统都有 damping，所以真实场景中振幅会被 dissipation 平衡，最终达到一个有限的 steady-state amplitude（取决于 damping ratio 和 forcing strength 的比值）。但即使 damping 很小，resonant frequency 处的稳态振幅依然可能极大 — 这就是为什么共振是工程结构的灾难性问题（如 Tacoma Narrows Bridge collapse）。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="common-pipeline">通用解题 pipeline</h3>
+      <p>
+        所有 5 题都是同一套 Laplace 流程：
+      </p>
+      <ol>
+        <li>对 ODE 两侧取 Laplace，左边用 $\mathcal{L}\{y''\} = s^2 Y - sy(0) - y'(0)$ 等。</li>
+        <li>$\mathcal{L}\{\delta(t-t_0)\} = e^{-t_0 s}$，$\mathcal{L}\{u_c(t)\} = e^{-cs}/s$。</li>
+        <li>解出 $Y(s)$，分母一般是 characteristic polynomial $s^2 + ps + q$。</li>
+        <li>逐项 inverse Laplace：带 $e^{-as}$ 因子的项用 translation theorem 还原成 $u_a(t) \cdot f(t-a)$；其余项用 partial fractions + table。</li>
+        <li>合并后写成分段函数或紧凑的 $u_c(t)$ 表达。</li>
+      </ol>
+
+      <h3 id="impulse-phase-table">Impulse 间隔 vs. 系统行为对照</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Impulse 间隔</th><th>相对于 natural period $T = 2\pi/\omega_0$</th><th>行为</th><th>例子</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>$T$（一周期）</td><td>同相位 kick</td><td>同号 impulse 叠加放大；反号 impulse 互相抵消</td><td>P2 (反号抵消), P15 (同号累加 = resonance)</td></tr>
+          <tr><td>$T/2$（半周期）</td><td>反相位 kick</td><td>同号 impulse 互相抵消；反号 impulse 叠加放大</td><td>P13（同号但间隔半周期 ⇒ 抵消）</td></tr>
+          <tr><td>非整数倍 $T/2$</td><td>混合相位</td><td>累加但相位漂移，通常无明显共振或抵消</td><td>（不在本 HW 范围）</td></tr>
+        </tbody>
+      </table>
+      <p>
+        关键洞察：判断一系列 impulse 会"叠加成 resonance"还是"互相抵消"，看的不是 impulse 的符号，而是 <strong>impulse 间隔 / natural period 的比值</strong> 与 impulse 符号 <strong>共同决定</strong>的相位关系。
+      </p>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li>$\mathcal{L}\{\delta(t - t_0)\} = e^{-st_0}$（$t_0 \geq 0$）— 见 <a href="../08-laplace-discontinuous.html#dirac-delta-definition">File 08 §Dirac delta definition</a></li>
+        <li>$\mathcal{L}\{u_c(t)\} = e^{-cs}/s$ — 见 <a href="../08-laplace-discontinuous.html#laplace-of-step">File 08 §Laplace of step</a></li>
+        <li>Translation theorem: $\mathcal{L}^{-1}\{e^{-as} F(s)\} = u_a(t)\, f(t-a)$ — 见 <a href="../08-laplace-discontinuous.html#translation-theorem">File 08 §Translation theorem</a></li>
+        <li>$s$-shifting: $\mathcal{L}^{-1}\{F(s-a)\} = e^{at} f(t)$ — 见 <a href="../07-laplace-basics.html#table">File 07 §Table</a></li>
+        <li>Completing the square: $s^2 + ps + q = (s + p/2)^2 + (q - p^2/4)$ — underdamped case 必备</li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        Sec 6.6（convolution integral）会在下周讲（待 prof 完成 lecture，scheduled 5/27）。届时 inverse Laplace 会多一个工具 — $\mathcal{L}^{-1}\{F(s) G(s)\} = (f * g)(t) = \int_0^t f(\tau) g(t-\tau)\, d\tau$，特别适合 step function 和其他难展开 partial fractions 的 $G(s)$。然后我们就完成了整个 Ch 6 (Laplace transform)，可以回头处理 Ch 5（series solutions），完成全季内容。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+
+<script>
+// Per-problem plot setup. Runs after plot.js (defer) has loaded.
+document.addEventListener('DOMContentLoaded', () => {
+  const PI = Math.PI;
+  const u = (t, c) => t >= c ? 1 : 0;  // Heaviside u_c(t)
+
+  // ---------- Problem 1 ----------
+  // y(t) = e^{-t}(cos t + sin t) + u_pi(t) * e^{-(t-pi)} sin(t-pi)
+  {
+    const y1 = t => {
+      const base = Math.exp(-t) * (Math.cos(t) + Math.sin(t));
+      const imp = t >= PI ? Math.exp(-(t - PI)) * Math.sin(t - PI) : 0;
+      return base + imp;
+    };
+    const plot = new Plot(document.getElementById('p1-svg'), {
+      xRange: [0, 8],
+      yRange: [-0.6, 1.4],
+      xLabel: 't',
+      yLabel: 'y',
+    });
+    plot.addCurve(y1);
+    plot.addImpulse(PI, 1);
+    plot.render();
+  }
+
+  // ---------- Problem 2 ----------
+  // y(t) = (1/2)[u_pi(t) - u_{2pi}(t)] sin(2t)
+  {
+    const y2 = t => 0.5 * (u(t, PI) - u(t, 2*PI)) * Math.sin(2*t);
+    const plot = new Plot(document.getElementById('p2-svg'), {
+      xRange: [0, 10],
+      yRange: [-1.3, 1.3],
+      xLabel: 't',
+      yLabel: 'y',
+      jumpThreshold: 0.3,  // not needed here but harmless
+    });
+    plot.addCurve(y2);
+    plot.addImpulse(PI, 1);
+    plot.addImpulse(2*PI, -1);
+    plot.render();
+  }
+
+  // ---------- Problem 3 ----------
+  // y(t) = (1/2) e^{-t} sin t
+  //      + u_pi(t) * e^{-(t-pi)} sin(t-pi)
+  //      + (1/2) u_{10}(t) [ 1 - e^{-(t-10)} cos(t-10) - e^{-(t-10)} sin(t-10) ]
+  {
+    const y3 = t => {
+      let y = 0.5 * Math.exp(-t) * Math.sin(t);
+      if (t >= PI) y += Math.exp(-(t - PI)) * Math.sin(t - PI);
+      if (t >= 10) {
+        const dt = t - 10;
+        y += 0.5 * (1 - Math.exp(-dt) * Math.cos(dt) - Math.exp(-dt) * Math.sin(dt));
+      }
+      return y;
+    };
+    const plot = new Plot(document.getElementById('p3-svg'), {
+      xRange: [0, 20],
+      yRange: [-0.4, 0.8],
+      xLabel: 't',
+      yLabel: 'y',
+      width: 720, height: 300,
+    });
+    plot.addCurve(y3);
+    plot.addImpulse(PI, 1);
+    // Mark step onset at t=10 with a faded vertical line (not an impulse, so
+    // we render manually via a dashed line outside the impulse system)
+    plot.render();
+    // Annotate t=10 step with a vertical dashed line (CSS class for theming)
+    const svg = document.getElementById('p3-svg');
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const stepLine = document.createElementNS(SVG_NS, 'line');
+    stepLine.setAttribute('class', 'plot-step-onset');
+    stepLine.setAttribute('x1', plot.xPx(10));
+    stepLine.setAttribute('x2', plot.xPx(10));
+    stepLine.setAttribute('y1', plot.yPx(plot.yRange[0]));
+    stepLine.setAttribute('y2', plot.yPx(plot.yRange[1]));
+    // Insert after axes (firstChild after axis pair) so curves draw on top
+    svg.insertBefore(stepLine, svg.firstChild.nextSibling);
+    const stepLbl = document.createElementNS(SVG_NS, 'text');
+    stepLbl.setAttribute('class', 'plot-step-onset-label');
+    stepLbl.setAttribute('x', plot.xPx(10) + 4);
+    stepLbl.setAttribute('y', plot.yPx(plot.yRange[1]) + 12);
+    stepLbl.textContent = 'u(t−10) onset';
+    svg.appendChild(stepLbl);
+  }
+
+  // ---------- Problem 13 ----------
+  // y(t) = sum_{k=1}^{n} u_{k*pi}(t) sin(t - k*pi),  n in [0, 20]
+  // Note: sin(t - k*pi) = (-1)^k sin(t), so for t in [m*pi, (m+1)*pi):
+  //   sum is (-1) if m odd in [1..n], 0 if m even
+  {
+    const ymax = 1.3;
+    const plot = new Plot(document.getElementById('p13-svg'), {
+      xRange: [0, 22 * PI],
+      yRange: [-ymax, ymax],
+      xLabel: 't',
+      yLabel: 'y',
+      width: 720, height: 280,
+      samples: 2400,
+    });
+    const rebuild = n => {
+      plot.clear();
+      const yN = t => {
+        let y = 0;
+        for (let k = 1; k <= n; k++) {
+          if (t >= k * PI) y += Math.sin(t - k * PI);
+        }
+        return y;
+      };
+      plot.addCurve(yN);
+      for (let k = 1; k <= 20; k++) {
+        plot.addImpulse(k * PI, 1, { faded: k > n });
+      }
+      plot.render();
+      return String(n);
+    };
+    bindSlider(document.getElementById('p13-slider'), document.getElementById('p13-readout'), rebuild);
+  }
+
+  // ---------- Problem 15 ----------
+  // y(t) = sum_{k=1}^{n} u_{(2k-1)pi}(t) sin(t - (2k-1)pi) = -k_active * sin(t)
+  {
+    const plot = new Plot(document.getElementById('p15-svg'), {
+      xRange: [0, 32 * PI],
+      yRange: [-16, 16],
+      xLabel: 't',
+      yLabel: 'y',
+      width: 720, height: 300,
+      samples: 3000,
+    });
+    const rebuild = n => {
+      plot.clear();
+      const yN = t => {
+        let count = 0;
+        for (let k = 1; k <= n; k++) {
+          if (t >= (2*k - 1) * PI) count++;
+        }
+        return -count * Math.sin(t);
+      };
+      plot.addCurve(yN);
+      for (let k = 1; k <= 15; k++) {
+        plot.addImpulse((2*k - 1) * PI, 1, { faded: k > n });
+      }
+      plot.render();
+      return String(n);
+    };
+    bindSlider(document.getElementById('p15-slider'), document.getElementById('p15-readout'), rebuild);
+  }
+});
+</script>
+
+</body>
+</html>

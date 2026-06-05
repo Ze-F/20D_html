@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02. First-Order ODEs · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        // Private browsing / blocked storage — fall through to system pref.
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">02. First-Order ODEs</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>02. First-Order ODEs</h1>
+    <p class="note">Textbook sections 2.1, 2.2, 2.4, 2.5, 2.6 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+
+      <p>
+        本文件覆盖 Ch 2 的五个 sections，集中处理 first-order ODEs 的各类求解方法和定性理论。这是全课最核心、题量最大的一章——integrating factor、separable equations、existence-uniqueness、phase line、exact equations 五套工具在这里一次性登场。在进入具体内容之前，先统一 notation，避免后面出现混淆。
+      </p>
+      <ul>
+        <li><strong>Independent variable</strong>：主要用 $x$ 或 $t$。Prof notes 在 Sec 2.1 导论部分用 $x$（一般形式），在具体例子里切换到 $t$（时间）；Sec 2.4 同样两者混用；Sec 2.5 统一用 $t$（population dynamics 背景）；Sec 2.6 用 $x$。本文件保持与 prof notes 一致，各节会在开头说明当前用哪个变量。</li>
+        <li><strong>Dependent variable</strong>：通常是 $y(x)$ 或 $y(t)$，也有 $P(t)$（population in Sec 2.5）、$s(x)$（Sec 2.2 例题）等写法。</li>
+        <li><strong>Prime notation</strong>：$y' = dy/dx$（或 $dy/dt$），$y'' = d^2y/dx^2$，以此类推。这门课大量使用 prime notation，比 Leibniz notation 紧凑。</li>
+        <li><strong>$P(x)$, $Q(x)$</strong>：Sec 2.1 standard form 里的 coefficient function 和 forcing function。注意不要与 Sec 2.5 的 population function $P(t)$ 混淆——前者是已知的 coefficient，后者是 unknown function，两者出现在不同 context 里。</li>
+        <li><strong>$\mu(x)$</strong>（有时写作 $u(x)$）：integrating factor，是我们人为构造的辅助 function，用来把 linear ODE 的左边变成某个 function 的 exact derivative，从而能直接积分。</li>
+        <li><strong>$F(x,y)$</strong>：Sec 2.6 里的 potential function（势函数），满足 $\partial F/\partial x = M$ 且 $\partial F/\partial y = N$。General solution 写成 $F(x,y) = C$。这里 $F$ 不是 forcing function，而是 potential——注意区分。</li>
+        <li><strong>$M(x,y)$, $N(x,y)$</strong>：Sec 2.6 里 exact equation $M\,dx + N\,dy = 0$ 中的两个 functions。$M_y = \partial M/\partial y$，$N_x = \partial N/\partial x$——exactness criterion 是 $M_y = N_x$。</li>
+        <li><strong>$C$（或 $\tilde{C}$）</strong>：arbitrary constant，积分时产生，在 general solution 里自由取值。解 IVP 时代入 initial condition 确定。有时 $\tilde{C}$ 是吸收了其他 constants 之后的新 arbitrary constant（比如把 $4C$ 重命名为 $\tilde{C}$）。</li>
+      </ul>
+
+      <p>
+        关于符号惯例的一个容易出错的地方：Sec 2.1 把 linear ODE 写成 $a_1(x)y' + a_0(x)y = b(x)$（一般形式），然后除以 $a_1(x)$ 得到 standard form $y' + P(x)y = Q(x)$，其中 $P = a_0/a_1$，$Q = b/a_1$。这一步"化标准形式"是 integrating factor method 的第一步，是不可省略的——如果没化，后面直接算 $\mu$ 会出错。本文件所有例题都会明确执行这一步。
+      </p>
+
+      <p>
+        Sec 2.6 用到了 Cal III 里的 <em>total differential</em> 概念：若 $F(x,y)$ 是二元函数，则全微分为 $dF = \dfrac{\partial F}{\partial x}dx + \dfrac{\partial F}{\partial y}dy$。若 $F(x,y) = C$（constant），则 $dF = 0$，即 $F_x\,dx + F_y\,dy = 0$，这就是 exact equation 的形式。因此，exact equation 的 general solution 就是 $F(x,y) = C$——solution 是 potential function 的 level curves（等值线）。这个几何图景非常优美，也是整个 Sec 2.6 的核心直觉。
+      </p>
+
+      <p>
+        最后提醒一点：Ch 2 里的 general solution 始终包含一个 arbitrary constant $C$（因为是 first-order ODE，积分一次产生一个常数）。IVP 提供一个 initial condition $y(x_0) = y_0$，恰好用来确定这个 $C$，解出唯一的 particular solution。这个"general solution $\to$ particular solution"的结构贯穿全章，是 ODE 课程里最基本的思路之一。在 Ch 3（second-order）里，会有两个 arbitrary constants $C_1$, $C_2$，对应两个 initial conditions；在 Ch 7（systems）里，会有更多 constants，对应 vector-valued initial conditions。所以这里养成"先求 general solution，再代入 initial condition"的两步思路，将受益整个课程。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="linear-first-order">2.1 &nbsp; Linear first-order ODEs — Integrating Factor</h2>
+
+      <p>
+        Ch 2 从最结构化的一类 first-order ODE 开始：linear first-order ODE。之所以先学这类，是因为它有一套完全系统化的算法——integrating factor method——可以对所有 linear first-order ODEs 给出 explicit general solution，无需猜测、无需技巧，只需按步骤执行。这是第一章"知道 ODE 长什么样"之后，真正进入"能解 ODE"的第一步。
+      </p>
+      <p>
+        需要特别说明：本节的 independent variable 可以是 $x$（推导时用）或 $t$（例题里用）。两者没有本质区别，只是变量名不同。Prof notes 的推导用 $x$，例题用 $t$，本文件保持同样的写法。
+      </p>
+
+      <h3 id="ivp-general">IVP — General Framework</h3>
+
+      <p>
+        在进入求解之前，prof notes 先厘清了两个基本概念的语言——general solution 和 IVP。这两个概念贯穿整个 Ch 2，弄清它们的区别是第一步。给定 $n$-th order ODE $0 = F(x, y, y', \ldots, y^{(n)})$ 在区间 $(a,b)$ 上：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (general solution).</span>
+        The <strong>general solution</strong> 是 ODE 所有可能 solutions 的族（family），通常包含若干任意 constants。对 $n$-th order ODE，general solution 一般有 $n$ 个 arbitrary constants。
+      </div>
+
+      <p>
+        举个例子：$y' = 3y$ 的 general solution 是 $y = Ce^{3t}$，其中 $C$ 是任意 constant。不同的 $C$ 给出不同的 solution curves，所有这些 curves 的集合就是 general solution。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (Initial Value Problem, IVP).</span>
+        An <strong>Initial Value Problem (IVP)</strong> of order $n$ 要求在给定 ODE 的基础上，额外满足 $n$ 个 initial conditions：
+        $$y(x_0) = y_0,\quad y'(x_0) = y_1,\quad \ldots,\quad y^{(n-1)}(x_0) = y_{n-1}$$
+        其中 $x_0 \in (a,b)$，$y_0, y_1, \ldots, y_{n-1}$ 是给定的 constants（initial values）。IVP 的解是满足这些条件的那个<em>唯一</em>的 solution。
+      </div>
+
+      <p class="note">
+        关键规律：initial conditions 的个数恰好等于 ODE 的 order。First-order ODE IVP 只需一个 initial condition $y(x_0) = y_0$；second-order ODE IVP 需要两个：$y(x_0) = y_0$ 和 $y'(x_0) = y_1$。这不是巧合，而是因为 general solution 里有 $n$ 个 arbitrary constants，需要恰好 $n$ 个方程才能把它们全部定下来。
+      </p>
+
+      <p>
+        IVP 的含义用物理语言来说很直观：ODE 描述了"系统的演化规律"（比如牛顿第二定律 $ma = F$ 告诉你任意时刻的加速度），initial conditions 描述了"初始状态"（比如初始位置和初始速度）。有了规律和初始状态，系统的未来就被完全确定了——这正是 IVP solution 的意义。
+      </p>
+
+      <h3 id="standard-form">Standard form 和 derivation</h3>
+
+      <p>
+        考虑一个 linear first-order ODE 的一般写法：
+        $$a_1(x)\frac{dy}{dx} + a_0(x)y(x) = b(x)$$
+        这里 $a_1(x)$, $a_0(x)$, $b(x)$ 都是关于 $x$ 的已知 functions，$y(x)$ 是 unknown。只要 $a_1(x) \neq 0$，两边除以 $a_1(x)$，就得到一个更整洁、更标准的写法：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (standard form of linear first-order ODE).</span>
+        $$\frac{dy}{dx} + P(x)y = Q(x)$$
+        其中 $P(x) = \dfrac{a_0(x)}{a_1(x)}$，$Q(x) = \dfrac{b(x)}{a_1(x)}$。$Q(x)$ 称为 <strong>forcing function</strong>（或 nonhomogeneous term）。当 $Q(x) = 0$ 时，方程是 homogeneous；$Q(x) \neq 0$ 时是 nonhomogeneous。
+      </div>
+
+      <p>
+        为什么要化成 standard form？因为 integrating factor method 需要从这个形式出发——$\mu$ 的公式 $e^{\int P\,dx}$ 是从 standard form 里的 $P(x)$ 读取的。如果不先化标准形式就直接操作，$P$ 会算错，$\mu$ 当然也会错。这一步虽然简单（只是除以 leading coefficient $a_1(x)$），但每道例题都必须显式地做，不能跳过。
+      </p>
+      <p>
+        还有一点实用建议：化标准形式后，如果 $P(x)$ 或 $Q(x)$ 在某些点不连续（比如有分母），要顺手记下这些点——它们正是 Sec 2.4 E&amp;U Theorem 里 interval of existence 的边界！在做完求解之后，可以立刻用 E&amp;U Theorem 给出 solution 的 existence interval，不需要额外分析。养成这个习惯，可以在 Sec 2.1 和 2.4 的结合题里节省大量时间。
+      </p>
+
+      <p>
+        Standard form 到手之后，问题在于：如何求解 $y' + Py = Q$？直接积分行不通，因为 $y' + Py$ 不是某个 function 的 derivative（它比 $y'$ 多了一项 $Py$）。解决思路是：找一个辅助 function $\mu(x)$（integrating factor），两边乘以它，使得左边恰好成为 $\dfrac{d}{dx}[\mu y]$ 的形式，然后两边积分就能直接解出 $y$。
+      </p>
+
+      <p>
+        具体推导：设 $\mu(x)$ 是待定的，两边乘以 $\mu$：
+        $$\mu y' + \mu Py = \mu Q$$
+        我们想让左边等于乘积法则展开的 $\dfrac{d}{dx}[\mu y] = \mu'y + \mu y'$。比较两式：若要 $\mu y' + \mu Py = \mu' y + \mu y'$，则必须有 $\mu Py = \mu' y$，即：
+        $$\mu' = \mu P$$
+        这是关于 $\mu$ 的 separable ODE！分离变量并积分：
+        $$\frac{d\mu}{\mu} = P(x)\,dx \implies \int \frac{d\mu}{\mu} = \int P(x)\,dx \implies \ln|\mu(x)| = \int P(x)\,dx + C$$
+        两边取指数：$|\mu(x)| = e^{\int P\,dx} \cdot e^C$，即 $\mu(x) = \pm e^C \cdot e^{\int P\,dx}$。由于 $\mu$ 只需要一个，令常数 $\pm e^C = 1$（即取 $C = 0$ 且正号），得：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (integrating factor).</span>
+        $$\mu(x) = e^{\int P(x)\,dx}$$
+        这就是 linear first-order ODE 的 integrating factor，它唯一地（在相差常数倍的意义下）满足 $\mu' = \mu P$，从而保证 $\dfrac{d}{dx}[\mu y] = \mu(y' + Py)$。
+      </div>
+
+      <p class="note">
+        $\mu(x)$ 有无穷多选择（不同的积分常数），但我们只需要找到一个使方法能运行的 $\mu$，所以选最简单的（令积分常数为 0）。不同的 $\mu$ 选择会得到同一个 general solution，只是中间步骤稍有不同。
+      </p>
+
+      <p>
+        有了 $\mu$，方程变成了一个 total derivative：
+        $$\frac{d}{dx}[\mu(x)\,y(x)] = \mu(x)\,Q(x)$$
+        两边对 $x$ 积分（右边是已知的，直接积分即可）：
+        $$\mu(x)\,y(x) = \int \mu(x)\,Q(x)\,dx + C$$
+        两边除以 $\mu(x)$，得到 general solution：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (general solution via integrating factor).</span>
+        $$y(x) = \frac{\displaystyle\int \mu(x)\,Q(x)\,dx + C}{\mu(x)}, \qquad \mu(x) = e^{\int P(x)\,dx}$$
+        其中 $C$ 是 arbitrary constant，由 initial condition 确定（若是 IVP）。
+      </div>
+
+      <p>
+        这个公式把 general solution 完全表达出来了。但在实践中，不要硬套公式——按照三步法走更清晰，也不容易出错。
+      </p>
+
+      <h3 id="integrating-factor-method">The method — 3 steps</h3>
+
+      <p>
+        把上面的推导浓缩成三步法（Method of Integrating Factors），这是本节最重要的操作流程。注意每一步的目的：Step 1 是"整理格式"，Step 2 是"构造工具"，Step 3 是"用工具求解"。
+      </p>
+      <ol>
+        <li><strong>Step 1 — Standard form</strong>：把 ODE 写成 $y' + P(x)y = Q(x)$。如果给的是 $a_1(x)y' + a_0(x)y = b(x)$，先除以 $a_1(x)$。这一步决定了后续 $P$ 和 $Q$ 是什么，绝不能省略。</li>
+        <li><strong>Step 2 — Integrating factor</strong>：计算 $\mu(x) = e^{\int P(x)\,dx}$。积分时不写积分常数（因为只需要一个 $\mu$）。算完后可以验证：$\mu'(x) = \mu(x)\,P(x)$ 是否成立。</li>
+        <li><strong>Step 3 — Solve</strong>：把方程改写成 $\dfrac{d}{dx}[\mu(x)\,y(x)] = \mu(x)\,Q(x)$，两边积分：
+        $$\mu(x)\,y(x) = \int \mu(x)\,Q(x)\,dx + C$$
+        解出 $y(x) = \dfrac{\int \mu Q\,dx + C}{\mu(x)}$。这就是 general solution。如果是 IVP，代入 initial condition $y(x_0) = y_0$ 求出 $C$ 的具体值，得到 particular solution。</li>
+      </ol>
+
+      <p>
+        一个常见的操作要点：Step 2 里计算 $\int P(x)\,dx$ 时，不需要写 $+C$（因为常数会消掉）；Step 3 里对 $\mu Q$ 积分时，则一定要写 $+C$（这里的 $C$ 是 general solution 里的自由 constant）。两处的"积分"角色不同，不要混淆。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 integrating factor "有效"</p>
+        <p>
+          Integrating factor 的本质是一种"配凑导数"的技巧。问题在于：$y' + Py$ 本身不是某个 function 的 derivative，没办法直接积分。但是，$\frac{d}{dx}[\mu y] = \mu y' + \mu' y$——如果我们能让 $\mu' = \mu P$，右边就变成 $\mu y' + \mu Py = \mu(y' + Py)$，恰好是左边乘以 $\mu$。<br><br>
+          换句话说：$\mu(x)$ 把 $y' + Py$ 这个"难以积分的组合"变成了 $\frac{d}{dx}[\mu y]$ 这个"完美的 total derivative"。一旦右边是 total derivative，两边积分就轻而易举了。<br><br>
+          这个思路在高等数学里反复出现：当一个表达式不是 exact 时，乘以某个因子使其变 exact，然后再积分。Sec 2.6 的 exact equations 会把这个想法推广到更一般的情形。<br><br>
+          还有一个记忆线索：$\mu(x) = e^{\int P\,dx}$ 的形式来自方程 $\mu' = \mu P$ 的解。而 $\mu' = \mu P$ 本身就是 $\mu$ 满足的 homogeneous linear ODE（对应强迫为 0 时）。这意味着 integrating factor 的选择和 homogeneous solution $y_h = e^{-\int P\,dx}$ 密切相关——事实上 $\mu = 1/y_h$，integrating factor 就是 homogeneous solution 的倒数。
+        </p>
+      </div>
+
+      <h3 id="ivp-examples-21">Examples — solve and analyze as $t \to \infty$</h3>
+
+      <p>
+        Prof notes 给出了三道完整的 IVP 例题，每道都要求：求解并分析 $t \to \infty$ 时 solution 的 long-time behavior（解最终趋向哪里）。这种"分析 asymptotic behavior"是 ODEs 里非常实用的能力——工程师和科学家往往最关心系统在长时间后的稳态，而不是短暂的瞬态。三道题分别给出了三种不同的 long-time behavior：趋向 0、趋向 $-\infty$、趋向有限常数。仔细对比这三个例子，就能建立对 linear ODE 解的 general 直觉。
+      </p>
+      <p>
+        注意：这三道例题的 independent variable 是 $t$（不是 $x$），这在 prof notes 里是显式的。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.1.1 — IVP with integration by parts</p>
+        <p>
+          Solve $ty' + 2y = \sin t$，$y\!\left(\dfrac{\pi}{2}\right) = 1$，并分析 $t \to \infty$ 时 solution 的行为。这道题是 integrating factor method 的典型应用：方程本身已经是 linear 的，只需化标准形式、算 integrating factor、积分——第三步里出现了 $\int t\sin t\,dt$，需要 integration by parts。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p><strong>Step 1</strong>：化为 standard form（两边除以 $t$，注意 $t \neq 0$）：
+        $$y' + \frac{2}{t}y = \frac{\sin t}{t}, \quad y\!\left(\tfrac{\pi}{2}\right) = 1$$
+        这里 $P(t) = \dfrac{2}{t}$，$Q(t) = \dfrac{\sin t}{t}$。</p>
+
+        <p><strong>Step 2</strong>：计算 integrating factor：
+        $$\mu(t) = e^{\int \frac{2}{t}\,dt} = e^{2\ln|t|} = e^{\ln t^2} = t^2$$</p>
+
+        <p><strong>Step 3</strong>：两边乘以 $\mu = t^2$：
+        $$\frac{d}{dt}\!\left[t^2 y(t)\right] = t^2 \cdot \frac{\sin t}{t} = t\sin t$$
+        两边积分（右边用 integration by parts：$u = t$，$dv = \sin t\,dt$，$du = dt$，$v = -\cos t$）：
+        $$t^2 y(t) = \int t\sin t\,dt + C = -t\cos t + \sin t + C$$
+        $$y(t) = \frac{1}{t^2}\left[-t\cos t + \sin t + C\right] \quad \text{(general solution)}$$</p>
+
+        <p><strong>Step 4</strong>：代入 initial condition $y(\pi/2) = 1$：
+        $$1 = \frac{1}{(\pi/2)^2}\left[-\frac{\pi}{2}\cdot 0 + 1 + C\right] = \frac{4}{\pi^2}[1 + C]$$
+        $$1 + C = \frac{\pi^2}{4} \implies C = \frac{\pi^2}{4} - 1$$
+        因此：
+        $$\boxed{y(t) = \frac{1}{t^2}\!\left[-t\cos t + \sin t + \frac{\pi^2}{4} - 1\right]}$$</p>
+
+        <p><strong>Behavior as $t \to \infty$：</strong>
+        $-t\cos t$ 和 $\sin t$ 都是有界振荡量（$|\cos t| \leq 1$），而分母 $t^2 \to \infty$。因此 $y(t) \to 0$ as $t \to \infty$。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.1.2 — Unbounded growth</p>
+        <p>
+          Solve $y' = \dfrac{y}{2} + e^{-t}$，$y(0) = -1$，并分析 $t \to \infty$ 的行为。这道题的 general solution 包含两个 exponential terms：$-\tfrac{2}{3}e^{-t}$（decaying，来自 forcing term $Q$）和 $Ce^{t/2}$（growing，来自 homogeneous part）。Initial condition 确定 $C = -\tfrac{1}{3}$，使 growing term 带负号，从而 $y \to -\infty$。这说明：即使 forcing term 衰减，homogeneous part 的 instability（$P < 0$）仍会主导长期行为。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p><strong>Step 1</strong>：化为 standard form：
+        $$y' - \frac{1}{2}y = e^{-t}$$
+        $P(t) = -\dfrac{1}{2}$，$Q(t) = e^{-t}$。</p>
+
+        <p><strong>Step 2</strong>：Integrating factor：
+        $$\mu(t) = e^{\int (-1/2)\,dt} = e^{-t/2}$$</p>
+
+        <p><strong>Step 3</strong>：
+        $$\frac{d}{dt}\!\left[e^{-t/2}y\right] = e^{-t}\cdot e^{-t/2} = e^{-3t/2}$$
+        积分：
+        $$e^{-t/2}y = \int e^{-3t/2}\,dt + C = -\frac{2}{3}e^{-3t/2} + C$$
+        $$y = -\frac{2}{3}e^{-t} + Ce^{t/2} \quad \text{(general solution)}$$</p>
+
+        <p><strong>Step 4</strong>：代入 $y(0) = -1$：
+        $$-1 = -\frac{2}{3} + C \implies C = -\frac{1}{3}$$
+        $$\boxed{y(t) = -\frac{2}{3}e^{-t} - \frac{1}{3}e^{t/2}}$$</p>
+
+        <p><strong>Behavior as $t \to \infty$：</strong>
+        $e^{-t} \to 0$，而 $e^{t/2} \to \infty$，所以 $-\dfrac{1}{3}e^{t/2} \to -\infty$。因此 $y(t) \to -\infty$ as $t \to \infty$。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.1.3 — Convergence to $\frac{1}{2}$</p>
+        <p>
+          Solve $y' + 2ty = t$，$y(0) = 0$，并分析 $t \to \infty$ 的行为。这道题的 integrating factor 是 $e^{t^2}$——一个增长极快的 function。正因为如此，homogeneous part $Ce^{-t^2}$ 衰减极快，解最终趋向 particular solution $y_p = 1/2$。这是"forcing drives solution to a finite limit"的典型例子。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>已经是 standard form，$P(t) = 2t$，$Q(t) = t$。</p>
+
+        <p><strong>Step 2</strong>：
+        $$\mu(t) = e^{\int 2t\,dt} = e^{t^2}$$</p>
+
+        <p><strong>Step 3</strong>：
+        $$\frac{d}{dt}\!\left[e^{t^2}y\right] = e^{t^2}\cdot t$$
+        $$e^{t^2}y = \int te^{t^2}\,dt + C = \frac{1}{2}e^{t^2} + C$$
+        $$y = \frac{1}{2} + Ce^{-t^2} \quad \text{(general solution)}$$</p>
+
+        <p><strong>Step 4</strong>：代入 $y(0) = 0$：
+        $$0 = \frac{1}{2} + C \implies C = -\frac{1}{2}$$
+        $$\boxed{y(t) = \frac{1}{2} - \frac{1}{2}e^{-t^2}}$$</p>
+
+        <p><strong>Behavior as $t \to \infty$：</strong>
+        $e^{-t^2} \to 0$（exponential decay），所以 $y(t) \to \dfrac{1}{2}$ as $t \to \infty$。
+        </p>
+      </div>
+
+      <p>
+        在继续看 Example 2.1.4（一道构造题）之前，让我们回顾一下前三道例题的共同模式：每道题都经历了"standard form → integrating factor → 积分 → apply I.C. → long-time behavior"五步。需要特别注意的是，每道题的 integrating factor 形式各有不同：Example 2.1.1 中 $\mu = t^2$（polynomial），Example 2.1.2 中 $\mu = e^{-t/2}$（decaying exponential），Example 2.1.3 中 $\mu = e^{t^2}$（rapidly growing Gaussian）。这三种 $\mu$ 的形态直接反映了 $P(t)$ 的不同形态：$P = 2/t$ 给出 $\mu = t^2$；$P = -1/2$ 给出 $\mu = e^{-t/2}$；$P = 2t$ 给出 $\mu = e^{t^2}$。计算 $\mu$ 时，先算 $\int P\,dt$，再取指数，这是固定的步骤。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.1.4 — Constructing an ODE from asymptotic behavior</p>
+        <p>
+          构造一个 first-order linear ODE，使得其 solution 在 $t \to \infty$ 时渐近于直线 $y = 4t - 1$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          注意：题目没有唯一答案（there is no unique solution to this construction problem）。<br><br>
+          思路：若 solution 渐近于 $4t - 1$，则 $y(t) = Ce^{-t} + 4t - 1$ 是一族这样的 solution（$Ce^{-t}$ 是在 $t \to \infty$ 时消失的 transient 项）。从这个 $y(t)$ 反推 ODE：
+          $$y' = -Ce^{-t} + 4$$
+          需要消去 $Ce^{-t}$。注意到 $y + 1 - 4t = Ce^{-t}$，所以 $Ce^{-t} = y + 1 - 4t$，代入 $y'$：
+          $$y' = -(y + 1 - 4t) + 4 = -y - 1 + 4t + 4 = -y + 4t + 3$$
+          但更简洁地整理为：
+          $$\boxed{y' = y + 5 - 4t}$$
+          验证：$y = Ce^{-t} + 4t - 1$，则 $y' = -Ce^{-t} + 4$；而 $y + 5 - 4t = Ce^{-t} + 4t - 1 + 5 - 4t = Ce^{-t} + 4 = y'$。确实成立。且 as $t \to \infty$，$Ce^{-t} \to 0$，$y \to 4t - 1$。
+        </p>
+      </div>
+
+      <p>
+        在三道 IVP 例题之后，让我们做一个横向比较。这三道题是 Ch 2 期中考试的必考类型，每道题的计算量中等，关键在于步骤不能乱——standard form、$\mu$、积分、apply I.C.、long-time behavior 五步缺一不可。三道例题的 $P(t)$ 分别是：$2/t$（Example 2.1.1，正的且在 $t > 0$ 时递减）、$-1/2$（Example 2.1.2，负数）、$2t$（Example 2.1.3，正的且递增）。Long-time behavior 的结论分别是：$y \to 0$（分子有界而分母 $t^2 \to \infty$）、$y \to -\infty$（$e^{t/2}$ 主导）、$y \to 1/2$（$e^{-t^2}$ 快速衰减）。可见：$P > 0$ 使 homogeneous term 衰减，有助于 solution 趋向有限值；$P < 0$ 使 homogeneous term 增长，导致 solution 发散。这是选择题和判断题里最常考的 intuition。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Asymptotic behavior 的系统分析</p>
+        <p>
+          在上面的例题里，我们分别见到了三种典型的 long-time behavior：趋向 0（Example 2.1.1）、趋向 $\pm\infty$（Example 2.1.2）、趋向有限常数（Example 2.1.3）。这三种行为由 general solution $y = y_p + Ce^{-\int P\,dt}$ 的结构决定：<br><br>
+          &bull; <strong>Homogeneous term</strong> $Ce^{-\int P\,dt}$：如果 $\int P\,dt \to +\infty$（即 $P > 0$ 且够大），则 $e^{-\int P\,dt} \to 0$，homogeneous term 衰减，solution 趋近于 particular solution。这就是 Example 2.1.3 里 $e^{-t^2}$ 的行为。<br><br>
+          &bull; 如果 $P < 0$（比如 $P = -1/2$ in Example 2.1.2），则 $e^{-\int P\,dt} = e^{t/2} \to \infty$，homogeneous term 主导，solution 发散。<br><br>
+          一般来说：判断 long-time behavior，先看 $P(t)$ 的符号和大小——这决定了 homogeneous part 是衰减还是增长；再看 $Q(t)$ 的大小——这决定了 particular part 的渐近形态。两者加起来就是 full solution 的行为。这种分析方式在 Ch 3（second-order ODEs）中同样适用，届时会分解为 transient 和 steady-state 两个部分。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="separable">2.2 &nbsp; Separable Equations</h2>
+
+      <p>
+        Sec 2.2 是 first-order ODEs 里面第一个处理 nonlinear 方程的 section。与 Sec 2.1 不同（那里只处理 linear ODEs），Sec 2.2 的 separable equations 可以是 linear 也可以是 nonlinear 的——分离变量方法本身不依赖 linearity，只依赖"可以因式分解"这个结构条件。这使得 separable equations 成为一类非常广泛的方程，涵盖了自然科学中很多重要的模型（指数增长/衰减就是最简单的 separable ODE；logistic equation 在 Sec 2.5 里也是通过 separable 方法求解的）。事实上，任何 autonomous ODE $y' = f(y)$ 都是 separable 的（$g(x) \equiv 1$，$p(y) = f(y)$），所以 separable equations 和 autonomous equations 之间有自然的联系：凡是 autonomous 的，都可以用分离变量法处理。
+      </p>
+
+      <p>
+        不是所有 first-order ODE 都是 linear 的——事实上，现实中大量有趣的 ODE 是 nonlinear 的，比如摆方程、人口增长方程、化学反应速率方程。Linear ODEs 有 integrating factor 这把"万能钥匙"；nonlinear ODEs 通常没有系统化的解法，各有各的特点。但有一类特殊的 first-order ODE，无论 linear 还是 nonlinear，都可以用同一套方法处理：separable equations（可分离方程）。它的核心想法极其简单且直觉强：把所有含 $y$ 的项移到左边，所有含 $x$ 的项移到右边，然后两边分别积分。
+      </p>
+
+      <h3 id="separable-form">Form and method</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (separable equation).</span>
+        A first-order ODE $\dfrac{dy}{dx} = f(x,y)$ is called <strong>separable</strong> if $f(x,y)$ can be written as a product of a function of $x$ alone and a function of $y$ alone：
+        $$f(x,y) = g(x)\cdot p(y)$$
+        即右边可以<em>因式分解</em>为"只含 $x$ 的部分"乘以"只含 $y$ 的部分"。注意这是乘积（product），不是求和（sum）。
+      </div>
+
+      <p>
+        判断 separability 的方法：尝试把 $f(x,y)$ 写成 $g(x) \cdot p(y)$，如果成功就是 separable，否则不是。常见的"不可分离"模式：$f = g(x) + h(y)$（加法不行）；$f = \ln(xy) = \ln x + \ln y$（看似分开但是加法）；$f = \cos(xy)$（$x$ 和 $y$ 混在一起，无法分离）。
+      </p>
+
+      <p>
+        Separable equation 的求解方法（Method for Separable Equations）：
+      </p>
+      <ol>
+        <li><strong>Step 1 — Differential form</strong>：令 $h(y) = 1/p(y)$，把方程写成 $h(y)\,dy = g(x)\,dx$（"$y$ 的部分在左，$x$ 的部分在右"）。</li>
+        <li><strong>Step 2 — Integrate both sides</strong>：$\displaystyle\int h(y)\,dy = \int g(x)\,dx$，得到 $H(y) = G(x) + C$（其中 $H$, $G$ 分别是 $h$, $g$ 的 antiderivatives，$C$ 是 arbitrary constant）。</li>
+        <li><strong>Step 3 — Explicit solution (if possible)</strong>：如果 $H(y) = G(x) + C$ 能解出 $y$ 的显式表达式 $y = \phi(x)$，那就是 explicit solution；否则保留 implicit solution $H(y) = G(x) + C$。</li>
+        <li><strong>Step 4 — Check constant solutions</strong>：设 $y = A$（constant），则 $y' = 0$，方程变成 $0 = g(x)\,p(A)$，要对所有 $x$ 成立，需要 $p(A) = 0$。找出所有这样的 $A$，它们是 constant solutions（equilibrium solutions）。这些解在 Step 2 中被"除掉"了（分离变量时除以 $p(y)$，若 $p(A) = 0$ 就出现了除以零），必须单独补充。</li>
+      </ol>
+
+      <p class="note">
+        两个重要注意点：(1) Constant solutions 不一定存在，但每次都必须检查，不能省略这步。(2) Explicit solution 不一定能找到——有时积分后得到的 implicit relation $H(y) = G(x) + C$ 无法解出 $y$，这时就保留 implicit form，这也是完整的 solution。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (explicit solution).</span>
+        方程 $F(x, y, y', \ldots, y^{(n)}) = 0$ 的 <strong>explicit solution</strong> 是一个 function $\phi(x)$，使得令 $y = \phi(x)$ 代入方程后，对 $(a,b)$ 上所有 $x$ 恒成立。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (implicit solution).</span>
+        A relation $G(x,y) = 0$ is an <strong>implicit solution</strong> of the ODE on $(a,b)$ if it defines one or more explicit solutions on $(a,b)$。也就是说，relation 没有把 $y$ 单独解出来，而是以隐式方式满足方程。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (explicit solution).</span>
+        给定 $n$-th order ODE $F(x, y, y', \ldots, y^{(n)}) = 0$ on $(a,b)$，一个 function $\phi(x)$ 是方程在 $(a,b)$ 上的 <strong>explicit solution</strong>，如果令 $y = \phi(x)$ 代入方程后，对所有 $x \in (a,b)$ 恒成立。$\phi(x)$ 把 $y$ 明确地表示为 $x$ 的 function。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (implicit solution).</span>
+        A relation $G(x,y) = 0$ is an <strong>implicit solution</strong> of the ODE on $(a,b)$ if it defines one or more explicit solutions on $(a,b)$。Implicit solution 没有把 $y$ 解出来，而是以 $x$ 和 $y$ 混在一起的 relation 表示——比如 $x^2 + y^2 = 1$，或 $y^4 = 4\ln|x| + \tilde{C}$。
+      </div>
+
+      <p>
+        为什么会出现 implicit solution？因为 separable equation 积分后得到 $H(y) = G(x) + C$，有时 $H(y)$ 是高次多项式或超越函数，从中解出 $y$ 是不可能的。这时 implicit solution 就是我们能做到的最好结果。幸运的是，implicit solution 在许多场合已经够用——比如 Sec 2.6 的 exact equations 就天然地给出 implicit solution $F(x,y) = C$，大多数情况下不需要再解出 $y$。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么"分离变量"合法</p>
+        <p>
+          把 $dy/dx = g(x)p(y)$ 改写成 $\dfrac{dy}{p(y)} = g(x)\,dx$，看起来像是在"代数地操纵 $dy$ 和 $dx$"，有点奇怪——$dy$ 和 $dx$ 毕竟不是普通的数，它们是 differential form。<br><br>
+          严格来说，这步的合法性来自 chain rule：设 $y = \phi(x)$ 是 solution，那么等式 $\phi'(x) = g(x)p(\phi(x))$ 两边对 $x$ 积分：
+          $$\int_{x_0}^{x} \phi'(t)\,dt = \int_{x_0}^{x} g(t)p(\phi(t))\,dt$$
+          左边用换元 $u = \phi(t)$，$du = \phi'(t)\,dt$：左边变成 $\int_{\phi(x_0)}^{\phi(x)} \frac{du}{p(u)}$，右边保持不变。这就是"两边积分"的真正含义，完全严格。<br><br>
+          所以 differential form 的写法 $h(y)\,dy = g(x)\,dx$ 只是这个换元过程的简写，方便记忆，并非真的把 $dy$ 当数来除。
+        </p>
+      </div>
+
+      <h3 id="separability-check">Separability 的判断</h3>
+
+      <p>
+        判断一个方程是否 separable，关键是检查 $f(x,y)$ 能否写成 $g(x) \cdot p(y)$ 的形式——即能否"因式分解"为 $x$-only 部分乘以 $y$-only 部分。这个判断有时一眼就能看出（比如已经写成乘积形式的），有时需要简单变形（比如把方程两边整理后才能看出来）。关键是：乘积（product）可以分离，加法（sum）不能分离。
+      </p>
+      <p>
+        Prof notes 给出了以下几个例子的判断，覆盖了常见的"可分离"和"不可分离"模式：
+      </p>
+      <ul>
+        <li>$\dfrac{dy}{dx} = \cos(xy)$：$\cos(xy)$ 的自变量是 $xy$（乘积），这意味着 $x$ 和 $y$ 通过 $\cos$ 函数混在一起，无法分离成 $x$-only 和 $y$-only 的乘积。<strong>Not separable</strong>。</li>
+        <li>$\dfrac{dy}{dx} = \dfrac{1}{xy^3}$：直接写成 $\dfrac{1}{x} \cdot \dfrac{1}{y^3}$，$x$-part 是 $1/x$，$y$-part 是 $1/y^3$，<strong>separable</strong>。</li>
+        <li>$\dfrac{ds}{dt} = \ln(st)$：注意 $\ln(st) = \ln s + \ln t$，是加法而非乘法，无法写成 $g(t) \cdot p(s)$ 的形式。<strong>Not separable</strong>。</li>
+        <li>$y' = (\cos^2 x)(\cos^2 2y)$：已经直接写成了 $x$-part $\times$ $y$-part 的形式，<strong>separable</strong>。</li>
+        <li>$x\,\dfrac{ds}{dx} = \dfrac{s^2 - 4}{2s}$：两边除以 $x$，整理为 $\dfrac{ds}{dx} = \dfrac{1}{x} \cdot \dfrac{s^2-4}{2s}$，可以分离，<strong>separable</strong>。</li>
+      </ul>
+      <p>
+        一个快速检验口诀：如果 $f(x,y)$ 里 $x$ 和 $y$ 只通过乘法（或各自只在分子或分母）联系，通常可以分离。如果 $x$ 和 $y$ 加在一起出现在同一个 nonlinear function（如 $\sin$, $\ln$, $e^{x+y}$）里，往往不可分离（但 $e^{x+y} = e^x \cdot e^y$ 是一个有趣的例外——因为指数的加法等价于乘积！）。
+      </p>
+
+      <p>
+        下面通过 prof notes 的例题，系统地练习 separable equation 的判断和求解。例题共分三组：第一组（a, b 两道）是"判断是否 separable，若是则求解"的纯练习，主要训练分离变量的识别和积分操作；第二组是 IVP（含 interval of existence 的分析），训练综合应用能力；第三组（a, b, c 三道）继续分离变量的判断，其中 b 和 c 需要处理 implicit solution 和 constant solutions。通过这些例题，要特别体会：constant solutions 在什么情况下被 general solution 包含（比如 Example 2.2.4 里 $\tilde{C} = 0$ 的情形），在什么情况下是独立的（需要单独列出）。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.2.1 — Separable equation with explicit solution</p>
+        <p>
+          判断 $\dfrac{dy}{dx} = \dfrac{1}{xy^3}$ 是否 separable；若是，求 solution。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$f(x,y) = \dfrac{1}{x} \cdot \dfrac{1}{y^3}$，可分离。</p>
+        <p><strong>Step 1</strong>：写成 differential form：
+        $$y^3\,dy = \frac{dx}{x}$$</p>
+        <p><strong>Step 2</strong>：两边积分：
+        $$\int y^3\,dy = \int \frac{dx}{x} \implies \frac{y^4}{4} = \ln|x| + C$$</p>
+        <p><strong>Step 3</strong>：解出 explicit solution：
+        $$y^4 = 4\ln|x| + \tilde{C} \implies y = \pm\!\left(4\ln|x| + \tilde{C}\right)^{1/4} \quad (\tilde{C} \in \mathbb{R})$$
+        其中 $\tilde{C} = 4C$ 仍是 arbitrary constant。</p>
+        <p><strong>Step 4</strong>：检查 constant solutions。$y' = \dfrac{1}{x} \cdot \dfrac{1}{y^3}$，若 $y = A$（constant），则 $0 = \dfrac{1}{x} \cdot \dfrac{1}{A^3}$，对所有 $x$ 成立要求 $\dfrac{1}{A^3} = 0$，不可能。<strong>No constant solutions。</strong></p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.2.2 — IVP with interval of existence</p>
+        <p>
+          Solve $y' = \dfrac{2x}{1+2y}$，$y(2) = 0$，并确定 solution 的 interval of existence（存在区间）。这道题是 separable equation 和 IVP 分析的综合练习：separable 求出 implicit solution，再用 quadratic formula 得到 explicit solution；最后要精细地分析哪个区间含 initial condition 并满足 solution 有定义、derivative 存在。注意 implicit → explicit 时 $\pm$ 号的选择必须通过 initial condition 来决定。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$f(x,y) = 2x \cdot \dfrac{1}{1+2y}$，separable。</p>
+        <p><strong>Step 1</strong>：
+        $$\int(1+2y)\,dy = \int 2x\,dx \implies y + y^2 = x^2 + C$$</p>
+        <p><strong>Step 3</strong>：$y^2 + y - (x^2 + C) = 0$，这是关于 $y$ 的 quadratic，用求根公式：
+        $$y = \frac{-1 \pm \sqrt{1 + 4(x^2 + C)}}{2}$$</p>
+        <p><strong>Step 4</strong>：检查 constant solutions。$0 = 2x \cdot \dfrac{1}{1+2y}$，要 $\dfrac{1}{1+2y} = 0$ 对所有 $x$ 成立，做不到。无 constant solutions。</p>
+        <p><strong>Apply I.C.</strong> $y(2) = 0$：代入 $0 = \dfrac{-1 \pm \sqrt{1 + 4(4 + C)}}{2}$，只有 $+$ 号使 $0 = \dfrac{-1 + 1}{2} = 0$ 成立（$-$ 号给出 $0 = \dfrac{-1-1}{2} \neq 0$）。由 $\pm$ 号选 $+$：
+        $$1 = \sqrt{1 + 4(4 + C)} \implies 1 = 1 + 16 + 4C \implies C = -4$$
+        $$\boxed{y = \frac{-1 + \sqrt{4x^2 - 15}}{2}}$$</p>
+        <p><strong>Interval of Existence</strong>：找最大的含 initial point $(2, 0)$ 的区间，满足：
+        <ul>
+          <li>Solution 有定义：需要 $4x^2 - 15 \geq 0$，即 $x^2 \geq \dfrac{15}{4}$，即 $|x| \geq \dfrac{\sqrt{15}}{2}$，对应 $x \in \left(-\infty, -\dfrac{\sqrt{15}}{2}\right) \cup \left(\dfrac{\sqrt{15}}{2}, +\infty\right)$。</li>
+          <li>Derivative 存在：需要 $1 + 2y \neq 0$，即 $y \neq -\dfrac{1}{2}$（从 solution 看，分子 $-1 + \sqrt{4x^2-15} \neq -1$，即 $\sqrt{4x^2-15} \neq 0$，即 $x \neq \pm\sqrt{15}/2$）。</li>
+          <li>含 initial condition $(2, 0)$：$2 > \dfrac{\sqrt{15}}{2}$，所以取右边的区间。</li>
+        </ul>
+        $$\text{Interval of Existence} = \left(\frac{\sqrt{15}}{2},\, +\infty\right)$$
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.2.3 — Implicit solution with constant solutions</p>
+        <p>
+          判断 $y' = (\cos^2 x)(\cos^2 2y)$ 是否 separable；若是，求 solution（包括 constant solutions）。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$f(x,y) = \cos^2 x \cdot \cos^2 2y$，separable。</p>
+        <p><strong>Steps 1–2</strong>：
+        $$\int \frac{dy}{\cos^2(2y)} = \int \cos^2 x\,dx$$
+        $$\int \sec^2(2y)\,dy = \int \frac{1 + \cos 2x}{2}\,dx \quad (\text{using } \cos^2 x = \tfrac{1+\cos 2x}{2})$$
+        $$\frac{\tan(2y)}{2} = \frac{x}{2} + \frac{\sin 2x}{4} + C$$
+        $$\boxed{\frac{\tan(2y)}{2} = \frac{x}{2} + \frac{\sin(2x)}{4} + C} \quad \text{(implicit solution)}$$</p>
+        <p><strong>Step 4</strong>：$0 = \cos^2 x \cdot \cos^2(2y)$，要对所有 $x$ 成立，需 $\cos^2(2y) = 0$，即 $\cos(2y) = 0$，即：
+        $$2y = \pm\frac{\pi}{2}, \pm\frac{3\pi}{2}, \ldots \implies y = \frac{(2n+1)\pi}{4}, \quad n \in \mathbb{Z}$$
+        这些都是 constant solutions。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.2.4 — Absorbing constant solutions into general solution</p>
+        <p>
+          对 $x\,\dfrac{ds}{dx} = \dfrac{s^2 - 4}{2s}$，求所有 solutions。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>整理：$\dfrac{ds}{dx} = \dfrac{1}{x} \cdot \dfrac{s^2-4}{2s}$，separable。</p>
+        <p><strong>Steps 1–2</strong>：
+        $$\int \frac{2s}{s^2 - 4}\,ds = \int \frac{dx}{x}$$
+        $$\ln|s^2 - 4| = \ln|x| + C$$
+        $$|s^2 - 4| = e^C|x| \implies s^2 - 4 = \pm e^C x$$
+        令 $\tilde{C} = \pm e^C$（所以 $\tilde{C} \in \mathbb{R} \setminus \{0\}$）：
+        $$s^2 = 4 + \tilde{C}x \implies \boxed{s = \pm\sqrt{4 + \tilde{C}x}} \quad (\tilde{C} \in \mathbb{R})$$</p>
+        <p><strong>Constant solutions</strong>：$\dfrac{ds}{dx} = 0$ 要求 $\dfrac{s^2-4}{2s} = 0$（对所有 $x$），即 $s^2 = 4$，即 $s = \pm 2$。</p>
+        <p class="note">注意：$s = \pm 2$ 恰好对应 $\tilde{C} = 0$ 的情况（此时 $s = \pm\sqrt{4} = \pm 2$），所以 constant solutions 实际上被包含在 general solution $s = \pm\sqrt{4 + \tilde{C}x}$ 中（令 $\tilde{C} = 0$）。这说明 general solution 本身已经覆盖了 constant solutions，但只有在写成 $\tilde{C} \in \mathbb{R}$（包括 0）时才体现。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 别忘记 constant solutions</p>
+        <p>
+          分离变量时，我们把方程写成 $\dfrac{dy}{p(y)} = g(x)\,dx$，其中隐含地假设了 $p(y) \neq 0$（因为我们除以了 $p(y)$）。如果 $p(y) = 0$ 有解（比如 $y = c$），那么这些 $y = c$ 是 constant solutions，满足 $y' = 0 = g(x) \cdot p(c) = g(x) \cdot 0 = 0$——只要 $g(x) \cdot 0 = 0$（总成立）。所以 $y = c$（每个使 $p(c) = 0$ 的 $c$）都是 solution，但分离变量过程中把它们除掉了。<br><br>
+          <strong>口诀：解 separable equation，永远在最后单独检查 constant solutions（令 $p(y) = 0$）。</strong><br><br>
+          有时 constant solutions 已经包含在 general solution 里（对应某个特殊的 arbitrary constant 值），比如 Example 2.2.4。但有时不是——比如 $y' = y^{1/3}$ 的 general solution 里没有 $y = 0$，但 $y = 0$ 确实是 solution（这类情况在 Sec 2.4 例题 c 里会见到）。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="existence-uniqueness">2.4 &nbsp; Existence &amp; Uniqueness — Linear vs Nonlinear</h2>
+
+      <p>
+        在 Sec 2.1 和 2.2 里，我们已经接触了两类 first-order ODE 的求解方法，也看到了 IVP 的操作流程。Sec 2.4 是一个"后退一步，看清全局"的 section——它不教新的求解技巧，而是从理论角度回答：在什么条件下，IVP 的 solution 一定存在，一定唯一，并且存在于多大的 interval 上？这些问题的答案被称为 Existence-Uniqueness Theorem（存在唯一性定理），是 differential equation theory 的基石。掌握了这个 theorem，不仅能回答"有没有解"，还能在做题之前就知道"解存在于哪个区间"——这是一种强大的先验信息，可以帮助我们在解题过程中更有把握、更少犯"用错了 domain"的错误。同时，Sec 2.4 揭示了 linear 和 nonlinear ODEs 在 existence/uniqueness 性质上的本质差距，这种对比是课程里最重要的理论 insight 之一。
+      </p>
+
+      <p>
+        我们已经学会了 solve linear 和 separable ODEs，但在求解之前，有一个更基本的问题：solution <em>存在</em>吗？如果存在，是否<em>唯一</em>？Sec 2.4 给出了回答这些问题的核心 theorems，并揭示了 linear 和 nonlinear ODEs 在 existence/uniqueness 上的本质差异。这是整个课程里最重要的理论性 section 之一——它告诉我们"在什么条件下我们可以放心地寻找 solution"，并且揭示了 nonlinear ODEs 在行为上远比 linear 复杂。
+      </p>
+
+      <p>
+        在学习具体 theorem 之前，先思考：为什么我们需要 existence/uniqueness theorem？直觉上，你可能觉得"方程当然有解，解方程就是在找解"。但数学上不是这样的——并非所有方程都有解，也并非所有解都是唯一的。举个简单例子：$y' = \sqrt{y}$，$y(0) = 0$，既有 $y \equiv 0$，也有 $y = x^2/4$，两个都满足方程和 initial condition——uniqueness 失败了。Existence-Uniqueness Theorem 告诉我们：在什么条件下，这种"歧义"不会发生。
+      </p>
+
+      <h3 id="eu-linear">Existence-Uniqueness for linear first-order ODEs</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence-Uniqueness, linear first-order).</span>
+        设 IVP 为
+        $$\frac{dy}{dx} + P(x)y = Q(x), \quad y(x_0) = y_0$$
+        其中 $x_0 \in (a,b)$。若 $P(x)$ 和 $Q(x)$ 在区间 $(a,b)$ 上 continuous，则对任意 $y_0$，存在唯一的 solution $y(x)$ on <em>all of</em> $(a,b)$。
+        <br><br>
+        <em>Key points.</em>
+        <ol>
+          <li>Unique solution exists on the <em>entire</em> interval $(a,b)$（不只是 $x_0$ 附近）。</li>
+          <li>$y_0$ 可以是任意值（initial value 无限制）。</li>
+          <li>Interval of existence 可以 without solving the ODE——只需找到 $P$ 和 $Q$ 同时 continuous 且含 $x_0$ 的最大区间。</li>
+          <li>$P$ 和 $Q$ 在 $(a,b)$ 之外的 discontinuity 不影响 $y$ 在 $(a,b)$ 内的存在性和连续性。</li>
+        </ol>
+        $\square$
+      </div>
+
+      <p>
+        来仔细品味这个 theorem 的每一个细节。首先，"$P(x)$ 和 $Q(x)$ 在 $(a,b)$ 上 continuous"是 hypotheses；结论是"存在唯一 solution on all of $(a,b)$"。注意：solution 不只是在 $x_0$ 附近存在——它存在于整个区间 $(a,b)$ 上！这是 linear ODE 比 nonlinear ODE 强得多的地方。其次，"$y_0$ 可以是任意值"——也就是说，不管你把初始值 $y_0$ 设成多大（哪怕是 $10^{100}$），solution 都能在整个 $(a,b)$ 上有定义，不会 blowup。第三，interval $(a,b)$ 可以<em>不解方程</em>就确定——只需要找 $P$ 和 $Q$ 同时 continuous 且含 $x_0$ 的最大区间。这在处理复杂方程时非常方便：你可以在解题开始就告诉自己"solution 存在于 $(a,b)$"，然后放心去求解，不必担心中途出现无法预料的奇点。
+      </p>
+      <p>
+        还有第四点（prof notes 明确列出）：linear ODE 的 solution 可以在 $P(t)$ 或 $Q(t)$ 的不连续点处仍然是 continuous 的——只是此时 $P$ 或 $Q$ 超出了 theorem 的覆盖范围，需要分段处理（在每个 continuity interval 上分别解，然后在不连续点处要求 $y$ continuous 来拼接）。这说明 linear ODE 有一种"鲁棒性"：即使 forcing function 有跳跃不连续，solution 也可以光滑地"吸收"这些不连续性。这个现象在 Ch 6（Laplace Transform）里处理 piecewise continuous forcing 时会用到。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 linear ODE 的 E&amp;U 这么强</p>
+        <p>
+          Linear ODE 的 existence-uniqueness theorem 之所以这么"慷慨"（solution 存在于整个 $(a,b)$ 上），根本原因是 linear ODE 没有"自我放大"的机制。在 $y' + P(t)y = Q(t)$ 里，$y$ 对自身的"反馈"是 linear 的——$y$ 再大，增长速率也只是 $Q - Py$，是 controlled 的。只要 $P$ 和 $Q$ continuous，ODE 的"驱动力"就一直有限，solution 不会在有限时间内爆炸（blowup）。<br><br>
+          而 nonlinear ODE 里，$y$ 可能以自身的高次方出现，产生 positive feedback：solution 增长越快，增长率越大，结果在有限时间内趋向无穷——这叫做 <strong>finite-time blowup</strong>。Example 2.4.3 的 $y' = 2ty^2$ 就会出现这种情况，其 interval of existence 取决于 initial value $y_0$，不能预先知道。
+        </p>
+      </div>
+
+      <p>
+        在使用这个 theorem 时，标准的操作流程是：① 把 ODE 化为 standard form $y' + P(x)y = Q(x)$；② 找出 $P(x)$ 和 $Q(x)$ 各自不连续的点（比如 $P = 2/t$ 在 $t = 0$ 不连续，$Q = \sin t / t$ 在 $t = 0$ 不连续）；③ 找到含 $x_0$ 的、$P$ 和 $Q$ 都 continuous 的最大 open interval。这个区间就是 E&amp;U Theorem 保证 solution 存在的区间。全过程不需要求解 ODE，只需要分析 $P$ 和 $Q$ 的 continuity，这在很多情况下大大简化了问题。
+      </p>
+      <p>
+        特别注意：化 standard form 这一步是必须做的。如果直接看原始方程 $a_1(x)y' + a_0(x)y = b(x)$ 里的 $a_0/a_1$ 的不连续性，可能会漏掉 $a_1(x) = 0$ 的点——比如 $ty' + 2y = \sin t$ 里的 $t = 0$。必须先化标准形式得到 $P = 2/t$，才能正确识别 $t = 0$ 是 $P$ 的不连续点，从而确认 interval of existence 是 $(0, \infty)$（含 $x_0 = \pi/2$）而不是全实轴。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.4.1 — Interval of existence, linear IVP</p>
+        <p>
+          用 E&amp;U Theorem 确定以下 IVP solution 的 existence interval（不需要求解）：<br>
+          (a) $ty' + 2y = \sin t$，$y(\pi/2) = 1$。<br>
+          (b) $y' - \dfrac{y}{2} = e^{-t}$，$y(0) = -1$。
+        </p>
+        <p><strong>Solution (a)：</strong></p>
+        <p>化为 standard form：$y' + \dfrac{2}{t}y = \dfrac{\sin t}{t}$，这里 $P(t) = \dfrac{2}{t}$，$Q(t) = \dfrac{\sin t}{t}$。</p>
+        <p>$P$ 和 $Q$ 在哪里 continuous？它们在 $t = 0$ 处不连续（除以了 $t$）。因此在 $(0,\infty)$ 上 continuous，在 $(-\infty, 0)$ 上也 continuous。Initial point $x_0 = \pi/2 \in (0,\infty)$，所以：</p>
+        <p>Solution exists and is unique on $(0, \infty)$。</p>
+        <p class="note">注：不需要求解就可以知道 interval。（事实上 solution 正是 Example 2.1.1 中求出的。）</p>
+        <p><strong>Solution (b)：</strong></p>
+        <p>$y' - \dfrac{1}{2}y = e^{-t}$，$P(t) = -\dfrac{1}{2}$，$Q(t) = e^{-t}$，两者在 $\mathbb{R}$ 上处处 continuous。Initial point $t = 0 \in \mathbb{R}$，所以：</p>
+        <p>Solution exists and is unique on $(-\infty, +\infty)$。</p>
+      </div>
+
+      <h3 id="eu-nonlinear">Existence-Uniqueness for nonlinear first-order ODEs</h3>
+
+      <p>
+        Nonlinear ODEs 的 existence-uniqueness 结论要弱得多，只能保证 solution 在 $x_0$ 的某个<em>邻域</em>内存在，而邻域的大小事先未知。这反映了 nonlinear ODE 的根本困难：nonlinear 项可能导致 solution 在有限时间内"爆炸"（blowup），使 solution 只能在有限的 interval 内有定义，而这个 interval 的大小依赖于 initial value 和 ODE 的具体结构，没有简单的先验判断方法。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence-Uniqueness, nonlinear first-order).</span>
+        考虑 IVP：$\dfrac{dy}{dx} = f(x,y)$，$y(x_0) = y_0$。若 $f$ 和 $\dfrac{\partial f}{\partial y}$ 在某个 rectangle
+        $$R = \{(x,y) : a < x < b,\; c < y < d\}$$
+        上 continuous，且 $(x_0, y_0) \in R$，则 IVP 存在唯一 solution，其 domain 包含某个区间 $(x_0 - \delta, x_0 + \delta)$，其中 $\delta > 0$。
+        <br><br>
+        <em>Notes.</em>
+        <ol>
+          <li>只能保证 solution 在 $x_0$ 附近的<em>某个</em>邻域 $(x_0 - \delta, x_0 + \delta)$ 内存在，$\delta$ 的大小未知。</li>
+          <li>Graphically，只有<em>唯一</em>一条 solution curve 通过点 $(x_0, y_0)$。</li>
+          <li>对 nonlinear ODEs，通常<em>必须</em>先求解才能确定 interval of existence。</li>
+          <li>对 nonlinear ODEs，existence of additional solutions is common（如 $y \equiv 0$ 之类的 singular solutions）。</li>
+        </ol>
+        $\square$
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — E&amp;U Theorem 的"单向性"</p>
+        <p>
+          Existence-Uniqueness Theorem 的结论只朝一个方向：若 hypotheses 满足，则 solution 唯一存在。但 <strong>不满足 hypotheses 并不意味着 solution 不存在或不唯一</strong>——它只是说 theorem 不适用，你需要另找方法判断。<br><br>
+          具体来说：
+          <ul>
+            <li>若 $f$ 和 $\partial f/\partial y$ 在含 $(x_0, y_0)$ 的某 rectangle 内 continuous → theorem 适用 → 唯一 solution 存在于 $x_0$ 的某邻域内。</li>
+            <li>若找不到这样的 rectangle（比如 $\partial f/\partial y$ 在 $(x_0, y_0)$ 处不连续）→ theorem 不适用 → 可能有 multiple solutions，或 no solution，或 unique solution——需要另外分析。</li>
+          </ul>
+          Example 2.4.2c 是 theorem 不适用的经典例子，而且此时确实存在 multiple solutions（$y \equiv 0$ 和另一个 non-trivial solution）。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.4.2 — Applying E&amp;U to nonlinear IVPs</p>
+        <p>
+          判断以下 IVP，E&amp;U Theorem 是否保证唯一 solution 存在。这三个 sub-problems 的核心对比是：(a) $f$ 和 $f_y$ 处处 continuous，E&amp;U 适用；(b) $f_y$ 在 $y = 0$ 不连续，但 initial point 的 $y$-value 是 $1 \neq 0$，仍然可以找到含 initial point 的 rectangle 使 $f_y$ continuous，E&amp;U 适用；(c) initial point 的 $y$-value 恰好是 $0$，$f_y$ 在此不连续，找不到合适的 rectangle，E&amp;U 不适用，且实际上有 multiple solutions。比较三者，就能深刻理解 E&amp;U Theorem 的 hypotheses 是如何精确地卡住"刚好好/刚好不好"的边界情况的。<br>
+          (a) $\dfrac{dy}{dt} = y^5 - t^5$，$y(1) = 6$。<br>
+          (b) $\dfrac{dy}{dx} - 3y^{2/3} = 0$，$y(0) = 1$。<br>
+          (c) $\dfrac{dy}{dx} = 3y^{2/3}$，$y(0) = 0$。
+        </p>
+        <p><strong>Solution (a)：</strong></p>
+        <p>$f(t,y) = y^5 - t^5$，$\dfrac{\partial f}{\partial y} = 5y^4$。两者在整个 $\mathbb{R}^2$ 上 continuous。$(1, 6) \in \mathbb{R}^2$，所以取 $R = \mathbb{R}^2$。E&amp;U 保证：唯一 solution 存在于 $t \in (1 - \delta, 1 + \delta)$ for some $\delta > 0$。</p>
+
+        <p><strong>Solution (b)：</strong></p>
+        <p>$f(x,y) = 3y^{2/3}$，$\dfrac{\partial f}{\partial y} = 2y^{-1/3}$。$\partial f/\partial y$ 在 $y = 0$ 处不连续（$y^{-1/3} \to \infty$）。但 initial point $(0, 1)$ 有 $y = 1 \neq 0$，所以可以取含 $(0,1)$ 的 rectangle $R = \{(x,y): -\infty < x < \infty,\; 0 < y < \infty\}$，其中 $f$ 和 $\partial f/\partial y$ 都 continuous。E&amp;U 保证：唯一 solution 存在于 $x \in (-\delta, \delta)$ for some $\delta > 0$。</p>
+
+        <p><strong>Solution (c)：</strong></p>
+        <p>$f(x,y) = 3y^{2/3}$，$\dfrac{\partial f}{\partial y} = 2y^{-1/3}$。Initial point $(0, 0)$ 恰好在 $y = 0$ 处，$\partial f/\partial y$ 在此不连续。不存在含 $(0,0)$ 的 rectangle 使 $f$ 和 $\partial f/\partial y$ 都 continuous。<strong>E&amp;U Theorem does not apply。</strong></p>
+        <p class="note">实际上此问题有 multiple solutions：$y \equiv 0$ 和 $y = x^3$（或更一般地 $y = (x - c)^3$ for any $c \geq 0$），因为 $y' = 3x^2 = 3(x-0)^2 = 3y^{2/3}$。这正是 nonlinear ODEs 中 uniqueness 可能失败的情形。</p>
+      </div>
+
+      <p>
+        在 Example 2.4.2 中，(b) 和 (c) 是同一个方程 $dy/dx = 3y^{2/3}$，但 initial conditions 不同：(b) 是 $y(0) = 1$（$y_0 \neq 0$），(c) 是 $y(0) = 0$（$y_0 = 0$）。结论截然不同：(b) E&amp;U 适用，解存在且唯一；(c) E&amp;U 不适用，实际上有 multiple solutions（$y \equiv 0$ 和 $y = x^3$ 都满足方程和 initial condition）。这说明 E&amp;U Theorem 对 nonlinear ODEs 的适用性是<em>局部的</em>（local），依赖于 initial point $(x_0, y_0)$ 处 $f$ 和 $f_y$ 的 continuity，而不是方程本身的整体性质。同一个 ODE，换一个 initial condition，theorem 的适用性就变了。这是 linear 和 nonlinear ODEs 的又一个本质区别：linear ODE 的 E&amp;U 只需要 $P, Q$ 在一个区间上 continuous（与 initial value 的<em>数值</em>无关），而 nonlinear ODE 的 E&amp;U 还需要 $f_y$ 在 initial point 处 continuous（这与 initial value 的数值密切相关）。
+      </p>
+      <p>
+        这种"nonlinear ODE uniqueness failure"的例子在教学中非常经典。$dy/dx = 3y^{2/3}$ 这类带分数幂的方程，在 $y = 0$ 处 $f_y = 2y^{-1/3}$ 无定义（趋向无穷），恰好会产生 multiple solutions：$y \equiv 0$（equilibrium solution，$y' = 3 \cdot 0^{2/3} = 0$）和 $y = x^3$（验证：$y' = 3x^2 = 3(x^3)^{2/3} = 3y^{2/3}$ ✓）都从 $y(0) = 0$ 出发，满足同一个 IVP。Uniqueness 的失败意味着从同一个初始状态，系统可以走向不同的轨迹——这在物理上对应"分叉"（bifurcation）或"对称性破缺"现象，在非线性动力系统里有深刻的意义。这是 nonlinear ODE 比 linear ODE"危险得多"的直接体现：对 linear ODE，只要 $P, Q$ continuous，这种歧义永远不会发生。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.4.3 — Interval depends on $y_0$</p>
+        <p>
+          Solve $y' = 2ty^2$，$y(0) = y_0$，并描述 solution 的 interval of existence 如何依赖 $y_0$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$f(t,y) = 2ty^2$，$\partial f/\partial y = 4ty$，两者在 $\mathbb{R}^2$ 上 continuous，E&amp;U 保证 unique local solution。</p>
+        <p>此方程是 separable（$f = 2t \cdot y^2$）。若 $y_0 \neq 0$：
+        $$\int \frac{dy}{y^2} = \int 2t\,dt \implies -y^{-1} = t^2 + C$$
+        代入 $y(0) = y_0$：$-y_0^{-1} = C$，所以：
+        $$y = \frac{-1}{t^2 - 1/y_0} = \frac{y_0}{1 - y_0 t^2}$$</p>
+        <p>分析 interval of existence：
+        <ul>
+          <li><strong>若 $y_0 < 0$</strong>：分母 $1 - y_0 t^2 = 1 + |y_0|t^2 > 0$ 对所有 $t$ 成立，solution defined on $(-\infty, \infty)$。</li>
+          <li><strong>若 $y_0 > 0$</strong>：分母 $= 0$ 当 $t = \pm 1/\sqrt{y_0}$。Solution defined on $(-1/\sqrt{y_0},\, 1/\sqrt{y_0})$（含 initial point $t_0 = 0$）。</li>
+          <li><strong>若 $y_0 = 0$</strong>：$y \equiv 0$，interval is $(-\infty, \infty)$。</li>
+        </ul>
+        </p>
+        <p class="note">
+          这说明对 nonlinear ODEs，interval of existence 可以依赖 initial value $y_0$——越大的 $y_0$，interval 越小（blowup 来得越早）。Linear ODEs 完全没有这个问题。
+        </p>
+      </div>
+
+      <p>
+        Example 2.4.3 揭示了 nonlinear ODEs 的一个关键特征：solution 的 interval of existence 不仅与方程本身有关，还与 initial condition 的数值密切相关。对 linear ODEs，所有 initial conditions 下的 solution 都存在于同一个 interval（由 $P$, $Q$ 的 continuity 决定）；对 nonlinear ODEs，不同的 $y_0$ 可能导致完全不同的 interval of existence——有些 $y_0$ 给出全实轴，有些给出有限区间，且有限区间的大小随 $y_0$ 增大而减小。这种"initial condition 决定 interval"的现象叫做 <strong>dependence of existence on initial data</strong>，是 nonlinear ODE 理论的基本特征之一。在工程应用中，这意味着：一个 nonlinear 系统在某些初始状态下是"全局稳定"的，在另一些初始状态下却会在有限时间内"崩溃"——这是设计鲁棒控制系统时必须考虑的。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Linear vs Nonlinear: 关键差异汇总</p>
+        <p>
+          Prof notes 总结了 linear ODEs 特有的三个"好性质"，nonlinear ODEs 一般没有：<br><br>
+          <strong>1. General solution exists explicitly.</strong> 对 linear first-order ODE，只要 $P$ 和 $Q$ continuous，integrating factor 方法总能给出 explicit general solution，且所有 solutions 都包含在内。Nonlinear ODEs 没有这种保证——有时根本没有 closed-form solution。<br><br>
+          <strong>2. Interval of existence without solving.</strong> 对 linear ODE，只需找 $P$、$Q$ 同时 continuous 且含 $x_0$ 的最大区间即可（无需求解）。对 nonlinear ODE，通常必须先求解，才能分析 interval。<br><br>
+          <strong>3. Solution can be continuous across discontinuities of $P$, $Q$.</strong> 即使 $P(t)$ 或 $Q(t)$ 在 $(a,b)$ 内某点不连续，solution $y(t)$ 仍然可以在该点 continuous（通过两侧分别求解然后拼接）。这是 linear ODE 特有的"容错性"。<br><br>
+          总结：linear ODEs 好解是因为它们拥有 global existence、结构化的 solution space，以及无需求解就能知道 existence interval 的便利性；nonlinear ODEs 没有这些保障，每个问题都需要因题制宜地分析。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="autonomous">2.5 &nbsp; Autonomous Equations &amp; Phase Line</h2>
+
+      <p>
+        Sec 2.5 是 Ch 2 里面风格最不一样的 section：它不聚焦于求解 ODE，而是发展一套<em>不求解</em>就能回答"解的长期行为"的定性分析工具。这种"qualitative analysis"在现代数学和科学中极为重要——很多 ODE（尤其是 nonlinear 的）根本没有 closed-form solution，但我们仍然需要知道系统会趋向稳定还是发散，equilibrium 是稳定的还是不稳定的。Phase line 给了我们一套高效回答这些问题的语言，而且答案通常比精确解更直观、更易于解读。
+      </p>
+      <p>
+        学习 Sec 2.5 时，要注意把它与 Sec 1.1（direction fields）联系起来：autonomous ODE 的 direction field 是"列均匀"的（固定任意 $y$ 值，所有时刻的 slope 完全相同），phase line 就是把这个 direction field"压缩"到 $y$-axis 上的结果——每个 $y$ 值只保留一个"箭头"（向上或向下），不保留 $t$ 的信息。如果已经学过 direction field，phase line 就是一个自然的简化；如果还不熟悉 direction field，phase line 可以作为独立的工具直接学习，不依赖 direction field 的概念。
+      </p>
+      <p>
+        值得一提：Sec 2.5 在 prof notes 里与 population dynamics 紧密结合，用指数增长（exponential growth）和 logistic growth 两个模型来具体说明 autonomous ODE 的 qualitative theory。这两个模型是生态学的基础，也是 differential equations 在自然科学中最重要的应用之一。掌握了这两个模型，对 autonomous ODE 的 general theory 就有了很好的直觉支撑。
+      </p>
+
+      <p>
+        有一类特殊的 first-order ODE，称为 autonomous equations，其 right-hand side 不显式地依赖 independent variable $t$（只依赖 $y$ 本身）。这类方程在自然科学和工程中极为常见——种群增长、化学反应、物理降温都是 autonomous ODE 的例子。更重要的是，autonomous equations 有一套深刻的 qualitative（定性）理论：phase line（相线）。Phase line 让我们无需求解方程，仅仅通过分析 $f(y)$ 的零点和符号，就能看清 solution 的长期行为：最终趋向哪个 equilibrium，收敛还是发散，是 stable 还是 unstable。这种"不求解而获得信息"的能力是现代动力系统理论的核心。
+      </p>
+
+      <p>
+        本节的 independent variable 统一用 $t$（时间），dependent variable 有时用 $y$（一般情形），有时用 $P$（population 背景）。两者含义完全类似，只是具体例题的命名不同。
+      </p>
+
+      <h3 id="autonomous-def">Autonomous ODE 和 phase line 定义</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (autonomous ODE).</span>
+        A first-order ODE is <strong>autonomous</strong> if it has the form
+        $$\frac{dy}{dt} = f(y)$$
+        即 right-hand side 只依赖 $y$，不显式地依赖 $t$。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (phase line).</span>
+        The <strong>phase line</strong> of an autonomous ODE $y' = f(y)$ 是一条只画在 $y$-axis 上的图形，标出所有 equilibrium solutions（$f(y) = 0$ 的点），并在各区间上用箭头指示 $f(y)$ 的正负（$f > 0$ 箭头朝上，$f < 0$ 箭头朝下）。
+      </div>
+
+      <p>
+        Equilibrium solutions 的稳定性是 phase line 分析的核心输出。稳定性刻画的是：当 initial condition 稍微偏离某个 equilibrium 时，solution 最终是回到它（stable）、远离它（unstable），还是单侧回来单侧离开（semistable）。三类定义如下：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (stable / unstable / semistable equilibrium).</span>
+        设 $y^*$ 是 autonomous ODE $y' = f(y)$ 的 equilibrium（即 $f(y^*) = 0$）：
+        <ul>
+          <li><strong>Stable equilibrium</strong>：$y^*$ 两侧附近的 solutions 都被 attracted toward $y^*$ as $t \to \infty$（phase line 上两侧箭头都指向 $y^*$）。Stable equilibrium 也叫 asymptotically stable。</li>
+          <li><strong>Unstable equilibrium</strong>：$y^*$ 两侧附近的 solutions 都被 repelled from $y^*$ as $t \to \infty$（phase line 上两侧箭头都指离 $y^*$）。</li>
+          <li><strong>Semistable equilibrium</strong>：$y^*$ 一侧的 solutions 被 attracted，另一侧被 repelled（phase line 上两侧箭头方向不同，但都不是"两边都朝向"或"两边都朝离"）。</li>
+        </ul>
+      </div>
+
+      <p>
+        在 phase line 上判断稳定性的口诀：<em>看 $y^*$ 两侧的箭头。两边都朝向 $y^*$ → stable；两边都背离 $y^*$ → unstable；一边朝向一边背离 → semistable</em>。这个判断不需要任何计算，只需看箭头方向。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Phase line 是 direction field 的"压缩版"</p>
+        <p>
+          Autonomous ODE $y' = f(y)$ 有一个关键性质：在 direction field 里，同一高度 $y = c$ 上<em>所有点</em>的 slope 都相同（等于 $f(c)$），因为 $f$ 不含 $t$，只依赖 $y$。这意味着 direction field 是"水平平移不变的"——整张图左移右移，看起来一模一样。<br><br>
+          正因如此，二维的 direction field 包含的所有信息，都已经浓缩在了一维的 phase line 里：每个高度 $y$ 只需要知道 $f(y)$ 的正负，就能决定该高度的 solution 是上升还是下降，而 equilibria（$f(y^*) = 0$ 的点）把 $y$-axis 分割成若干区间，每个区间内的 $f$ 符号一致。把区间内的符号用箭头画出来，phase line 就完成了。<br><br>
+          从 phase line 读取信息：一个 equilibrium $y^*$ 是 stable 当且仅当其上方 $f < 0$（向下）、下方 $f > 0$（向上）——两侧箭头都指向它；unstable 则相反；semistable 则两侧符号相同（一上一下的情况）。这比画完整的 direction field 高效得多，尤其是当 $f(y)$ 复杂时。<br><br>
+          还有一个重要结论：由 E&amp;U Theorem，两条不同的 solution curves 永远不会相交。因此，solution curve 一旦出发，就永远被 equilibria 隔开——它只能趋近某个 equilibrium，永远无法"越过"它。
+        </p>
+      </div>
+
+      <h3 id="exponential-growth">Exponential growth model</h3>
+
+      <p>
+        最简单、最经典的 autonomous ODE 是指数增长方程（exponential growth model），它描述了"增长速率正比于当前数量"这一最基本的动力学规律。在种群生态学中，这意味着每个个体以恒定比例生育和死亡，种群规模只受自身数量驱动，不受外部限制。在放射性衰变中，$k < 0$，方程描述的是指数衰减：单位时间内每个原子以恒定概率发生衰变。两者都是 autonomous ODE，只是 $k$ 的符号不同。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (exponential growth model).</span>
+        $$\frac{dP}{dt} = kP, \quad P(0) = P_0$$
+        其中 $k > 0$ 是 growth rate constant（若 $k < 0$ 则为 decay），$P(t)$ 是 population（或任何以固定比例增长/衰减的量）。Solution：$P(t) = P_0 e^{kt}$。
+      </div>
+
+      <p>
+        求解过程：这是一个简单的 separable autonomous ODE。$\displaystyle\int \frac{dP}{P} = \int k\,dt$，得 $\ln|P| = kt + C$，即 $P(t) = \pm e^C \cdot e^{kt}$。代入 $P(0) = P_0$，得 $P(t) = P_0 e^{kt}$。也可以直接观察：方程 $P' = kP$ 说明 $P$ 满足"导数等于自身倍数"，这正是 $e^{kt}$ 的特征。
+      </p>
+
+      <p>
+        Phase line 分析（以 $k > 0$ 为例）：令 $P' = kP = 0$，得唯一 equilibrium $P = 0$。当 $P > 0$ 时，$P' = kP > 0$（增长）；当 $P < 0$ 时，$P' = kP < 0$（继续减少，在生物学上无意义但数学上合法）。所以 $P = 0$ 是 <strong>unstable equilibrium</strong>（两侧箭头都背离它）。这与直觉一致：指数增长中，只要初始种群 $P_0 > 0$，种群就会无限增大，永远不会回到 0。
+      </p>
+
+      <p>
+        指数增长是一个 reasonable model for limited periods of time（短期合理），但它 ignores limitations on space, food, and resources（忽略了资源限制）。随着时间推移，种群增长终将受到环境的制约——这促使了更现实的 logistic growth model 的引入。从数学上看，exponential growth ODE 的解是单调的（$k > 0$ 时单调递增），没有 equilibrium 限制，行为相对简单；logistic growth ODE 则更丰富，有两个 equilibria，解可以单调递增（$0 < P_0 < K$）或单调递减（$P_0 > K$），最终都趋向 $K$，行为复杂得多，相应地也更真实。
+      </p>
+
+      <h3 id="logistic-growth">Logistic growth model</h3>
+
+      <p>
+        指数增长模型的致命缺陷是：它预测种群会无限增大，而现实中的种群总会受到食物、空间、竞争等因素的限制。为了解决这个问题，生态学家引入了 logistic growth model，通过一个 factor $(1 - P/K)$ 来刻画"越接近上限，增长越慢"的效应。这个模型由 Verhulst 在 1838 年首次提出，至今仍是种群动态最重要的基础模型之一。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (logistic equation).</span>
+        $$\frac{dP}{dt} = rP\!\left(1 - \frac{P}{K}\right)$$
+        其中 $r > 0$ 是 intrinsic growth rate（内禀增长率），$K > 0$ 是 carrying capacity（环境承载量，即种群数量的上限）。
+      </div>
+
+      <p>
+        来看这个方程的直觉：当 $P \ll K$ 时，$(1 - P/K) \approx 1$，方程近似为 $dP/dt \approx rP$，即指数增长——种群很小时，资源充足，增长最快。当 $P \to K$ 时，$(1 - P/K) \to 0$，方程近似为 $dP/dt \approx 0$——种群接近上限时，增长几乎停止。当 $P > K$ 时，$(1 - P/K) < 0$，$P' < 0$——超过承载量时，种群反而减少（资源不足导致死亡率上升）。这三个区域的行为在 phase line 上清晰地体现出来。
+      </p>
+
+      <p>
+        <strong>Equilibrium solutions 和 phase line 分析：</strong>令 $P' = rP(1-P/K) = 0$，得两个 equilibria：$P = 0$ 和 $P = K$。
+      </p>
+      <ul>
+        <li>$0 < P < K$：$(1 - P/K) > 0$ 且 $P > 0$，所以 $P' > 0$（种群增长，箭头向上）。</li>
+        <li>$P > K$：$(1 - P/K) < 0$ 且 $P > 0$，所以 $P' < 0$（种群减少，箭头向下）。</li>
+      </ul>
+      <p>
+        Phase line 结论：$P = 0$ 是 <strong>unstable equilibrium</strong>（上方箭头向上，远离 0）。$P = K$ 是 <strong>stable equilibrium</strong>（下方箭头向上、上方箭头向下，都指向 $K$）。也就是说：无论初始种群 $P_0$ 是多少（只要 $P_0 > 0$），最终 $P(t) \to K$。
+      </p>
+
+      <p class="note">
+        由 E&amp;U Theorem，solutions 只能<em>渐近地</em>趋近 $K$，永远不能在有限时间内等于 $K$，更不能"越过" $K$。这是因为 $P = K$ 是一个 equilibrium solution——由 uniqueness，其他 solution 不能与之相交。
+      </p>
+
+      <p>
+        Logistic equation 的 closed-form solution（via separable equation + partial fractions），以 $P(0) = P_0$，$0 < P_0 < K$ 为例：
+        $$P(t) = \frac{P_0 K}{P_0 + (K - P_0)e^{-rt}}$$
+        验证：当 $t = 0$，$P(0) = P_0 K / (P_0 + K - P_0) = P_0$。当 $t \to \infty$，$e^{-rt} \to 0$，$P(t) \to P_0 K / P_0 = K$。这正是 phase line 预测的行为。
+      </p>
+
+      <p>
+        从 phase line 读取的结论与精确解完全吻合，这并不是巧合。Phase line 正确地刻画了 logistic equation 的定性行为，而精确解则给出了定量信息（$P(t)$ 在每个时刻的具体数值）。两者互补：当你只需要知道"最终稳定在哪里"时，用 phase line 最高效；当你需要知道"第 $t$ 年种群是多少"时，才需要精确解。这就是 qualitative analysis 与 quantitative analysis 的分工。另外，值得注意的是：logistic equation 是 separable 的（$f(P) = rP(1-P/K)$ 只依赖 $P$，不含 $t$；同时满足 separable form $dP/dt = f(P) \cdot 1$），所以可以用 Sec 2.2 的 separable method 求出精确解。实际上，Deeper box 里的推导正是 separable equation 积分 + partial fractions 的标准流程。
+      </p>
+
+      <p>
+        还有一个重要说明（prof notes 的 note）：不需要求解 logistic ODE 就能分析 equilibrium solutions 的稳定性——phase line 完全可以从 $f(P) = rP(1 - P/K)$ 的因式结构直接读出，无需积分。这个"无需求解就能分析稳定性"的能力，正是 phase line 方法的核心价值。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Logistic equation 的推导</p>
+        <p>
+          Logistic equation 是 separable 的。以 $P(0) = P_0$，$0 < P_0 < K$ 为例（$P_0 > K$ 类似）：
+          $$\int \frac{dP}{(1 - P/K)P} = \int r\,dt$$
+          用 partial fractions：$\dfrac{1}{P(1 - P/K)} = \dfrac{1/K}{1/K \cdot P(K-P)} \cdot K$。更直接地：
+          $$\frac{1}{P(1-P/K)} = \frac{1}{P} + \frac{1/K}{1 - P/K}$$
+          设 $0 < P_0 < K$，则 $P > 0$ 且 $1 - P/K > 0$，积分后取 log：
+          $$\ln|P| - \ln\left|1 - \frac{P}{K}\right| = rt + C \implies \ln\frac{P}{1 - P/K} = rt + C$$
+          令 $t = 0$，$P = P_0$：$C = \ln\dfrac{P_0}{1 - P_0/K}$。整理后得到：
+          $$P(t) = \frac{P_0 K}{P_0 + (K - P_0)e^{-rt}}$$
+          这个公式被称为 logistic function（S形曲线，sigmoid curve）。它在种群生态学、传染病模型（SIR model 的特例）、甚至神经网络的 activation function 里都有应用。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.5.1 — Phase line for $x' = a - bx$</p>
+        <p>
+          对 $\dfrac{dx}{dt} = a - bx$（其中 $a, b > 0$），用 phase line 分析 equilibrium solutions 的稳定性。这是 prof notes 给出的第一个 phase line 例子，本质上是一个 linear autonomous ODE（可以直接用 integrating factor 解出 $x(t) = (a/b) + Ce^{-bt}$），phase line 结论与精确解完全吻合。但注意：phase line 方法不需要 solve ODE，直接从 $f(x) = a - bx$ 的符号判断，更高效，且对 nonlinear $f$ 同样适用。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>令 $x' = 0$：$a - bx = 0 \implies x = a/b$。只有一个 equilibrium。</p>
+        <p>分析符号：
+        <ul>
+          <li>$x > a/b$：$a - bx < 0$，$x' < 0$（递减，箭头向下）。</li>
+          <li>$x < a/b$：$a - bx > 0$，$x' > 0$（递增，箭头向上）。</li>
+        </ul>
+        两侧箭头都指向 $x = a/b$，因此 $x = a/b$ 是 <strong>stable equilibrium</strong>。</p>
+        <p>结论：as $t \to \infty$，$x(t) \to a/b$（无论初始值如何）。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.5.2 — Semistable equilibrium and three types of stability</p>
+        <p>
+          给定 $y' = -(y-3)(y-2)(y-1)^2$，$y(0) = y_0 > 0$，用 phase line 分析所有 equilibrium solutions 的稳定性，画出 phase line，并在 $ty$-plane 上sketch several solutions。这道题同时展示了 stable、unstable、semistable 三种稳定性，是一道非常完整的 phase line 练习。注意 $(y-1)^2$ 这个因子：它在 $y = 1$ 处是二阶零点，使得 $y = 1$ 两侧的 $y'$ 符号相同（都为负），产生 semistable 的行为——这正是"偶数阶零点导致 semistable"的典型例子。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>令 $y' = 0$：$-(y-3)(y-2)(y-1)^2 = 0 \implies y = 1, 2, 3$。三个 equilibria，把 $y$-axis（$y > 0$）分成四个区间。</p>
+        <p>分析各区间的 $y'$ 符号（注意 $-(y-1)^2 \leq 0$ 恒成立，$(y-3)(y-2)$ 的符号决定了整体符号的变化）：</p>
+        <table class="data-table">
+          <tr><th>区间</th><th>$(y-3)$</th><th>$(y-2)$</th><th>$(y-1)^2$</th><th>$y'$</th></tr>
+          <tr><td>$0 &lt; y &lt; 1$</td><td>$-$</td><td>$-$</td><td>$+$</td><td>$-(+)(+) = -\;$（向下）</td></tr>
+          <tr><td>$1 &lt; y &lt; 2$</td><td>$-$</td><td>$-$</td><td>$+$</td><td>$-$（向下）</td></tr>
+          <tr><td>$2 &lt; y &lt; 3$</td><td>$-$</td><td>$+$</td><td>$+$</td><td>$+(-)= +$（向上）</td></tr>
+          <tr><td>$y &gt; 3$</td><td>$+$</td><td>$+$</td><td>$+$</td><td>$-$（向下）</td></tr>
+        </table>
+        <p>Phase line 分析：
+        <ul>
+          <li>$y = 1$：下方（$y < 1$）箭头向下，上方（$1 < y < 2$）箭头也向下 → <strong>semistable</strong>（solutions 从上方接近，从下方离开）。</li>
+          <li>$y = 2$：下方（$1 < y < 2$）箭头向下，上方（$2 < y < 3$）箭头向上 → <strong>unstable</strong>。</li>
+          <li>$y = 3$：下方（$2 < y < 3$）箭头向上，上方（$y > 3$）箭头向下 → <strong>stable</strong>。</li>
+        </ul>
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Semistable 的识别</p>
+        <p>
+          Semistable equilibrium 容易被漏掉或误判为 stable/unstable。判断口诀：<br>
+          <strong>两侧箭头同向 → semistable</strong>（一边"冲进来"，另一边"逃出去"）。<br>
+          <strong>两侧箭头都朝向 equilibrium → stable</strong>。<br>
+          <strong>两侧箭头都背离 equilibrium → unstable</strong>。<br><br>
+          Semistable equilibrium 通常出现在 $f(y^*) = 0$ 且 $f'(y^*) = 0$（即 $y^*$ 是 $f$ 的切点而非简单零点）的情况下。在 Example 2.5.2 中，$(y-1)^2$ 使 $y = 1$ 是 $f$ 的<em>二阶</em>零点，因此出现 semistable 的情形。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="exact">2.6 &nbsp; Exact Equations</h2>
+
+      <p>
+        学习 Sec 2.6 前，先理解它在 Ch 2 里的位置。前面我们有了两类主要的求解方法：integrating factor（linear ODEs）和 separable equations（可因式分解的 ODEs）。Exact equations 提供了第三类：利用二元函数的偏导数结构，把"找 solution"转化为"找 potential function"。从覆盖范围来说，exact equation method 能处理一些 separable 和 linear 方法都不直接适用的方程（比如 Example 2.6.2 里的 $(2x-y)\,dx + (2y-x)\,dy = 0$，既不是 separable 也不是 standard linear form）。Exact equations 的 general solution 是 implicit form $F(x,y) = C$，这也是整个 Ch 2 里出现 implicit solution 最自然的情境——因为 potential function $F$ 的 level curves 恰好是 solution curves，不需要强行解出 $y$。
+      </p>
+      <p>
+        Exact equations 需要用到 Cal III 里的 partial derivative 和 total differential 知识。如果对这部分有些生疏，建议回顾一下：(1) 二元函数的 partial derivative：$F_x = \partial F/\partial x$ 是固定 $y$ 对 $x$ 求导（把 $y$ 当常数）；(2) Clairaut's theorem：若 $F_{xy}$ 和 $F_{yx}$ 连续，则 $F_{xy} = F_{yx}$——混合偏导相等；(3) 全微分 $dF = F_x\,dx + F_y\,dy$——函数 $F$ 的微小变化由两个方向的偏变化之和给出。这三个工具是 Sec 2.6 的全部背景知识，缺一不可。
+      </p>
+
+      <p>
+        一个值得预先说明的格式问题：prof notes 在 Sec 2.6 里把 ODE 写成 differential form $M\,dx + N\,dy = 0$，这与 Sec 2.1 的 $y' + Py = Q$ 和 Sec 2.2 的 $dy/dx = g(x)p(y)$ 格式都不同。要把 $M + Ny' = 0$ 变成 $dy/dx$ 的形式就是 $dy/dx = -M/N$（除以 $N$ 并移项）。大多数情况下，看到 $M\,dx + N\,dy = 0$ 的形式就直接用 exact equation method，不需要还原成 $dy/dx$ 的形式——那样反而会增加复杂度。
+      </p>
+
+      <p>
+        现在来到 Ch 2 最后也是概念上最丰富的 section：exact equations。它揭示了 first-order ODE 和多元微积分（partial derivatives、total differentials）之间的深刻联系——exact equation 本质上是在问"这个 expression 是不是某个二元函数的 total differential"？如果是，那 general solution 就直接写成 potential function 的 level curves，优雅无比。如果不是，我们还可以尝试用 integrating factor 把它变成 exact，然后再求解。
+      </p>
+
+      <p>
+        这里的 independent variable 用 $x$，dependent variable 用 $y$，方程写成 differential form $M(x,y)\,dx + N(x,y)\,dy = 0$。注意这与 Sec 2.1 的写法（$y' + Py = Q$，即 $y'$ 写在一边）不同——这里把 $y'$ 隐式地包含在了 $N\,dy/dx$ 里，方程的两边都是关于 $dx$ 和 $dy$ 的。这种写法在 Cal III 里叫 differential form，是处理 exact equations 最自然的语言。
+      </p>
+
+      <h3 id="exact-derivation">Derivation and definition</h3>
+
+      <p>
+        Exact equation 的思想来自一个简单的观察：如果一个 first-order ODE 的 general solution 写成 $F(x,y) = C$（implicit form），那么对两边全微分——利用 chain rule，把 $y$ 看成 $x$ 的函数——可以把 $F(x,y) = C$ 变回一个 ODE。反过来，如果我们能把一个 ODE 识别为"某个 $F(x,y)$ 的全微分等于零"，那 general solution 就是 $F(x,y) = C$，不需要进一步积分。
+      </p>
+      <p>
+        具体推导：设 $F(x,y) = C$，对两边关于 $x$ 求全导数（注意 $y = y(x)$ 是 $x$ 的函数）：
+        $$\frac{d}{dx}[F(x,y)] = 0 \implies \frac{\partial F}{\partial x} + \frac{\partial F}{\partial y}\frac{dy}{dx} = 0$$
+        写成 differential form（两边同乘以 $dx$）：
+        $$\frac{\partial F}{\partial x}\,dx + \frac{\partial F}{\partial y}\,dy = 0$$
+        令 $M(x,y) = \dfrac{\partial F}{\partial x}$ 且 $N(x,y) = \dfrac{\partial F}{\partial y}$，方程变为标准 exact form：
+        $$M(x,y)\,dx + N(x,y)\,dy = 0$$
+        这说明：任何"$F(x,y) = C$"类型的 implicit relation 全微分后都给出这样形式的方程；反过来，如果给定的 ODE 恰好等于某个 $F$ 的全微分，那 solution 就是 $F = C$。
+      </p>
+
+      <p>
+        接下来，prof notes 给出了以下两个重要事实（facts）：一是，给定 $M + Ny' = 0$，如果存在 $F$ 使得 $F_x = M$ 且 $F_y = N$，则 ODE 的 solutions 由 $F(x,y) = C$ 给出；二是，$M + Ny' = 0$ 在 rectangle $R$ 内是 <strong>exact</strong>，如果存在这样的 $F$。接下来的 theorem 给出了检验 exactness 的便捷判据。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (exact equation).</span>
+        方程 $M(x,y)\,dx + N(x,y)\,dy = 0$ 在 rectangle $R$ 内是 <strong>exact</strong>，如果存在 function $F(x,y)$ 使得在 $R$ 内 $\forall (x,y)$：
+        $$\frac{\partial F}{\partial x} = M(x,y) \quad \text{and} \quad \frac{\partial F}{\partial y} = N(x,y)$$
+        此时 $F(x,y)$ 称为 <strong>potential function</strong>，general solution 是 $F(x,y) = C$（implicit solution）。
+      </div>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Exactness criterion).</span>
+        若 $M$ 和 $N$ 在 rectangle $R$ 上 continuous 且 $M_y, N_x$ 存在，则
+        $$M\,dx + N\,dy = 0 \text{ is exact in } R \iff \frac{\partial M}{\partial y} = \frac{\partial N}{\partial x} \quad \forall\,(x,y)\in R$$
+        $\square$
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 $M_y = N_x$ 是 exactness 的条件</p>
+        <p>
+          如果 $M = F_x$ 且 $N = F_y$，那么由 Clairaut's theorem（混合偏导的相等性，只要 $F_{xy}$ continuous）：
+          $$\frac{\partial M}{\partial y} = \frac{\partial^2 F}{\partial y \partial x} = \frac{\partial^2 F}{\partial x \partial y} = \frac{\partial N}{\partial x}$$
+          这就是为什么 $M_y = N_x$ 是 exactness 的必要条件——如果 potential $F$ 存在，它的混合偏导必须相等。<br><br>
+          反过来（充分性）：在 simply connected region（无"洞"的区域，比如 rectangle）里，$M_y = N_x$ 也保证了 $F$ 的存在性——这是向量分析里 curl-free implies conservative field 的直接应用。在 $\mathbb{R}^2$ 里，$M\,dx + N\,dy$ 是 exact differential 当且仅当对应的向量场 $(M, N)$ 是 conservative（即 curl $= N_x - M_y = 0$）。<br><br>
+          一个物理图景：如果 $(M, N)$ 是一个力场，exact 意味着该力是 conservative（如重力、静电力），积分路径无关；potential function $F$ 就是势能。Exact ODE 的 solution $F = C$ 就是等势面（equipotential surface）。
+        </p>
+      </div>
+
+      <h3 id="exact-method">Method for exact first-order ODEs</h3>
+
+      <p>
+        一旦验证方程是 exact，就需要找出 potential function $F(x,y)$。这本质上是一个"逆向积分"过程：我们知道 $F_x = M$ 和 $F_y = N$，要从这些偏导数把 $F$ 本身"拼"出来。下面是标准的五步流程（Method for Exact ODEs）：
+      </p>
+      <ol>
+        <li><strong>Step 1 — Check exactness</strong>：计算 $M_y = \partial M/\partial y$ 和 $N_x = \partial N/\partial x$，验证 $M_y = N_x$。若不等则不 exact，不能用此方法（需要另找 integrating factor）。</li>
+        <li><strong>Step 2 — Integrate $M$ w.r.t. $x$</strong>：利用 $\partial F/\partial x = M$，对 $x$ 积分（把 $y$ 当作常数）：
+        $$F(x,y) = \int M(x,y)\,dx + g(y)$$
+        注意：对 $x$ 积分后，"积分常数"实际上可以是关于 $y$ 的任意函数 $g(y)$（而不只是一个数 $C$），因为 $\partial g(y)/\partial x = 0$，$g(y)$ 的存在不影响 $F_x = M$ 的成立。</li>
+        <li><strong>Step 3 — Determine $g'(y)$</strong>：利用另一个条件 $\partial F/\partial y = N$，对 Step 2 的结果求 $y$-偏导：
+        $$N(x,y) = \frac{\partial}{\partial y}\!\left[\int M\,dx\right] + g'(y)$$
+        解出 $g'(y) = N - \dfrac{\partial}{\partial y}\!\displaystyle\int M\,dx$。关键验证：$g'(y)$ 算出来应该<em>只含 $y$</em>（不含 $x$）——如果含 $x$，说明之前 exactness 检查有误。</li>
+        <li><strong>Step 4 — Integrate $g'(y)$</strong>：对 $g'(y)$ 积分得 $g(y) = \displaystyle\int g'(y)\,dy$（这里不需要写积分常数，因为常数会并入最终的 $C$）。</li>
+        <li><strong>Step 5 — Write implicit solution</strong>：把 $g(y)$ 代入 $F(x,y)$，得到完整的 potential function，写出 implicit solution $F(x,y) = C$。若是 IVP，代入 initial condition $y(x_0) = y_0$ 确定 $C$ 的值。</li>
+      </ol>
+
+      <p class="note">
+        另一种等价做法：从 $\partial F/\partial y = N$ 出发，对 $y$ 积分得 $F = \int N\,dy + h(x)$，然后用 $\partial F/\partial x = M$ 定 $h'(x)$。两条路数学上等价，实践中选更容易积分的那条。一般而言，哪个积分（$\int M\,dx$ 还是 $\int N\,dy$）更简单，就从那条路开始。
+      </p>
+
+      <p>
+        需要说明 exact equation method 的一个细节：为什么 Step 3 里算出来的 $g'(y)$ 必须只含 $y$，不含 $x$？这是 exactness 的必然结论，也是一个内建的 sanity check。如果你已经在 Step 1 验证了 $M_y = N_x$，那么 $g'(y) = N - \partial(\int M\,dx)/\partial y$ 算出来一定只含 $y$——因为 exactness 保证了这一点（这个计算过程本质上是在验证 $F_{xy} = F_{yx}$ 的 Clairaut's theorem）。如果算出来的 $g'(y)$ 含有 $x$，说明要么 Step 1 的 exactness 检验算错了，要么 Step 2 的积分出了错误。遇到这种情况，应该回到 Step 1 重新检查，而不是硬往下算。
+      </p>
+
+      <p>
+        还有一个实用技巧：解 exact equation IVP 时，不必把 implicit solution $F(x,y) = C$ 解为 explicit 再代入 initial condition——可以直接把 initial condition $(x_0, y_0)$ 代入 $F(x,y) = C$ 来确定 $C$ 的值，得到 particular solution 的 implicit form $F(x,y) = F(x_0, y_0)$。这样既避免了解 $y$ 的困难，也直接给出了答案。只有在题目明确要求 explicit form 时，才需要进一步解 $y$。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.6.1 — Not exact</p>
+        <p>
+          判断 $(e^x\sin y + 3y)\,dx - (3x - e^x\sin y)\,dy = 0$ 是否 exact。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$M = e^x\sin y + 3y$，$N = -(3x - e^x\sin y) = e^x\sin y - 3x$。</p>
+        <p>计算：$M_y = e^x\cos y + 3$；$N_x = e^x\sin y - 3$。</p>
+        <p>$M_y \neq N_x$（$e^x\cos y + 3 \neq e^x\sin y - 3$），所以 <strong>not exact</strong>。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.6.2 — Exact equation with IVP</p>
+        <p>
+          Solve $(2x - y)\,dx + (2y - x)\,dy = 0$，$y(1) = 3$。这是 Sec 2.6 的标准例题：先验证 exactness（$M_y = N_x$），然后找 potential $F$，最后写出 implicit solution 并代入 initial condition。做完后需要从 quadratic 解出 $y$ 的 explicit form，此时用 quadratic formula 并通过 initial condition 选择正确的 $\pm$ 号。全过程展示了 exact equation method 的完整流程。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p><strong>Step 1</strong>：$M = 2x - y$，$N = 2y - x$。$M_y = -1 = N_x$。<strong>Exact！</strong></p>
+
+        <p><strong>Step 2</strong>：
+        $$F(x,y) = \int (2x - y)\,dx + g(y) = x^2 - xy + g(y)$$</p>
+
+        <p><strong>Step 3</strong>：$\dfrac{\partial F}{\partial y} = -x + g'(y) = N = 2y - x$，所以 $g'(y) = 2y$。</p>
+
+        <p><strong>Step 4</strong>：$g(y) = y^2$（常数项不必写，并入 $C$）。</p>
+
+        <p><strong>Step 5</strong>：$F(x,y) = x^2 - xy + y^2 = C$（implicit solution）。</p>
+        <p>Solve for $y$（quadratic in $y$）：$y^2 - xy + (x^2 - C) = 0$：
+        $$y = \frac{x \pm \sqrt{x^2 - 4(x^2 - C)}}{2} = \frac{x \pm \sqrt{4C - 3x^2}}{2}$$</p>
+        <p><strong>Apply I.C.</strong> $y(1) = 3$：代入 $1 - 1 + 9 = C \implies C = 7$（或通过 explicit form 代入确认只有 $+$ 号成立 ）。
+        $$\boxed{y = \frac{x + \sqrt{28 - 3x^2}}{2}}$$</p>
+      </div>
+
+      <p>
+        回顾一下 Example 2.6.2 的结构：这道题的 implicit solution 是 $x^2 - xy + y^2 = C$，这是一个二次曲线（实际上是一族椭圆，因为判别式 $B^2 - 4AC = (-1)^2 - 4(1)(1) = -3 < 0$）。IVP 的 particular solution $x^2 - xy + y^2 = 7$ 是其中一条特定的椭圆。Explicit form $y = (x + \sqrt{28 - 3x^2})/2$ 是这条椭圆上满足 $y(1) = 3$ 的那一段弧。这就是 exact equation method 的优雅之处：general solution 直接给出了一族几何曲线，particular solution 是其中通过指定点的那一条。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.6.3 — Non-exact made exact by integrating factor</p>
+        <p>
+          考虑 $x^2y^3 + x(1 + y^2)y' = 0$，即 $x^2y^3\,dx + x(1+y^2)\,dy = 0$。验证乘以 $\mu(x,y) = \dfrac{1}{xy^3}$ 后方程变为 exact，并求解。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>先验证原方程 not exact：$M = x^2y^3$，$N = x(1+y^2)$。$M_y = 3x^2y^2$，$N_x = 1 + y^2$。$M_y \neq N_x$，not exact。</p>
+        <p>乘以 $\mu = \dfrac{1}{xy^3}$，新方程：
+        $$\frac{x^2y^3}{xy^3}\,dx + \frac{x(1+y^2)}{xy^3}\,dy = 0 \implies x\,dx + \frac{1+y^2}{y^3}\,dy = 0$$
+        令 $\tilde{M} = x$，$\tilde{N} = \dfrac{1+y^2}{y^3} = y^{-3} + y^{-1}$。$\tilde{M}_y = 0 = \tilde{N}_x$。<strong>Exact！</strong></p>
+
+        <p>Find $F$：$F = \int x\,dx + g(y) = \dfrac{x^2}{2} + g(y)$。</p>
+        <p>$F_y = g'(y) = \tilde{N} = y^{-3} + y^{-1}$，所以 $g(y) = \dfrac{y^{-2}}{-2} + \ln|y| = -\dfrac{1}{2y^2} + \ln|y|$。</p>
+        <p>Implicit solution：
+        $$\boxed{\frac{x^2}{2} - \frac{1}{2y^2} + \ln|y| = C}$$</p>
+
+        <p><strong>Constant solutions</strong>：原方程有 $y' = -\dfrac{M}{N} = -\dfrac{x^2y^3}{x(1+y^2)} = -\dfrac{xy^3}{1+y^2}$。令 $y' = 0$ 对所有 $x$ 成立，需 $y^3 = 0$，即 $y = 0$。但乘以 $\mu = 1/(xy^3)$ 时在 $y = 0$ 处 $\mu$ 无定义，所以需要单独检查：$y = 0$ 代入原方程 $x^2 \cdot 0 + x(1+0) \cdot 0 = 0$，成立。所以 $y = 0$ 是 constant solution，但它<em>不是</em>上面 implicit solution 的一部分（因为被 integrating factor 除掉了）。</p>
+
+        <p class="note">注：乘以 integrating factor 可能导致解的增加或减少，应检查 $\mu = 0$ 的 solutions 是否是原方程的解。</p>
+      </div>
+
+      <h3 id="special-integrating-factors">Special integrating factors for non-exact equations</h3>
+
+      <p>
+        当方程 $M\,dx + N\,dy = 0$ 不是 exact 时（$M_y \neq N_x$），我们不能直接用 Sec 2.6 的方法。一种补救措施是：找到一个 integrating factor $\mu$，乘上去后使方程变成 exact，然后再用 exact equation method 求解。这与 Sec 2.1 的 integrating factor 思想完全类似——那里是把 linear ODE 乘以 $\mu(x)$ 使左边变成 total derivative；这里是把 non-exact form 乘以 $\mu$ 使之满足 $(\mu M)_y = (\mu N)_x$。
+      </p>
+      <p>
+        当然，一般情况下找 integrating factor 是非常困难的——prof notes 明确指出，finding an integrating factor is at least as hard as solving the original ODE。但有两类特殊情形：当 $\mu$ 只依赖于 $x$ 时，或当 $\mu$ 只依赖于 $y$ 时，可以用下面的公式直接给出：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (special integrating factors).</span>
+        给定 $M(x,y)\,dx + N(x,y)\,dy = 0$：
+        <ul>
+          <li>若 $\dfrac{M_y - N_x}{N}$ 只是 $x$ 的 function，则 $\mu(x) = e^{\int \frac{M_y - N_x}{N}\,dx}$ 是 integrating factor。</li>
+          <li>若 $\dfrac{N_x - M_y}{M}$ 只是 $y$ 的 function，则 $\mu(y) = e^{\int \frac{N_x - M_y}{M}\,dy}$ 是 integrating factor。</li>
+        </ul>
+        乘以 $\mu$ 后，用 exact equation method 求解 $\mu M\,dx + \mu N\,dy = 0$。
+      </div>
+
+      <p>
+        在进入例题之前，先总结一下 exact equation method 和 integrating factor method（Sec 2.1）在结构上的相似性：两者都是"找一个合适的辅助对象，把不可直接积分的方程变成可积分的形式"。Sec 2.1 里，integrating factor $\mu(x)$ 把 $y' + Py$ 变成 $(\mu y)'$，使得方程可以对 $x$ 积分；Sec 2.6 里，如果方程本身就是 exact（$M_y = N_x$），potential $F$ 存在，方程就是 $dF = 0$，解直接是 $F = C$，无需额外操作。两者的哲学是一致的：把复杂表达式识别为某个简单结构的 derivative，然后积分。
+      </p>
+
+      <p>
+        来看这道题 Prof notes 里的一个补充说明：在乘以 integrating factor $\mu = 1/(xy^3)$ 之后，我们找到了 constant solution $y = 0$。但 $y = 0$ 对应 $\mu$ 无定义（$\mu = 1/(xy^3)$ 在 $y = 0$ 处是无穷大），所以乘以 $\mu$ 的过程把 $y = 0$ 这个 solution"除掉"了——它出现在 constant solution 检查里，但不在 implicit solution $x^2/2 - 1/(2y^2) + \ln|y| = C$ 中。这提醒我们：乘以 integrating factor 是一种"放大/缩小"操作，可能导致解的丢失或增加，每次都应该检查 $\mu = 0$ 的情形是否引入了额外约束。
+      </p>
+
+      <p>
+        特别地：Prof notes 指出，一般来说 finding an integrating factor for a non-exact equation is at least as hard as solving the original ODE。因此，special integrating factors 只在右边两个 ratio（$(M_y - N_x)/N$ 或 $(N_x - M_y)/M$）恰好只含一个变量时才实用；一般情形不建议追求这条路，应该转而尝试其他方法。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 2.6.4 — Non-exact with special integrating factor</p>
+        <p>
+          Solve $(2x^2 + y)\,dx + (x^2y - x)\,dy = 0$。这道题是 special integrating factor 方法的完整示范：首先验证原方程不 exact（$M_y \neq N_x$），然后计算 ratio $(M_y - N_x)/N$，发现它恰好只含 $x$，从而得到 $\mu(x) = x^{-2}$；乘以 $\mu$ 后方程变 exact，再用五步法求出 implicit solution。这道题的关键技巧是计算 $(M_y - N_x)/N$ 并做因式约分，整个化简过程需要仔细的代数操作。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>$M = 2x^2 + y$，$N = x^2y - x$。$M_y = 1$，$N_x = 2xy - 1$。$M_y \neq N_x$，not exact。</p>
+        <p>尝试 $\mu = \mu(x)$：
+        $$\frac{M_y - N_x}{N} = \frac{1 - (2xy - 1)}{x^2y - x} = \frac{2 - 2xy}{x(xy - 1)} = \frac{-2(xy - 1)}{x(xy - 1)} = \frac{-2}{x}$$
+        只是 $x$ 的 function！所以：
+        $$\mu(x) = e^{\int -2/x\,dx} = e^{-2\ln|x|} = x^{-2}$$</p>
+        <p>乘以 $\mu = x^{-2}$：
+        $$x^{-2}(2x^2 + y)\,dx + x^{-2}(x^2y - x)\,dy = 0$$
+        $$(2 + yx^{-2})\,dx + (y - x^{-1})\,dy = 0$$
+        新的 $\tilde{M} = 2 + yx^{-2}$，$\tilde{N} = y - x^{-1}$。验证：$\tilde{M}_y = x^{-2} = \tilde{N}_x$（因为 $\partial/\partial x(-x^{-1}) = x^{-2}$）。<strong>Exact！</strong></p>
+        <p>Find $F$：$F = \int(2 + yx^{-2})\,dx = 2x - yx^{-1} + g(y)$。</p>
+        <p>$F_y = -x^{-1} + g'(y) = \tilde{N} = y - x^{-1}$，所以 $g'(y) = y$，$g(y) = \dfrac{y^2}{2}$。</p>
+        <p>Implicit solution：$\boxed{2x - \dfrac{y}{x} + \dfrac{y^2}{2} = C}$</p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Special integrating factor 的逻辑</p>
+        <p>
+          为什么检查 $\dfrac{M_y - N_x}{N}$ 是否只含 $x$？<br><br>
+          若存在 $\mu = \mu(x)$（只是 $x$ 的 function），乘以后新方程 $\mu M\,dx + \mu N\,dy = 0$ exact，意味着：
+          $$(\mu M)_y = (\mu N)_x \implies \mu M_y = \mu N_x + \mu' N$$
+          整理：$\mu(M_y - N_x) = \mu' N$，即 $\dfrac{\mu'}{\mu} = \dfrac{M_y - N_x}{N}$。<br><br>
+          为让 $\mu$ 只是 $x$ 的 function，$\dfrac{\mu'}{\mu}$ 必须只含 $x$（因为 $\mu'/\mu = (\ln\mu)'$，是 $\mu$ 对 $x$ 的 log-derivative）。所以必须 $\dfrac{M_y - N_x}{N}$ 只含 $x$。若此成立，则 $\mu(x) = e^{\int (M_y-N_x)/N\,dx}$。类似地，若 $\mu = \mu(y)$，则需 $\dfrac{N_x - M_y}{M}$ 只含 $y$。<br><br>
+          注意：在实践中，找 integrating factor 至少和直接解方程一样难——prof notes 明确指出这一点。所以 special integrating factors 只在"恰好"简化的特殊情形下使用。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 两种 integrating factor 的联系</p>
+        <p>
+          本章出现了两种 integrating factor：<br><br>
+          <strong>Sec 2.1 的 $\mu(x) = e^{\int P\,dx}$</strong>：用于 linear first-order ODE $y' + P(x)y = Q(x)$，使得 $\mu y' + \mu Py = \dfrac{d}{dx}[\mu y]$，本质上是把方程变成一个 total derivative。<br><br>
+          <strong>Sec 2.6 的 special integrating factor</strong>：用于 non-exact $M\,dx + N\,dy = 0$，使得乘以 $\mu$ 后 $M_y = N_x$（即 exact）。<br><br>
+          两者其实是同一思想的不同实例：找到合适的 $\mu$，使得原来"不能直接积分"的表达式变成"可以直接积分"的形式。Linear ODE 可以改写成 $M\,dx + N\,dy = 0$ 的 exact 形式（因为 linear ODE 的 $\mu = e^{\int P\,dx}$ 恰好使其变 exact），所以 Sec 2.6 的方法实际上是 Sec 2.1 integrating factor 思想的推广。<br><br>
+          更深的联系：exact equation 对应向量场的 conservative property；integrating factor 对应把 non-conservative field 变成 conservative 的"修正"。这个想法在微分几何（differential forms、exterior derivative）里有优雅的一般化，那是更高级课程的内容。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>
+        本文件覆盖了 MATH 20D Ch 2 的五套工具，处理 first-order ODEs 的求解和定性分析。从 linear ODEs 的系统化算法（integrating factor），到 nonlinear ODEs 的特殊结构（separable、exact），再到不依赖求解的定性分析（phase line、E&amp;U Theorem）——这五套工具共同构成了分析 first-order ODEs 的完整工具箱。下面按"识别标志"和"核心步骤"总结每种方法：
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>方法</th>
+          <th>识别标志</th>
+          <th>核心公式 / 步骤</th>
+        </tr>
+        <tr>
+          <td><strong>Integrating Factor</strong> (Sec 2.1)</td>
+          <td>Linear first-order：$y' + P(x)y = Q(x)$</td>
+          <td>$\mu = e^{\int P\,dx}$；$y = \dfrac{\int \mu Q\,dx + C}{\mu}$</td>
+        </tr>
+        <tr>
+          <td><strong>Separable Equations</strong> (Sec 2.2)</td>
+          <td>$y' = g(x)p(y)$（乘积形式）</td>
+          <td>$\int \frac{dy}{p(y)} = \int g(x)\,dx$；另检查 $p(y) = 0$ 的 constant solutions</td>
+        </tr>
+        <tr>
+          <td><strong>E&amp;U Theorem</strong> (Sec 2.4)</td>
+          <td>判断 solution 的 existence / uniqueness</td>
+          <td>Linear：$P, Q$ continuous → unique solution on $(a,b)$；Nonlinear：$f, f_y$ continuous → unique local solution</td>
+        </tr>
+        <tr>
+          <td><strong>Phase Line</strong> (Sec 2.5)</td>
+          <td>Autonomous：$y' = f(y)$</td>
+          <td>找 equilibria（$f = 0$），标箭头，判断 stable / unstable / semistable</td>
+        </tr>
+        <tr>
+          <td><strong>Exact Equations</strong> (Sec 2.6)</td>
+          <td>$M\,dx + N\,dy = 0$ 且 $M_y = N_x$</td>
+          <td>找 $F$：$F_x = M$；用 $F_y = N$ 定 $g(y)$；solution：$F(x,y) = C$</td>
+        </tr>
+      </table>
+
+      <ul>
+        <li><strong>IVP 的通用流程</strong>：无论用哪种方法，求出 general solution 后，代入 initial condition $y(x_0) = y_0$ 确定 arbitrary constant $C$，得到 particular solution。这步不能省略——general solution 只是所有可能解的族，IVP 要求找到通过指定点的那一条。</li>
+        <li><strong>Interval of existence 的判断</strong>：linear ODE——从 $P(x)$ 和 $Q(x)$ 的 continuity 直接读取，找含 $x_0$ 的最大 continuous 区间；nonlinear ODE——通常需要先求出 solution，再分析分母为零或 square root 内为负的限制，从中确定最大含 $x_0$ 的区间。</li>
+        <li><strong>Implicit vs explicit solution</strong>：separable 和 exact 方程积分后常常得到 implicit relation（如 $H(y) = G(x) + C$ 或 $F(x,y) = C$）。如果能用代数方法解出 $y = \phi(x)$，就写成 explicit；如果不能（比如高次多项式、超越方程），保留 implicit form 即可——这也是合法的 solution。</li>
+        <li><strong>Constant solutions 不能遗漏</strong>：separable equations 里，分离变量时除以了 $p(y)$，使得 $p(y) = 0$ 的 constant solutions 可能丢失。Exact equations 里同样可能有通过令 $y' = -M/N$ 为零发现的 constant solutions。每次解题结束，必须单独验证是否有 constant solutions。</li>
+        <li><strong>方法选择的优先级</strong>：遇到 first-order ODE，首先检查是否 linear（→ integrating factor）；若不 linear，检查是否 separable（→ separate and integrate）；然后检查是否 exact（→ find potential $F$）；若 not exact，检查是否可以找 special integrating factor。不同方法有时对同一 ODE 都适用（比如 linear + separable 都可以的情况），选更顺手的那个。</li>
+        <li><strong>Linear vs Nonlinear 的根本差异</strong>：linear ODE 有 global existence（solution 存在于整个 continuity interval 上），无需求解即可确定 interval of existence，且 general solution 包含所有 solutions；nonlinear ODE 只有 local existence（solution 只保证在 $x_0$ 附近），interval of existence 通常依赖 initial value，且可能有 multiple solutions 或 finite-time blowup。</li>
+      </ul>
+
+      <p>
+        在考试中，这五种方法的识别和执行都需要熟练。最容易丢分的地方：(1) 忘记化 standard form（Sec 2.1）；(2) 忘记检查 constant solutions（Sec 2.2, 2.6）；(3) E&amp;U Theorem 判断时搞混 linear 和 nonlinear 的条件（Sec 2.4）；(4) Phase line 分析时弄错 semistable 的判断（Sec 2.5）；(5) Exact equation 里 $g'(y)$ 算出来含 $x$（说明 exactness 检查有误）（Sec 2.6）。注意这些常见错误，做题时逐步验证。
+      </p>
+
+      <h3 id="looking-ahead">Looking Ahead — second-order linear ODEs</h3>
+
+      <p>
+        下一个文件（<a href="03-homog-second-order.html">03. Homogeneous Second-Order ODEs</a>）进入 Ch 3，处理 second-order linear ODEs。这是整门课里技术上最密集、也最有用的章节之一。Second-order ODE 是弹簧-质量系统、RLC 电路、小角摆的直接数学模型，掌握了 second-order 就掌握了工程动力学的基础语言。
+      </p>
+
+      <p>
+        先看一看结构上的变化。First-order linear ODE 的 general solution 形如：
+        $$y(x) = y_h(x) + y_p(x), \quad \text{其中 } y_h = C e^{-\int P\,dx}$$
+        只有一个 arbitrary constant $C$，对应一个 initial condition。Second-order linear ODE（homogeneous 部分）的 general solution 形如：
+        $$y(t) = C_1 y_1(t) + C_2 y_2(t)$$
+        有两个 arbitrary constants $C_1$, $C_2$，对应两个 initial conditions $y(t_0) = y_0$ 和 $y'(t_0) = y_1$。$y_1$, $y_2$ 需要是 linearly independent 的——这由 <strong>Wronskian</strong> $W[y_1, y_2] = y_1 y_2' - y_1' y_2 \neq 0$ 来判断。
+      </p>
+
+      <p>
+        核心工具如下：
+      </p>
+      <ul>
+        <li><strong>Characteristic equation</strong>（特征方程）：对常系数 linear ODE $ay'' + by' + cy = 0$，猜测 $y = e^{rt}$，代入得代数方程 $ar^2 + br + c = 0$。这是 second-order linear ODE 最主要的求解路径，分三种情况：两个不同实根（overdamping）、重根（critical damping）、共轭复数根（underdamping）。每种情况对应不同形式的 general solution。</li>
+        <li><strong>Wronskian</strong>：$W[y_1, y_2](t) = y_1(t)y_2'(t) - y_1'(t)y_2(t)$。若 $W \neq 0$，则 $y_1, y_2$ linearly independent，它们的线性组合构成 general solution。Abel's Theorem 给出 Wronskian 的计算公式：$W(t) = W(t_0) e^{-\int_{t_0}^{t} P(s)\,ds}$，其中 $P(t)$ 是 standard form 里的 coefficient。</li>
+        <li><strong>Reduction of order</strong>：已知一个 solution $y_1$，通过 substitution $y_2 = v(t) y_1(t)$ 把 second-order ODE 化为关于 $v'$ 的 first-order ODE，求出 $v$ 后得到 $y_2$。这是 Ch 2 integrating factor 技术的直接延伸。</li>
+      </ul>
+
+      <p>
+        本文件在 Ch 2 建立的基础，将以如下方式直接延伸到 Ch 3：
+      </p>
+      <ul>
+        <li>Sec 2.1 的 integrating factor 概念 → Ch 3 的 variation of parameters（第二 solution 的求法）。</li>
+        <li>Sec 2.4 的 E&amp;U Theorem 思想 → Ch 3 有完全平行的版本（对 linear second-order ODE，$p, q, g$ continuous 则 solution exists and is unique on all of the continuity interval）。</li>
+        <li>Sec 2.5 的 phase line → Ch 3 之后 Ch 7 的 phase plane（二维系统的定性分析）。</li>
+        <li>Sec 2.2 的 separable 技术 → Ch 3 里会在变量分离或猜解时再次遇到。</li>
+      </ul>
+
+      <p>
+        从学习策略上来说，Ch 2 的五套工具中，考试最高频的是：integrating factor（Sec 2.1）、separable equations with constant solution check（Sec 2.2）、E&amp;U Theorem interval determination（Sec 2.4）、phase line stability analysis（Sec 2.5）。Exact equations（Sec 2.6）概念性强，题目有固定的五步流程，只要步骤不乱就能解出来。进入 Ch 3 之前，确保这五套方法都能独立、完整、正确地执行。
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

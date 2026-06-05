@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>03. Homogeneous Second-Order ODEs · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        // Private browsing / blocked storage — fall through to system pref.
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">03. Homogeneous Second-Order ODEs</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>03. Homogeneous Second-Order ODEs</h1>
+    <p class="note">Textbook sections 3.1, 3.2, 3.4, 3.3 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+
+      <p>
+        本文件使用以下 notation，与 prof notes（Secs 3.1, 3.2, 3.4, 3.3）保持一致。
+      </p>
+      <ul>
+        <li>Independent variable 统一用 $t$，dependent variable 用 $y(t)$。Prime notation：$y' = dy/dt$，$y'' = d^2y/dt^2$，$y^{(n)} = d^ny/dt^n$。</li>
+        <li>Constant-coefficient homogeneous ODE 标准形式记为 $(\star)$：$ay'' + by' + cy = 0$，其中 $a, b, c \in \mathbb{R}$，$a \neq 0$。</li>
+        <li>Variable-coefficient 版本写成 $y'' + p(t)y' + q(t)y = 0$（已除以 leading coefficient $a(t)$，便于直接套 Existence-Uniqueness Theorem 的标准形式）。</li>
+        <li>Characteristic equation 用 $r$ 作 unknown（不用 $\lambda$，因为 $\lambda$ 在本文件里专门留给 complex roots 的 real part）：$ar^2 + br + c = 0$，两个 roots 记为 $r_1, r_2$。</li>
+        <li>Wronskian of $y_1, y_2$：$W[y_1, y_2](t) = y_1 y_2' - y_2 y_1'$，有时简写为 $W(t)$。</li>
+        <li>Complex roots 写成 $\lambda \pm i\mu$（$\lambda$ = real part，$\mu > 0$ = imaginary part）。$\lambda$ 控制振幅的增减，$\mu$ 控制振荡频率。</li>
+      </ul>
+
+      <p>
+        关于 prof 的讲课顺序：Prof notes 把 Secs 3.1、3.2、3.4 合并成一份讲义，然后 3.3 单独一份。具体来说，prof 先给 second-order ODE 的 framework 和 E&amp;U Theorem（3.1 开头），再介绍 linear independence 和 Superposition Principle（3.2 前半），然后通过 characteristic equation 推导出 distinct real roots 的解法（3.1 主体），接着深入 Wronskian 和 fundamental set 的完整理论（3.2 后半 + Abel），再处理 repeated roots（3.4），最后单独一节讲 complex roots（3.3）。
+      </p>
+
+      <p>
+        本文件按照这个实际讲课顺序组织，而不是按教材章节 3.1 → 3.2 → 3.3 → 3.4 的顺序。所以 Section 的标题会反映 prof 的逻辑流，读者看完本文件就相当于跟着 prof 完整地走了一遍 Secs 3.1/3.2/3.4/3.3 的全部内容。
+      </p>
+      <p>
+        一个读取本文件的建议：整个 File 03 可以分成两个层次来理解。第一个层次是"方法层"：知道怎么解 constant-coefficient homogeneous ODE（三步法：写 characteristic equation → 求 roots → 写 general solution，根据 roots 类型选对应公式）。第二个层次是"理论层"：理解 solution 的代数结构为什么是这样（E&amp;U Theorem 保证唯一性，Superposition 说明 solutions 构成 vector space，Wronskian/fundamental set 精确刻画"何时 general solution 是完整的"）。考试主要考第一个层次，但第二个层次能让你明白每个步骤背后的原因，遇到不熟悉的变体时也不会束手无策。
+      </p>
+      <p>
+        还有一点值得在开头就强调：本文件中"constant-coefficient"和"homogeneous"是两个独立的条件。"Constant-coefficient"指 $a, b, c$ 都是常数（不随 $t$ 变化）；"homogeneous"指右边 $f(t) = 0$。这两个条件都满足时，characteristic equation 方法才能直接使用。如果 coefficient 含 $t$（variable-coefficient），或者右边非零（nonhomogeneous），则需要不同的方法——分别是 Sec 5.2/5.3 的级数解法和 File 04 的 undetermined coefficients/variation of parameters。把这四种情况区分清楚，有助于在考试中快速判断用什么方法。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="second-order-framework">3.1 — Second-order linear ODE 的基本框架</h2>
+
+      <p>
+        从 File 02（first-order ODEs）进入 second-order ODE，我们面对的 ODE 里出现了 $y''$——unknown function 的 second derivative。这一变化不只是"多了一次 derivative"那么简单，它从根本上改变了 solution 的结构：我们现在需要两个 arbitrary constants 才能写出 general solution，也需要两个 initial conditions 才能唯一确定 particular solution。这一节首先建立语言框架，然后通过 E&amp;U Theorem 搞清楚 solution 存在且唯一的条件。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (second-order linear ODE).</span>
+        形如
+        $$a(t)\,y'' + b(t)\,y' + c(t)\,y = f(t)$$
+        的 ODE 称为 <strong>second-order linear ODE</strong>，其中 $a(t), b(t), c(t), f(t)$ 是关于 $t$ 的已知 functions，且 leading coefficient $a(t) \neq 0$ 在我们讨论的 interval 上。
+      </div>
+
+      <p>
+        "Linear"的含义和 File 02 一样：$y$、$y'$、$y''$ 只以一次方出现，不能相乘，不能套进 $\sin y$、$e^y$ 等 nonlinear functions 里。Coefficients $a(t), b(t), c(t)$ 可以是 $t$ 的任意 functions，这不影响 linearity，因为 linearity 是对 <em>unknown</em> $y$ 及其 derivatives 而言的，不是对 independent variable $t$。举例来说，$t^2 y'' + \sqrt{t}\,y' + e^t y = \cos t$ 是 linear 的，因为 $y$、$y'$、$y''$ 都只出现一次方；而 $(y')^2 + y = 0$ 或 $y'' \sin y = 0$ 是 nonlinear 的，前者有 $y'$ 的平方，后者有 $y$ 被套进 $\sin$ 里。
+      </p>
+      <p>
+        本课的 second-order ODE 几乎全是 constant-coefficient 的（即 $a, b, c$ 是常数），这使得问题大大简化：characteristic equation 的方法能给出 closed-form solutions。Variable-coefficient 的情形（比如 Cauchy-Euler equation $t^2 y'' + ty' + cy = 0$）一般没有这么整洁的 solution formula，超出本课重点，这里不展开。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (homogeneous / nonhomogeneous second-order linear ODE).</span>
+        如果 $f(t) = 0$ 对所有 $t$ 成立，则方程 $a(t)y'' + b(t)y' + c(t)y = 0$ 称为 <strong>homogeneous</strong>；否则（$f(t) \not\equiv 0$）称为 <strong>nonhomogeneous</strong>。Homogeneous 是本文件（File 03）的主题；nonhomogeneous 留到 File 04。
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 second-order 需要两个 initial conditions</p>
+        <p>
+          First-order ODE $y' = f(t, y)$ 的 solution 由单个 initial condition $y(t_0) = y_0$ 唯一确定：知道了初始时刻"在哪里"（$y_0$），就能追踪整条轨迹。
+          <br><br>
+          Second-order ODE $y'' = F(t, y, y')$ 则描述的是"加速度"——它对 $y$ 规定了 second derivative 的值。光知道初始位置 $y(t_0) = y_0$ 还不够，因为同一个位置可以向上运动，也可以向下运动，轨迹完全不同。你还需要知道初始速度 $y'(t_0) = y_1$，这样才能唯一确定 solution。
+          <br><br>
+          物理类比：你抛出一个球，要预测它的轨迹，不仅需要知道它在 $t=0$ 时在哪里（初始位置 $y_0$），还需要知道它在 $t=0$ 时以什么速度向哪个方向运动（初始速度 $y_1 = y'(0)$）。少了任何一个，轨迹是不确定的。
+          <br><br>
+          从代数角度看：general solution 含两个 arbitrary constants $c_1, c_2$（因为积分了两次）。要确定 $c_1, c_2$，正好需要两个方程，也就是两个 initial conditions。这是一一对应关系：$n$-th order ODE 的 general solution 含 $n$ 个 arbitrary constants，需要 $n$ 个 initial conditions。
+        </p>
+      </div>
+
+      <h3 id="existence-uniqueness">Existence &amp; Uniqueness Theorem</h3>
+
+      <p>
+        Prof notes 在开头就给出 E&amp;U Theorem——它是整章的基础，告诉我们在什么条件下 IVP 有唯一解，以及解在哪个区间上存在。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence-Uniqueness for second-order linear IVP).</span>
+        考虑 IVP：
+        $$y'' + p(t)\,y' + q(t)\,y = g(t), \quad y(t_0) = y_0,\; y'(t_0) = y_1$$
+        如果 $p(t)$、$q(t)$、$g(t)$ 在某个开区间 $(a, b)$ 上都 continuous，且 $t_0 \in (a, b)$，那么对任意 $y_0, y_1 \in \mathbb{R}$ 的选取，上述 IVP 在整个 $(a, b)$ 上存在唯一的 solution $y(t)$。$\square$
+      </div>
+
+      <p>
+        注意 E&amp;U Theorem 要求方程写成标准形式 $y'' + p(t)y' + q(t)y = g(t)$（leading coefficient 为 1，即除以了 $a(t)$）。如果原方程是 $a(t)y'' + b(t)y' + c(t)y = f(t)$，需要先除以 $a(t)$，得到 $p(t) = b(t)/a(t)$，$q(t) = c(t)/a(t)$，$g(t) = f(t)/a(t)$，然后才能判断 $p, q, g$ 的 continuity。这个"除以 leading coefficient"的步骤容易被忽略，但非常关键——如果你直接判断 $a(t), b(t), c(t)$ 的 continuity，判断的对象是错的。
+      </p>
+
+      <p>
+        如何用 E&amp;U Theorem 找 solution 的最大 interval？步骤如下：
+      </p>
+      <ol>
+        <li>把方程化成标准形式（除以 leading coefficient $a(t)$，得到 $y'' + p(t)y' + q(t)y = g(t)$）。</li>
+        <li>找出 $p(t)$、$q(t)$、$g(t)$ 的所有 discontinuity points。通常就是各 fraction 的分母为零的点——把这些点列出来。</li>
+        <li>这些 discontinuity points 把实数轴分成若干 open intervals。找到包含 $t_0$ 的那个 interval——这就是 E&amp;U Theorem 保证 solution 存在的最大 interval。</li>
+      </ol>
+      <p>
+        一个细节：E&amp;U Theorem 保证的 interval 是这些 continuous points 所在的那段，并不是 solution 的实际 domain（solution 也许可以延伸到更广的范围，也许会提前 blow up），只是我们能 <em>保证</em> 它存在的最大区间。超出这个区间，solution 是否存在，E&amp;U 不保证。在考试中，题目问的是"solution 一定存在的最大 interval"，答案就是 E&amp;U 给出的那段，不需要（也不能）推断更多。
+      </p>
+      <p>
+        还有一个常见问题：当 $p(t)$ 和 $q(t)$ 各自的 discontinuity points 不同时，要取所有 discontinuity points 的并集来分割实数轴。例如，若 $p(t) = 1/(t-1)$ 在 $t = 1$ 不连续，$q(t) = 1/(t+2)$ 在 $t = -2$ 不连续，则 discontinuity points 是 $\{-2, 1\}$，把 $\mathbb{R}$ 分成 $(-\infty, -2)$、$(-2, 1)$、$(1, +\infty)$ 三段，找含 $t_0$ 的那段。不要只看 $p(t)$ 或只看 $q(t)$，要把两者的 discontinuity points 都考虑进去。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.1 — Trivial IVP via E&amp;U（唯一零解）</p>
+        <p>
+          已知 $y'' + p(t)y' + q(t)y = 0$，$p, q$ 在 $(a,b)$ 上 continuous。若 $y(t_0) = 0$ 且 $y'(t_0) = 0$，求 $y(t)$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          注意到 $y \equiv 0$（恒零函数）满足方程（代入左边得 $0 + 0 + 0 = 0$），也满足两个 initial conditions $y(t_0) = 0$，$y'(t_0) = 0$。由 E&amp;U Theorem，$(a,b)$ 上满足这两个条件的 solution 唯一，因此 $y(t) = 0$ 是唯一的 solution。
+        </p>
+        <p class="note">
+          这个例子的意义：homogeneous ODE 的 solution 如果在某点"静止"（位置和速度都为零），它就永远保持静止——$y \equiv 0$。Homogeneous ODE 没有外部驱动力，不会"自发运动"。这也说明 $y=0$ 永远是 homogeneous ODE 的一个 solution（称为 trivial solution）——判断其他 solution 的 linear independence 时，$y=0$ 不算在内。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.2 — 确定 solution 存在的最长 interval</p>
+        <p>
+          找 IVP $(t^2 - 4t)y'' + ty' + (t^2 + 16)y = 0$，$y(2) = 5$，$y'(2) = -2$ 的 solution 确定存在的最长 interval。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Step 1：化成标准形式，除以 $t^2 - 4t = t(t-4)$：</p>
+        $$y'' + \frac{t}{t(t-4)}\,y' + \frac{t^2+16}{t(t-4)}\,y = 0$$
+        <p>即 $p(t) = \dfrac{1}{t-4}$，$q(t) = \dfrac{t^2+16}{t(t-4)}$，$g(t) = 0$。</p>
+        <p>Step 2：找 discontinuity points：$p(t)$ 在 $t = 4$ 不连续；$q(t)$ 在 $t = 0$ 和 $t = 4$ 不连续。这两个点把 $\mathbb{R}$ 分成三段：$(-\infty, 0)$，$(0, 4)$，$(4, +\infty)$。</p>
+        <p>Step 3：$t_0 = 2 \in (0, 4)$。在 $(0, 4)$ 上 $p, q$ 均 continuous。</p>
+        <p><strong>结论：</strong>由 E&amp;U Theorem，IVP 在 $(0, 4)$ 上存在唯一解。这是 solution 确定存在的最长 interval。</p>
+        <p class="note">注意我们不知道 solution 在 $(0,4)$ 之外是否存在——E&amp;U 只保证 $(0,4)$ 内存在。实际上因为 $p, q$ 在边界点 $t=0, 4$ 不连续，solution 可能在接近边界时"blow up"（趋向无穷）。另外，$p(t) = 1/(t-4)$ 在化简时可以约掉分子的 $t$，得 $p(t) = 1/(t-4)$；这里要小心：$q(t)$ 的分子是 $t^2+16$，不能和分母 $t(t-4)$ 约分（$t^2+16$ 和 $t$ 或 $t-4$ 没有公因子），所以 $q(t)$ 在 $t=0$ 和 $t=4$ 两处都不连续。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.3 — 确定最大 interval（另一例）</p>
+        <p>
+          确定 IVP $(t^2 - 3t)y'' + ty' - (t+3)y = 0$，$y(1) = 2$，$y'(1) = 1$ 的 solution 一定存在的最大 interval。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Step 1：除以 $t^2 - 3t = t(t-3)$：</p>
+        $$y'' + \frac{t}{t(t-3)}\,y' - \frac{t+3}{t(t-3)}\,y = 0$$
+        <p>$p(t) = \dfrac{1}{t-3}$，$q(t) = -\dfrac{t+3}{t(t-3)}$，$g(t) = 0$。Discontinuity points 在 $t = 0$ 和 $t = 3$，把 $\mathbb{R}$ 分成 $(-\infty,0)$、$(0,3)$、$(3,+\infty)$。</p>
+        <p>Step 2：$t_0 = 1 \in (0, 3)$。</p>
+        <p><strong>结论：</strong>Solution 一定存在的最大 interval 是 $(0, 3)$。</p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="linear-independence-superposition">3.2 — Linear independence 与 Superposition Principle</h2>
+
+      <p>
+        在开始具体求解 constant-coefficient 方程之前，prof notes 先建立 solution 的代数结构。这是 Sec 3.2 的核心思想：second-order linear homogeneous ODE 的所有 solutions 构成一个"二维向量空间"（虽然课上不会这样正式地说），我们只需要找到两个"basis solutions"（linearly independent solutions），然后所有 solutions 都是它们的 linear combination。
+      </p>
+
+      <p>
+        理解了这个结构，之后的 Case 1（distinct real roots）、Case 2（repeated roots）、Case 3（complex roots）本质上都只是在往这个框架里填 $y_1, y_2$ 的具体表达式而已。框架不变，只是 $y_1, y_2$ 长得不同。这就是为什么 prof 先讲理论（3.2 的前半部分），再讲 constant-coefficient 方法（3.1 主体 + 3.4 + 3.3）——先搭好框架，后面的具体 cases 才有落脚点。
+      </p>
+
+      <p>
+        另外需要特别注意的是：Superposition Principle（叠加原理）只对 <em>homogeneous</em> ODE 成立。对 nonhomogeneous ODE $y'' + py' + qy = g(t)$（$g \neq 0$），两个 solutions 的 linear combination 一般不再是 solution——因为将 $k_1 y_1 + k_2 y_2$ 代入，左边得 $k_1 g + k_2 g = (k_1+k_2)g$，要等于 $g$ 就需要 $k_1 + k_2 = 1$，这不是对所有 $k_1, k_2$ 都成立的。因此，File 04 处理 nonhomogeneous 方程时，需要用不同的策略。
+      </p>
+
+      <h3 id="linear-independence-def">Linear independence 与 dependence</h3>
+
+      <p>
+        首先需要精确定义什么叫"两个 functions 相互独立"。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (linearly dependent functions).</span>
+        Functions $y_1(t)$ 和 $y_2(t)$ 在 $(a, b)$ 上 <strong>linearly dependent</strong>（线性相关），如果存在 constants $c_1, c_2$（不全为零），使得
+        $$c_1 y_1(t) + c_2 y_2(t) = 0 \quad \forall\, t \in (a, b).$$
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (linearly independent functions).</span>
+        $y_1(t)$ 和 $y_2(t)$ 在 $(a,b)$ 上 <strong>linearly independent</strong>（线性无关），如果它们 not linearly dependent：
+        $$c_1 y_1(t) + c_2 y_2(t) = 0 \; \forall\, t \in (a,b) \implies c_1 = c_2 = 0.$$
+        也就是说，$c_1 y_1 + c_2 y_2 = 0$（恒等于零）的唯一方式是 $c_1 = c_2 = 0$。
+      </div>
+
+      <p>
+        对两个 functions，linearly dependent 实际上就等价于"其中一个是另一个的 constant 倍"：如果 $c_1 \neq 0$，则 $y_1 = -\frac{c_2}{c_1} y_2$，即 $y_1$ 和 $y_2$ 成比例。例如 $y_1 = e^t$ 和 $y_2 = 3e^t$ linearly dependent（$y_2 = 3 y_1$，它们"长得一模一样"，只是缩放了倍数）；而 $y_1 = e^t$ 和 $y_2 = e^{2t}$ linearly independent（增长速率不同，不存在 constant $k$ 使 $e^t = k e^{2t}$ 对所有 $t$ 成立——$k$ 会随 $t$ 变化：$k = e^{-t}$，不是 constant）。另外，$y_1 = \cos t$ 和 $y_2 = \sin t$ 也是 linearly independent 的：任何 constant $k$ 都不能让 $\cos t = k \sin t$ 对所有 $t$ 成立（在 $t = 0$ 时 $\cos 0 = 1 \neq 0 = k\sin 0$）。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Linear independence 与线性代数的联系</p>
+        <p>
+          在线性代数里，两个向量 $\mathbf{v}_1, \mathbf{v}_2 \in \mathbb{R}^n$ linearly independent，意思是它们"指向不同方向"，能张成一个二维平面（subspace）。反之，linearly dependent 就是"一个向量是另一个的倍数"，两者只张成一条线。
+          <br><br>
+          Functions 的 linearly independence 是同样的精神，只是"向量"换成了"function"。把 $y_1, y_2$ 理解为 function space 里的两个元素：如果你无法用 $y_1$ 的常数倍表示 $y_2$（即它们指向不同"方向"），就是 linearly independent。
+          <br><br>
+          为什么这对 ODE 重要？Second-order linear homogeneous ODE 的所有 solutions 构成一个二维空间（类比 $\mathbb{R}^2$）。General solution 是这个空间的"所有元素"的参数化描述。要参数化一个二维空间，正好需要两个 linearly independent "basis vectors"（即 $y_1, y_2$）。如果你的两个 solutions linearly dependent，它们只张成一维空间，漏掉了一半的 solutions。
+        </p>
+      </div>
+
+      <h3 id="superposition">Superposition Principle（for homogeneous ODE）</h3>
+
+      <p>
+        Superposition Principle 告诉我们：homogeneous ODE 的 solutions 在 linear combination 下是"封闭"的——两个 solutions 的任意 linear combination 还是 solution。这个定理的直接推论是：trivial solution $y \equiv 0$ 永远是 homogeneous ODE 的一个 solution（取 $k_1 = k_2 = 0$）；$k$ 倍的 solution 还是 solution（取 $k_2 = 0$，$k_1 = k$）；两个 solutions 的差也是 solution（取 $k_1 = 1$，$k_2 = -1$）。所有这些都无需额外验证，直接从 Superposition 得出。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Superposition Principle).</span>
+        如果 $y_1(t)$ 和 $y_2(t)$ 都是 homogeneous ODE
+        $$y'' + p(t)\,y' + q(t)\,y = 0$$
+        的 solutions，那么对任意 constants $k_1, k_2 \in \mathbb{R}$，$k_1 y_1 + k_2 y_2$ 也是该方程的 solution。
+        <br><br>
+        <em>Proof.</em> 把 $y = k_1 y_1 + k_2 y_2$ 代入方程，利用 derivative 的 linearity：
+        $$\begin{aligned}
+        &(k_1 y_1 + k_2 y_2)'' + p(t)(k_1 y_1 + k_2 y_2)' + q(t)(k_1 y_1 + k_2 y_2)\\
+        &= k_1 y_1'' + k_2 y_2'' + p(k_1 y_1' + k_2 y_2') + q(k_1 y_1 + k_2 y_2)\\
+        &= k_1(y_1'' + py_1' + qy_1) + k_2(y_2'' + py_2' + qy_2)\\
+        &= k_1 \cdot 0 + k_2 \cdot 0 = 0. \qquad \square
+        \end{aligned}$$
+      </div>
+
+      <p>
+        Superposition 仅对 homogeneous ODE 成立，对 nonhomogeneous ODE 不直接成立（File 04 里会看到需要额外处理）。这是"homogeneous"这个词在这门课里最核心的含义之一。为什么 homogeneous 这么特殊？因为 $Ly = 0$（$L$ 是线性算子）这类方程的 solution set 对 linear combination 封闭，构成一个线性子空间（vector subspace）——这正是 linear algebra 里 null space（kernel）的概念。Nonhomogeneous ODE $Ly = g$（$g \neq 0$）的 solution set 则是一个"仿射子空间"（affine subspace），而非线性子空间，不对 linear combination 封闭。这也正是 File 04 里 "general solution = homogeneous general solution + particular solution" 这个结构的来源：particular solution 把 affine subspace "平移"回到原点，使剩余部分变成线性子空间，再用 Superposition 处理。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.2.1 — Superposition 构造新 solution</p>
+        <p>
+          已知 $y'' - 2y' + 2y = 0$ 的两个 solutions $y_1(t) = e^t \sin t$ 和 $y_2(t) = e^t \cos t$，用 Superposition Principle 写出更多 solutions。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          由 Superposition，以下都是 $y'' - 2y' + 2y = 0$ 的 solutions（对任意 constants $c_1, c_2$）：
+        </p>
+        <ul>
+          <li>$y = c_1 e^t \sin t$（只用 $y_1$）</li>
+          <li>$y = c_2 e^t \cos t$（只用 $y_2$）</li>
+          <li>$y = c_1 e^t \cos t + c_2 e^t \sin t = e^t(c_1 \cos t + c_2 \sin t)$（linear combination，这就是 general solution）</li>
+        </ul>
+        <p class="note">
+          最后一个形式是 general solution，因为 $y_1 = e^t\sin t$ 和 $y_2 = e^t\cos t$ linearly independent（我们将在 Wronskian 部分验证）。两个 linearly independent solutions 的 general linear combination 才能覆盖所有 solutions。
+        </p>
+      </div>
+
+      <p>
+        这道例题说明 Superposition 的实用价值：一旦知道某个方程有两个 solutions（哪怕不知道怎么求出来的），立刻就能构造出无数个 solutions。在考试中，如果题目给你两个 solutions 并让你"写出 general solution"，只要验证它们 linearly independent（用 Wronskian），general solution 就是它们的 linear combination $c_1 y_1 + c_2 y_2$——不需要重新解方程。这是非常节省时间的思路：Wronskian 的计算通常比从头解方程快得多，尤其是当 $y_1, y_2$ 形式比较复杂时。
+      </p>
+
+      <h3 id="general-solution-theorem">General solution structure</h3>
+
+      <p>
+        综合 Superposition 和 linear independence，可以精确地陈述"general solution"是什么：
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (General Solution of 2nd-order linear homogeneous ODE).</span>
+        设 $y_1(t)$，$y_2(t)$ 都是 $y'' + p(t)y' + q(t)y = 0$ 在 $(a,b)$ 上的 solutions，$p(t), q(t)$ 在 $(a,b)$ 上 continuous，且 $y_1$ 和 $y_2$ 在 $(a,b)$ 上 linearly independent。那么该方程的 general solution（定义在 $(a,b)$ 上）为
+        $$y(t) = c_1 y_1(t) + c_2 y_2(t), \quad c_1, c_2 \in \mathbb{R}.$$
+        此 general solution 对 $(a,b)$ 内任意的 initial conditions $y(t_0) = y_0$，$y'(t_0) = y_1$，均能通过适当选取 $c_1, c_2$ 唯一满足。$\square$
+      </div>
+
+      <p>
+        这个定理的含义是：只要找到两个 linearly independent solutions，你就得到了完整的 general solution——不会遗漏任何 solution。这也是为什么 linear independence 如此重要：如果你找到的两个 solutions linearly dependent（其实只是同一个 solution 的两种写法），你的"general solution"里实际只有一个 arbitrary constant，不能满足所有 IVPs，是不完整的。一个很常见的错误就是找到重根 $r$ 之后写 $y = c_1 e^{rt} + c_2 e^{rt} = (c_1+c_2)e^{rt}$——这只是一个 constant 乘以 $e^{rt}$，根本不是 general solution。
+      </p>
+
+      <p>
+        对于 constant-coefficient 方程 $(\star)$：$ay'' + by' + cy = 0$（$a, b, c$ 均为 constants），$p = b/a$ 和 $q = c/a$ 均为 constants，在整个 $\mathbb{R}$ 上 continuous（constants 在任何地方都连续），所以 general solution 在整个 $\mathbb{R}$ 上成立。这是 constant-coefficient case 的一个好处：不需要担心 E&amp;U Theorem 的 interval 限制，solution 直接在全实轴上有效。注意一旦 coefficients 含 $t$（variable-coefficient case，比如 $t^2 y'' + ty' + y = 0$），$p(t) = 1/t$ 在 $t = 0$ 不连续，E&amp;U 的 interval 限制立刻回来了——这就是为什么 E&amp;U Theorem 要先划定"$p, q$ continuous"的范围。
+      </p>
+      <p>
+        在进入 constant-coefficient 方程的具体解法之前，先总结一下我们已经知道的事情：second-order linear homogeneous ODE 的 general solution = $c_1 y_1 + c_2 y_2$（两个 linearly independent solutions 的 linear combination）。下面几节的任务就是：对 constant-coefficient 方程，通过 characteristic equation 找到两个具体的 linearly independent solutions $y_1, y_2$。根据 discriminant（判别式）的符号，分三种 case 处理。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="constant-coeff-distinct">3.1 — Constant coefficient · characteristic equation 与 distinct real roots</h2>
+
+      <h3 id="characteristic-equation-derivation">Characteristic equation 的推导</h3>
+
+      <p>
+        现在来具体解 constant-coefficient homogeneous ODE $(\star)$：$ay'' + by' + cy = 0$。关键思路是：猜测 solution 的形式为指数函数 $y(t) = e^{rt}$，代入方程，看 $r$ 需要满足什么条件。
+      </p>
+
+      <p>
+        计算各阶导数：$y = e^{rt}$，$y' = re^{rt}$，$y'' = r^2 e^{rt}$。代入 $(\star)$：
+      </p>
+      $$a \cdot r^2 e^{rt} + b \cdot r e^{rt} + c \cdot e^{rt} = 0$$
+      $$e^{rt}\underbrace{(ar^2 + br + c)}_{\text{must be }0} = 0$$
+      <p>
+        因为 $e^{rt} \neq 0$ 对所有 $t$（指数函数永远非零），方程成立当且仅当括号里为零。这样，原来的 differential equation 问题就完全转化成了一个 algebraic problem：找满足 $ar^2 + br + c = 0$ 的 $r$。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (characteristic equation).</span>
+        常数系数 ODE $ay'' + by' + cy = 0$ 的 <strong>characteristic equation</strong>（特征方程）是
+        $$ar^2 + br + c = 0.$$
+        $y = e^{rt}$ 是 $(\star)$ 的 solution 当且仅当 $r$ 是 characteristic equation 的一个 root。
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么猜 $e^{rt}$，而不是别的形式</p>
+        <p>
+          猜 $y = e^{rt}$ 的核心原因是：指数函数是求导的 eigenfunction。具体来说，对 $e^{rt}$ 求导，只是将它乘以一个 constant $r$：$\frac{d}{dt} e^{rt} = r e^{rt}$。这个性质意味着 $y$、$y'$、$y''$ 全都是 $e^{rt}$ 的 constant 倍（分别是 $1, r, r^2$ 倍），代入方程后可以提取公因子 $e^{rt}$，留下一个纯代数方程——characteristic equation。
+          <br><br>
+          换句话说，指数函数把 differential equation（连续运算）变成了 polynomial equation（代数运算）。这是一个巨大的化简，是整个 constant-coefficient ODE 理论能如此整洁的根本原因。
+          <br><br>
+          如果猜别的函数，比如 $y = \sin t$ 或 $y = t^2$，求导之后形式会改变，无法实现这种"代入后提公因子"的自洽消去。当然，当 characteristic equation 有 complex roots 时，$e^{rt}$ 会变成 $e^{(\lambda\pm i\mu)t}$，需要借助 Euler's formula 转化成 real form——这是 Sec 3.3 的内容。
+          <br><br>
+          更深层地看：这个思路正是 Laplace transform 方法（File 07/08）的前身——Laplace transform 把整个 ODE 变成代数方程，是对"指数函数 diagonalizes differentiation"这个想法的系统推广。
+        </p>
+      </div>
+
+      <h3 id="distinct-real-roots-theorem">Case 1：Distinct real roots（判别式 $b^2 - 4ac > 0$）</h3>
+
+      <p>
+        当 characteristic equation $ar^2 + br + c = 0$ 有两个 distinct real roots $r_1 \neq r_2$（用求根公式 $r = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$，判别式 $b^2 - 4ac > 0$），对应两个 solutions $y_1 = e^{r_1 t}$，$y_2 = e^{r_2 t}$。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (distinct real roots — general solution).</span>
+        若 characteristic equation $ar^2 + br + c = 0$ 有两个 distinct real roots $r_1 \neq r_2$（$b^2 - 4ac > 0$），则
+        $$y_1(t) = e^{r_1 t}, \quad y_2(t) = e^{r_2 t}$$
+        是 $(\star)$ 的两个 linearly independent solutions。General solution（在整个 $\mathbb{R}$ 上）为
+        $$y(t) = c_1 e^{r_1 t} + c_2 e^{r_2 t}, \quad c_1, c_2 \in \mathbb{R}.$$
+        $\square$
+      </div>
+
+      <p>
+        为什么 $e^{r_1 t}$ 和 $e^{r_2 t}$ linearly independent？若 $c_1 e^{r_1 t} + c_2 e^{r_2 t} = 0$ 对所有 $t$ 成立，两边除以 $e^{r_2 t}$，得 $c_1 e^{(r_1-r_2)t} + c_2 = 0$。因为 $r_1 \neq r_2$，$(r_1 - r_2) \neq 0$，所以 $e^{(r_1-r_2)t}$ 是真正的（非常数的）指数函数，不能被 constant $c_2$ 抵消——除非 $c_1 = 0$，此时 $c_2 = 0$ 也随之成立。所以确实 $c_1 = c_2 = 0$，linearly independent。（更简便的方法：用 Wronskian，$W[e^{r_1 t}, e^{r_2 t}] = (r_2 - r_1)e^{(r_1+r_2)t} \neq 0$，因为 $r_2 \neq r_1$。）
+      </p>
+      <p>
+        关于 distinct real roots 的长期行为（long-time behavior as $t \to \pm\infty$）：general solution $y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$ 的行为由 $r_1, r_2$ 的符号决定。当 $t \to +\infty$ 时，如果 $r_1 > r_2$，则增长最快的项是 $c_1 e^{r_1 t}$，它主导了 long-time behavior：若 $r_1 > 0$（或 $c_1 \neq 0$），$y \to +\infty$ 或 $-\infty$（由 $c_1$ 的符号）；若 $r_1 < 0$，两项都衰减到 0。当 $t \to -\infty$ 时，指数最小的项（最快趋向 $+\infty$ in magnitude）主导，也就是 $r_2 < r_1$ 时 $e^{r_2 t}$ 在 $t \to -\infty$ 方向增长最快。这种"主导项"的分析在需要描述 long-time behavior 的题目中非常有用。
+      </p>
+
+      <h3 id="method-solving">Method for Solving $(\star)$（三步法）</h3>
+
+      <p>给定 constant-coefficient homogeneous ODE $ay'' + by' + cy = 0$，求 general solution 的标准步骤如下。这三步法是整个 Secs 3.1/3.3/3.4 的核心，用熟了之后做题会非常流畅：</p>
+      <ol>
+        <li><strong>写出 characteristic equation：</strong>$ar^2 + br + c = 0$。技巧：直接把 $y'' \to r^2$，$y' \to r$，$y \to 1$，系数不变，就得到 characteristic equation。例如 $2y'' - 3y' + y = 0$ 的 characteristic equation 是 $2r^2 - 3r + 1 = 0$。</li>
+        <li><strong>求 roots：</strong>先尝试因式分解（如果 roots 是整数或简单分数），否则用求根公式 $r = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}$。判别式 $\Delta = b^2 - 4ac$ 的符号决定 roots 的类型（正 → distinct real，零 → repeated，负 → complex）。</li>
+        <li><strong>根据 roots 的类型写 general solution：</strong>
+          <ul>
+            <li>Distinct real roots $r_1 \neq r_2$（$\Delta > 0$）：$y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$。（本节，Sec 3.1）</li>
+            <li>Repeated root $r_1 = r_2 = r$（$\Delta = 0$）：$y = (c_1 + c_2 t)e^{rt}$。（Sec 3.4，下面的 Section）</li>
+            <li>Complex roots $\lambda \pm i\mu$（$\Delta < 0$）：$y = e^{\lambda t}(c_1 \cos\mu t + c_2 \sin\mu t)$。（Sec 3.3，最后一个 Section）</li>
+          </ul>
+        </li>
+      </ol>
+      <p>
+        注意第一步的 characteristic equation 的写法极其机械，不容易出错；出错最多的是第三步——要根据 roots 的类型选对应的公式。建议做题时每次都先计算判别式 $\Delta = b^2 - 4ac$，明确 $\Delta$ 的符号，再对应选公式，而不是靠记忆"roots 是不是实数"——这样更不容易搞混。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.4a — Distinct real roots（irrational roots）</p>
+        <p>
+          求 $y'' - 9y' + 9y = 0$ 的 general solution。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Step 1：Characteristic equation：$r^2 - 9r + 9 = 0$。</p>
+        <p>Step 2：求 roots（用求根公式，判别式 $81 - 36 = 45 > 0$）：</p>
+        $$r = \frac{9 \pm \sqrt{45}}{2} = \frac{9 \pm 3\sqrt{5}}{2}$$
+        <p>两个 distinct real roots：$r_1 = \dfrac{9 + 3\sqrt{5}}{2}$，$r_2 = \dfrac{9 - 3\sqrt{5}}{2}$。</p>
+        <p>Step 3：General solution：</p>
+        $$y(t) = c_1 e^{\frac{9+3\sqrt{5}}{2}\,t} + c_2 e^{\frac{9-3\sqrt{5}}{2}\,t}$$
+        <p class="note">
+          注意 $r_1 = \frac{9+3\sqrt{5}}{2} \approx 7.85 > 0$ 而 $r_2 = \frac{9-3\sqrt{5}}{2} \approx 1.15 > 0$，两个 roots 都是正数，所以 $t \to +\infty$ 时两项都趋于 $+\infty$，solution 无界增长。这道题 roots 带根号，写答案时保留 $\sqrt{5}$ 即可，不要算成小数——小数形式不 "exact"。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.4b — Distinct real roots（one root is zero）</p>
+        <p>
+          求 $y'' + 5y' = 0$ 的 general solution。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 + 5r = 0$，因式分解：$r(r + 5) = 0$，得 $r = 0$ 或 $r = -5$。</p>
+        <p>两个 distinct real roots 0 和 $-5$。注意 $r = 0$ 时 $e^{0 \cdot t} = 1$（constant function）。</p>
+        <p>General solution：</p>
+        $$y(t) = c_1 e^{0 \cdot t} + c_2 e^{-5t} = c_1 + c_2 e^{-5t}$$
+        <p class="note">
+          $r = 0$ 是合法的 root，对应 solution $y = 1$（constant function）。Long-time behavior：$t \to +\infty$ 时，$e^{-5t} \to 0$，所以 $y \to c_1$（趋向 constant）。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.1.5 — IVP 及最小值（distinct real roots）</p>
+        <p>
+          解 IVP：$y'' - y = 0$，$y(0) = \dfrac{5}{4}$，$y'(0) = -\dfrac{3}{4}$。并求 $y(t)$ 的最小值。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 - 1 = 0 \Rightarrow r = \pm 1$（distinct real roots）。</p>
+        <p>General solution：$y(t) = c_1 e^t + c_2 e^{-t}$，$y'(t) = c_1 e^t - c_2 e^{-t}$。</p>
+        <p>代入 initial conditions：</p>
+        $$\begin{aligned}
+        y(0) = \tfrac{5}{4}: & \quad c_1 + c_2 = \tfrac{5}{4}\\
+        y'(0) = -\tfrac{3}{4}: & \quad c_1 - c_2 = -\tfrac{3}{4}
+        \end{aligned}$$
+        <p>两式相加：$2c_1 = \frac{5}{4} - \frac{3}{4} = \frac{2}{4} = \frac{1}{2} \Rightarrow c_1 = \frac{1}{4}$；两式相减：$2c_2 = \frac{5}{4} + \frac{3}{4} = 2 \Rightarrow c_2 = 1$。</p>
+        $$y(t) = \frac{1}{4}e^t + e^{-t}$$
+        <p><strong>求最小值：</strong>令 $y'(t) = 0$：</p>
+        $$y'(t) = \frac{1}{4}e^t - e^{-t} = 0 \implies \frac{e^t}{4} = e^{-t} \implies e^{2t} = 4 \implies 2t = \ln 4 \implies t = \ln 2$$
+        <p>验证这是极小值（不是极大值）：</p>
+        $$y''(t) = \frac{1}{4}e^t + e^{-t} > 0 \quad \text{对所有 } t$$
+        <p>$y'' > 0$ 说明 $y$ 是 convex function，所以唯一的临界点 $t = \ln 2$ 就是全局最小值点。</p>
+        $$y(\ln 2) = \frac{1}{4} e^{\ln 2} + e^{-\ln 2} = \frac{1}{4} \cdot 2 + \frac{1}{2} = \frac{1}{2} + \frac{1}{2} = 1$$
+        <p><strong>结论：</strong>$y(t)$ 的最小值为 $1$，在 $t = \ln 2$ 处取到。</p>
+        <p class="note">
+          注意这里用了两个信息：① 令 $y' = 0$ 找临界点；② 用 second derivative test（$y'' > 0$）确认是极小值。在 exam 里两步都要写。另外，$y(\ln 2) = \frac{1}{4} e^{\ln 2} + e^{-\ln 2} = \frac{1}{4} \cdot 2 + \frac{1}{2} = \frac{1}{2} + \frac{1}{2} = 1$，这里用到了 $e^{\ln 2} = 2$ 和 $e^{-\ln 2} = 1/2$。
+        </p>
+      </div>
+
+      <p>
+        这道例题展示了 distinct real roots case 的一个常见延伸：在解出 IVP 之后，还要分析 solution 的额外性质（这里是"最小值"）。Particular solution $y(t) = \frac{1}{4}e^t + e^{-t}$ 是两个指数函数的和，一个递增（$e^t$，$r_1 = 1 > 0$），一个递减（$e^{-t}$，$r_2 = -1 < 0$）。它们的竞争产生了一个极小值点。若 $c_1 > 0$（$e^t$ 那项的系数为正），最终 $e^t$ 项主导，$y \to +\infty$ as $t \to +\infty$；而 $e^{-t}$ 主导 $t \to -\infty$ 方向的行为（$y \to +\infty$ as $t \to -\infty$ as well，因为 $c_2 = 1 > 0$）。两个 $t$ 极限都是 $+\infty$，中间必然有一个极小值——这种分析告诉你解的大致形状，也可以帮助 check 计算结果是否合理。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="wronskian-theory">3.2 — Wronskian 与 fundamental set 的完整理论</h2>
+
+      <p>
+        前面我们一直说"需要两个 linearly independent solutions"，但具体如何判断给定的两个 solutions 是否 linearly independent？靠定义直接验证（对所有 $t$ 证明 $c_1 y_1 + c_2 y_2 = 0 \Rightarrow c_1 = c_2 = 0$）有时候很繁琐，特别是当 $y_1, y_2$ 形式复杂时。Wronskian 提供了一个系统化的、可计算的工具——只需要计算一个 $2\times 2$ 行列式，然后检验它在某个点（任意一点）是否为零，就能判断 linearly independent 还是 dependent。
+      </p>
+      <p>
+        当然，这个便捷性是有条件的：Wronskian 的判据只对 homogeneous ODE 的 solutions 成立（不是对任意两个 functions）。这是因为 ODE 对 solutions 施加了额外的约束（它们满足同一个方程），使得 Wronskian 的零点行为比一般 functions 更有规律（后面 Abel's Theorem 会精确说明这一点）。
+      </p>
+
+      <h3 id="wronskian-def">Wronskian 的定义</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (Wronskian).</span>
+        给定两个 differentiable functions $y_1(t)$ 和 $y_2(t)$，它们的 <strong>Wronskian</strong> 定义为 $2 \times 2$ 行列式：
+        $$W[y_1, y_2](t) = \begin{vmatrix} y_1 & y_2 \\ y_1' & y_2' \end{vmatrix} = y_1(t)\, y_2'(t) - y_2(t)\, y_1'(t).$$
+        Wronskian 是 $t$ 的 function（而不是一个常数）。
+      </div>
+
+      <p>
+        计算步骤：写出 $2\times 2$ 矩阵，第一行是 $y_1, y_2$，第二行是 $y_1', y_2'$，取行列式（主对角线乘积减次对角线乘积）：$W = y_1 \cdot y_2' - y_2 \cdot y_1'$。注意顺序不能错——写错了符号会变，虽然对判断是否为零没有影响，但计算 Abel 公式或 variation of parameters 时会出问题。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Wronskian 的几何含义</p>
+        <p>
+          在线性代数里，矩阵的行列式度量其"column vectors 张成的平行四边形面积"（2D case）。如果两个向量平行（proportional），面积为零，行列式为零，等价于 linearly dependent。
+          <br><br>
+          Wronskian 是把这个思想搬到 function space 里。我们把每个 function 通过它在 $t$ 时刻的"state vector"$(y_i(t), y_i'(t))$来表示——这是一个 $\mathbb{R}^2$ 里的向量。Wronskian 就是由 $(y_1(t), y_1'(t))$ 和 $(y_2(t), y_2'(t))$ 这两个向量张成的平行四边形面积。
+          <br><br>
+          如果 $W(t_0) \neq 0$，说明在时刻 $t_0$，两个 function 的 state vectors 不平行，它们提供了"独立的方向信息"——linearly independent。
+          <br><br>
+          而对于 homogeneous ODE 的 solutions，还有一个额外的精妙之处（Abel's Theorem）：$W(t)$ 要么恒为零，要么永不为零。这意味着你只需要在一个点检验 $W$，就知道了整个区间上的情况。
+        </p>
+      </div>
+
+      <h3 id="wronskian-lemma">Wronskian 判据（for ODE solutions）</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Wronskian and linear independence for ODE solutions).</span>
+        设 $y_1, y_2$ 是 $y'' + p(t)y' + q(t)y = 0$ 在 $(a,b)$ 上的两个 solutions，$p(t), q(t)$ 在 $(a,b)$ 上 continuous。那么以下等价：
+        <br><br>
+        <strong>(1)</strong> $y_1, y_2$ 在 $(a,b)$ 上 linearly dependent<br>
+        $\Longleftrightarrow$ 存在某 $t_0 \in (a,b)$ 使 $W[y_1,y_2](t_0) = 0$<br>
+        $\Longleftrightarrow$ $W[y_1,y_2](t) = 0$ 对所有 $t \in (a,b)$。
+        <br><br>
+        <strong>(2)</strong> $y_1, y_2$ 在 $(a,b)$ 上 linearly independent<br>
+        $\Longleftrightarrow$ 存在某 $t_0 \in (a,b)$ 使 $W[y_1,y_2](t_0) \neq 0$<br>
+        $\Longleftrightarrow$ $W[y_1,y_2](t) \neq 0$ 对所有 $t \in (a,b)$。
+        <br><br>
+        <strong>(3)</strong> 实践中只需在任意一个点 $t_0$ 计算 $W$。$\square$
+      </div>
+
+      <p>
+        特别值得注意的是结论 (3)："检验一个点就够了"。这是 homogeneous ODE solutions 独有的性质，对 general functions 不成立。在实践中，这个性质极大地简化了计算：你可以选择最方便计算的那个点来检验 $W$，通常选 $t = 0$ 是最省事的，因为很多 functions 在 $t = 0$ 处取值最简单。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Wronskian 判据只对 ODE solutions 有效</p>
+        <p>
+          Wronskian 判据（$W = 0 \Leftrightarrow$ linearly dependent）只在 $y_1, y_2$ 是同一 homogeneous ODE 的 solutions 时成立。对于一般的 functions，这个等价关系是假的。
+          <br><br>
+          反例：$f(x) = x^2$，$g(x) = x|x|$。可以验证 $W[f,g](0) = 0$，但 $f$ 和 $g$ 在 $(-1,1)$ 上实际上是 linearly independent 的（不存在常数 $k$ 使 $x^2 = k \cdot x|x|$ 对所有 $x$ 成立，因为 $x^2/x|x| = x/|x|$ 随 $x$ 的符号变化）。
+          <br><br>
+          结论：对一般 functions，$W = 0$ 不能推出 linearly dependent；linearly independent 也不能推出 $W \neq 0$。这些强等价关系是 ODE solutions 的专属性质。
+        </p>
+      </div>
+
+      <h3 id="abels-theorem">Abel's Theorem</h3>
+
+      <p>
+        Abel's Theorem 解释了为什么 Wronskian 会"要么恒零要么永非零"——它给出了 Wronskian 的精确公式。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Abel's Theorem).</span>
+        设 $y_1, y_2$ 是 $y'' + p(t)y' + q(t)y = 0$ 在 $(a,b)$ 上的两个 solutions，$p(t), q(t)$ 在 $(a,b)$ 上 continuous。那么
+        $$W[y_1, y_2](t) = c\,e^{-\int p(t)\,dt}$$
+        其中 $c$ 是一个只依赖于 $y_1, y_2$（及某个积分起点）的 constant，不依赖 $t$。因此 $W[y_1, y_2](t)$ 在 $(a,b)$ 上要么恒为零（$c = 0$），要么永不为零（$c \neq 0$，因为 $e^{-\int p\,dt}$ 永远非零）。$\square$
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Abel's Theorem 的推导</p>
+        <p>
+          Abel's Theorem 的证明是一个非常 elegant 的技巧，值得完整展示。
+          <br><br>
+          计算 $W' = \frac{d}{dt}(y_1 y_2' - y_2 y_1')$，展开：
+          $$W' = y_1' y_2' + y_1 y_2'' - y_2' y_1' - y_2 y_1'' = y_1 y_2'' - y_2 y_1''$$
+          （中间两项 $y_1' y_2' - y_2' y_1'$ 相互抵消。）
+          <br><br>
+          由 $y_1, y_2$ 都满足 $y'' + py' + qy = 0$：
+          $$y_1'' = -py_1' - qy_1, \quad y_2'' = -py_2' - qy_2$$
+          代入 $W'$：
+          $$W' = y_1(-py_2' - qy_2) - y_2(-py_1' - qy_1) = -p(y_1 y_2' - y_2 y_1') = -pW$$
+          所以 $W' = -p(t) W$——这是关于 $W$ 的 <em>first-order linear ODE</em>！这正是 File 02 里学过的 integrating factor 方法的直接对象。解这个 ODE（separable）：$\frac{dW}{W} = -p\,dt$，积分得 $\ln|W| = -\int p\,dt + \text{const}$，即
+          $$W(t) = c\, e^{-\int p(t)\,dt}$$
+          这就是 Abel 公式。由于 $e^{-\int p\,dt}$ 永远非零，$W$ 的零点完全由 constant $c$ 决定：若 $c = 0$，则 $W \equiv 0$；若 $c \neq 0$，则 $W$ 永不为零。
+        </p>
+      </div>
+
+      <h3 id="fundamental-set">Fundamental set of solutions</h3>
+
+      <p>
+        有了 Wronskian 判据和 Abel's Theorem，我们可以精确定义"fundamental set"——这是整个 general solution 框架的最终表述。实践上，"fundamental set"就是"两个 linearly independent solutions 的配对"；它的重要性在于：给定 fundamental set $\{y_1, y_2\}$，general solution $c_1 y_1 + c_2 y_2$ 不只是"一些 solutions"，而是 <em>所有 solutions</em> 的参数化。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (fundamental set of solutions).</span>
+        设 $y_1(t), y_2(t)$ 是 $y'' + p(t)y' + q(t)y = 0$ 在 $(a,b)$ 上的两个 solutions，且 $W[y_1, y_2] \neq 0$（即 linearly independent）。则 $\{y_1(t), y_2(t)\}$ 称为这个 ODE 的一个 <strong>fundamental set of solutions</strong>（基本解组）。
+      </div>
+
+      <p>
+        Prof notes 明确列出 fundamental set 的三个性质，这三点一起确保了"general solution"这个概念是有意义的、完整的：
+      </p>
+      <ol>
+        <li>$\{y_1(t), y_2(t)\}$ 是 fundamental set——意思是它们是 linearly independent 的 solution pair，$W[y_1, y_2] \neq 0$。</li>
+        <li>方程的<em>每一个</em> solution $\phi(t)$ 都可以表示为 $\phi(t) = c_1 y_1(t) + c_2 y_2(t)$（某组特定的 constants $c_1, c_2$）。也就是说，general solution $c_1 y_1 + c_2 y_2$ 真的"覆盖了全部"的 solutions——没有任何 solution 被遗漏。这一点的证明需要用到 E&amp;U Theorem：给定任意 solution $\phi$，取 $\phi(t_0)$ 和 $\phi'(t_0)$ 作为 initial conditions，然后由 $W \neq 0$ 可以证明存在唯一的 $c_1, c_2$ 使 $c_1 y_1 + c_2 y_2$ 满足同样的 initial conditions，再由 uniqueness 知 $\phi = c_1 y_1 + c_2 y_2$。</li>
+        <li>Fundamental set <strong>is not unique</strong>——同一个 ODE 有无数个 fundamental sets（任意两个 linearly independent solutions 都构成一个 fundamental set）。比如 $y'' + y = 0$ 的 fundamental sets 包括 $\{\cos t, \sin t\}$、$\{e^{it}, e^{-it}\}$（复值形式）、$\{\cos(t + \pi/4), \sin(t+\pi/4)\}$ 等等，都等价，只是参数化方式不同。</li>
+      </ol>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence of fundamental set).</span>
+        给定 $y'' + p(t)y' + q(t)y = 0$，$p, q$ 在 $(a,b)$ 上 continuous，$t_0 \in (a,b)$。令 $y_1$ 是满足 $y_1(t_0) = 1$，$y_1'(t_0) = 0$ 的 solution；令 $y_2$ 是满足 $y_2(t_0) = 0$，$y_2'(t_0) = 1$ 的 solution（E&amp;U Theorem 保证这两个 solutions 存在）。则 $\{y_1, y_2\}$ 构成 fundamental set。
+        <br><br>
+        <em>注（prof notes）：</em>Fundamental set 总存在——你不用担心找不到两个 linearly independent solutions。$\square$
+      </div>
+
+      <h3 id="wronskian-examples">Wronskian 计算例子</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.2.2 — Wronskian 判断 fundamental set（$W \neq 0$，成立）</p>
+        <p>
+          已知 $y_1 = e^{2t}$ 和 $y_2 = e^t$ 是 $y'' - 3y' + 2y = 0$ 的 solutions。判断它们是否构成 fundamental set，并写出 general solution。
+        </p>
+        <p class="note">（可以先验证 $y'' - 3y' + 2y = 0$ 是 $(\star)$ 的形式，characteristic equation $r^2 - 3r + 2 = (r-2)(r-1) = 0$，roots $r = 2, 1$，与 $y_1 = e^{2t}, y_2 = e^t$ 一致。）</p>
+        <p><strong>Solution：</strong></p>
+        <p>计算 Wronskian：</p>
+        $$W[y_1, y_2](t) = \begin{vmatrix} e^{2t} & e^t \\ 2e^{2t} & e^t \end{vmatrix} = e^{2t} \cdot e^t - e^t \cdot 2e^{2t} = e^{3t} - 2e^{3t} = -e^{3t}$$
+        <p>$W(t) = -e^{3t} \neq 0$ 对所有 $t \in \mathbb{R}$，因此 $y_1, y_2$ linearly independent on $\mathbb{R}$。</p>
+        <p><strong>结论：</strong>$\{e^{2t}, e^t\}$ 是 fundamental set。General solution：$y(t) = c_1 e^{2t} + c_2 e^t$。</p>
+        <p class="note">
+          用 Abel's Theorem 验证：$p(t) = -3$（constant，来自把 $y'' - 3y' + 2y = 0$ 化为标准形式 $y'' + (-3)y' + 2y = 0$），所以 $W(t) = c e^{-\int (-3)dt} = c e^{3t}$。我们算出 $W = -e^{3t}$，对应 $c = -1 \neq 0$，两种方法结果一致。实际做题时不需要同时用两种方法，直接计算 Wronskian 然后判断是否非零就行，Abel's Theorem 只是一个理论工具，用来理解"为什么 $W$ 要么恒零要么永不零"。
+        </p>
+      </div>
+
+      <p>
+        在 Wronskian 判断 fundamental set 的例题里，有一个容易被忽略的步骤：题目已经告诉你 $y_1, y_2$ 是"某个方程的 solutions"，但有时需要先确认方程是否在 $(\star)$ 的形式（即 leading coefficient 是否为 1）。如果不是，需要先除以 leading coefficient，确认 $p(t), q(t)$ 是否在讨论的 interval 上 continuous，然后才能应用 Wronskian 判据。如果 $p, q$ 在某点不连续，Wronskian 判据在跨越那个点的 interval 上可能无效。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.2.3 — Wronskian 判断 fundamental set（$W = 0$，不成立）</p>
+        <p>
+          已知 $y_1 = \sin t$ 和 $y_2 = 2\cos(t - \pi/2)$ 是 $y'' + y = 0$ 的 solutions。判断它们是否构成 fundamental set。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>首先化简 $y_2$：利用 angle subtraction，$\cos(t - \pi/2) = \cos t \cos(\pi/2) + \sin t \sin(\pi/2) = \sin t$。所以 $y_2 = 2\sin t = 2 y_1$——$y_2$ 就是 $y_1$ 的两倍，显然 linearly dependent。</p>
+        <p>用 Wronskian 确认（如果你当时没看出来）：</p>
+        $$W[y_1, y_2](t) = \begin{vmatrix} \sin t & 2\cos(t - \tfrac{\pi}{2}) \\ \cos t & -2\sin(t - \tfrac{\pi}{2}) \end{vmatrix}$$
+        <p>展开：$W = -2\sin t \sin(t-\tfrac{\pi}{2}) - 2\cos t\cos(t-\tfrac{\pi}{2})$。用 $\cos(a-b) = \cos a\cos b + \sin a \sin b$ 的逆用：</p>
+        $$W = -2[\sin t \sin(t - \tfrac{\pi}{2}) + \cos t\cos(t - \tfrac{\pi}{2})] = -2\cos(t - (t - \tfrac{\pi}{2})) = -2\cos(\tfrac{\pi}{2}) = 0$$
+        <p>$W \equiv 0$，确认 linearly dependent。</p>
+        <p><strong>结论：</strong>$\{y_1, y_2\}$ 不构成 fundamental set（两者 linearly dependent）。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.2.4 — 用 Wronskian 排除不可能的 solution</p>
+        <p>
+          解释：$y = (x-3)^2$ 能否是 $y'' + p(x)y' + q(x)y = 0$ 在含 $x = 3$ 的某区间上的 solution（$p, q$ 在该区间上 continuous）？
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          假设 $y = (x-3)^2$ 是 solution。因为 $p, q$ 在含 $x=3$ 的区间上 continuous，由 fundamental set existence theorem，存在另一个 solution $\tilde{y}$，使得 $\{y, \tilde{y}\}$ 构成 fundamental set，即 $W[y, \tilde{y}] \neq 0$ 在该区间上成立。
+        </p>
+        <p>计算 $W[y, \tilde{y}]$ 在 $x = 3$ 处：$y(3) = (3-3)^2 = 0$，$y'(3) = 2(x-3)\big|_{x=3} = 0$，所以</p>
+        $$W[y, \tilde{y}](3) = \begin{vmatrix} y(3) & \tilde{y}(3) \\ y'(3) & \tilde{y}'(3) \end{vmatrix} = \begin{vmatrix} 0 & \tilde{y}(3) \\ 0 & \tilde{y}'(3) \end{vmatrix} = 0 \cdot \tilde{y}'(3) - \tilde{y}(3) \cdot 0 = 0$$
+        <p>$W = 0$ 在 $x = 3$，由 Abel's Theorem，$W \equiv 0$ 在整个区间——这意味着 $y$ 和 $\tilde{y}$ linearly dependent，与"构成 fundamental set"矛盾。</p>
+        <p><strong>结论：</strong>$y = (x-3)^2$ 不能是上述 ODE 在含 $x = 3$ 的区间上的 solution。</p>
+        <p class="note">
+          这道题的关键是：任何 solution 在和另一个 solution 配对后，$W$ 在 $x = 3$ 处自动为零（因为 $y(3) = y'(3) = 0$），与 fundamental set 矛盾。这说明 $(x-3)^2$ 不满足此 ODE 在含 3 的区间上的要求，与 $y(t_0) = y'(t_0) = 0$ 只能给出 $y \equiv 0$ 解的结论一致。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.2.5 — E&amp;U 判断 interval，Wronskian 判断解的有效性（综合题）</p>
+        <p>
+          确定 $(t^2-3t)y'' + ty' - (t+3)y = 0$，$y(1) = 2$，$y'(1) = 1$ 的 solution 一定存在且唯一的最大 interval。（此题与 Example 3.1.3 相同，但在这里我们也用 Wronskian 的角度理解。）
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>同 Example 3.1.3：$p(t) = 1/(t-3)$，$q(t) = -(t+3)/(t(t-3))$，discontinuity points $t = 0, 3$，$t_0 = 1 \in (0,3)$，最大 interval 为 $(0,3)$。</p>
+        <p>
+          由 E&amp;U Theorem，在 $(0,3)$ 上存在唯一解 $y(t)$。由 fundamental set existence theorem，该 ODE 在 $(0,3)$ 上一定有 fundamental set $\{y_1, y_2\}$，$W[y_1,y_2] \neq 0$ 在 $(0,3)$ 上。General solution $y = c_1 y_1 + c_2 y_2$。
+        </p>
+      </div>
+
+      <p>
+        做完 Wronskian 这一系列例子，可以总结一个考试常见的题型模式：给你两个 functions，说它们是某个方程的 solutions，让你判断是否构成 fundamental set。做法永远是：计算 Wronskian，检验是否为零。如果 Wronskian 非零（哪怕只在一个点，比如 $t = 0$），立刻得出 linearly independent，构成 fundamental set。如果 Wronskian 恒为零，说明 linearly dependent，不构成 fundamental set（此时两个 solutions 其实是"同一个 solution"的不同写法）。
+      </p>
+      <p>
+        有时题目还会问"写出 general solution"——这时只需要在确认 fundamental set 之后，写 $y = c_1 y_1 + c_2 y_2$ 就完成了，不需要再做任何化简（因为 general solution 就定义为 fundamental set 的 linear combination）。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="repeated-roots">3.4 — Constant coefficient · repeated roots</h2>
+
+      <p>
+        现在处理 constant-coefficient ODE $(\star)$ 的第二种情形：当判别式 $b^2 - 4ac = 0$ 时，characteristic equation $ar^2 + br + c = 0$ 只有一个 root（重根），$r_1 = r_2 = r = -b/(2a)$。
+      </p>
+
+      <p>
+        用之前的方法，我们只能得到一个 solution $y_1 = e^{rt}$。但我们已知 general solution 需要两个 linearly independent solutions——还差一个。问题就变成：如何找第二个 solution $y_2$，它要满足（1）确实是 ODE 的 solution；（2）和 $y_1 = e^{rt}$ linearly independent。这是 Sec 3.4 要解决的核心问题。
+      </p>
+      <p>
+        直觉上，当 $b^2 - 4ac$ 从正值（distinct real roots）趋近于零（repeated roots），两个 roots $r_1, r_2$ 越来越近，最终合并。在这个极限过程里，两个 solutions $e^{r_1 t}$ 和 $e^{r_2 t}$ 越来越像，几乎"碰撞"成同一个 function。我们需要找一种方式，把它们"分开"，得到一个独立的第二解。答案是 $y_2 = te^{rt}$——在 $e^{rt}$ 前面乘上 $t$，这个因子足以让 $y_2$ 和 $y_1$ linearly independent，同时可以验证它确实满足方程。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 重根为什么产生 $te^{rt}$，而不是别的东西</p>
+        <p>
+          当重根出现时，我们面临的困境是：$e^{r_1 t}$ 和 $e^{r_2 t}$ 在 $r_1 \to r_2 = r$ 时"撞在一起"了，给出的两个 solutions 变成了同一个 $e^{rt}$，线性相关。我们需要"把这两个重合的解分开"来得到一个独立的第二解。
+          <br><br>
+          一个启发性方法（不是 prof 讲的推导，但能理解 $te^{rt}$ 的来源）：当 $r_1 \neq r_2$ 时，$\frac{e^{r_1 t} - e^{r_2 t}}{r_1 - r_2}$ 是一个 solution（由 Superposition），而当 $r_1 \to r_2 = r$ 时，这个商的极限正是 $\frac{d}{dr}e^{rt}\big|_{r=r_1 = r_2} = te^{rt}$。
+          <br><br>
+          类比线性代数：$n\times n$ matrix 有重复 eigenvalue 时，eigenvector 空间的维数不足，需要引入 generalized eigenvectors 来张成完整的 solution space。对 ODE，重根对应 defective case，$te^{rt}$ 就是"generalized eigenvector"的作用——它和 $e^{rt}$ 一起张成 solution space 的完整二维结构。
+          <br><br>
+          直接验证 $te^{rt}$ 满足方程：计算 $y_2 = te^{rt}$ 的导数，代入 $ay'' + by' + cy$，利用重根条件 $2ar + b = 0$（即 $r = -b/(2a)$）和 $ar^2 + br + c = 0$，可以直接验证代入后为零。（详见下面的 Deeper 框。）
+        </p>
+      </div>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (repeated root — general solution).</span>
+        若 characteristic equation $ar^2 + br + c = 0$ 有 repeated root $r = r_1 = r_2 = -b/(2a)$（$b^2 - 4ac = 0$），则
+        $$y_1(t) = e^{rt}, \quad y_2(t) = t\,e^{rt}$$
+        是 $(\star)$ 的两个 linearly independent solutions，general solution（在整个 $\mathbb{R}$ 上）为
+        $$y(t) = c_1 e^{rt} + c_2 t\, e^{rt} = (c_1 + c_2 t)\,e^{rt}, \quad c_1, c_2 \in \mathbb{R}.$$
+        $\square$
+      </div>
+
+      <p>
+        验证 $y_1 = e^{rt}$ 和 $y_2 = te^{rt}$ linearly independent：计算 Wronskian
+        $$W[e^{rt}, te^{rt}] = e^{rt}(e^{rt} + rte^{rt}) - te^{rt} \cdot re^{rt} = e^{2rt}(1 + rt - rt) = e^{2rt} \neq 0$$
+        对所有 $t \in \mathbb{R}$，因此确实 linearly independent。注意 $e^{2rt}$ 永远非零，所以重根 case 的两个 solutions 的 Wronskian 自动非零，不需要另外检验。
+      </p>
+      <p>
+        另一个观察：把重根 general solution $(c_1 + c_2 t)e^{rt}$ 和 distinct real roots general solution $c_1 e^{r_1 t} + c_2 e^{r_2 t}$ 对比，会发现重根 case 的 solution 多了一个 "linear in $t$" 的包络因子 $c_1 + c_2 t$，而不是另一个不同增长率的指数。这也是为什么重根 case 的 long-time behavior 稍微特殊——$te^{rt}$ 的增长/衰减速率和 $e^{rt}$ 相同（同一个指数因子），但有一个线性增长的包络。具体地，当 $r < 0$ 时 $te^{rt} \to 0$（指数衰减比线性增长快），当 $r = 0$ 时 $te^{rt} = t$（线性增长），当 $r > 0$ 时 $te^{rt} \to +\infty$（指数增长带线性放大）。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 重根时绝对不能写两次 $e^{rt}$</p>
+        <p>
+          遇到重根 $r$ 之后，一个非常常见的错误是把 general solution 写成 $c_1 e^{rt} + c_2 e^{rt}$。这等于 $(c_1 + c_2)e^{rt}$，只有一个有效 arbitrary constant（$c_1 + c_2$），根本不是 general solution，遗漏了无数个 solutions。
+          <br><br>
+          正确做法：第二个 solution 必须乘上额外的 $t$：$y_2 = te^{rt}$，general solution 是 $(c_1 + c_2 t)e^{rt}$。
+          <br><br>
+          口诀：<em>重根 $r$ $\Rightarrow$ 第二个 solution 比第一个多一个因子 $t$。</em>
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 直接验证 $te^{rt}$ 满足方程</p>
+        <p>
+          设 $y_2 = te^{rt}$，直接代入 $ay_2'' + by_2' + cy_2$ 验证其为零（其中重根条件给出 $b = -2ar$，$c = ar^2$）。
+          <br><br>
+          $y_2 = te^{rt}$<br>
+          $y_2' = e^{rt} + rte^{rt} = (1 + rt)e^{rt}$<br>
+          $y_2'' = re^{rt} + r(1+rt)e^{rt} = (2r + r^2 t)e^{rt}$
+          <br><br>
+          代入 $ay_2'' + by_2' + cy_2$：
+          $$a(2r + r^2 t)e^{rt} + b(1 + rt)e^{rt} + c\,te^{rt}$$
+          $$= e^{rt}\bigl[a(2r + r^2 t) + b(1 + rt) + ct\bigr]$$
+          $$= e^{rt}\bigl[(2ar + b) + (ar^2 + br + c)t\bigr]$$
+          由重根条件：$2ar + b = 2a \cdot (-\frac{b}{2a}) + b = -b + b = 0$；且 $ar^2 + br + c = 0$（$r$ 是 characteristic equation 的 root）。所以括号里 $= 0 + 0 \cdot t = 0$。
+          <br><br>
+          验证完毕：$y_2 = te^{rt}$ 确实满足 $ay'' + by' + cy = 0$。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.4.1 — Repeated root IVP，分析 $t \to +\infty$ 时的行为</p>
+        <p>
+          解 IVP：$y'' - 2y' + y = 0$，$y(0) = 2$，$y'(0) = 1$。并分析 $t \to +\infty$ 时 $y(t)$ 的行为。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 - 2r + 1 = (r-1)^2 = 0$，重根 $r = 1$。</p>
+        <p>General solution：$y(t) = c_1 e^t + c_2 t e^t$。</p>
+        <p>计算 $y'(t) = c_1 e^t + c_2(e^t + te^t) = (c_1 + c_2)e^t + c_2 te^t$。</p>
+        <p>代入 initial conditions：</p>
+        $$\begin{aligned}
+        y(0) = 2: &\quad c_1 = 2\\
+        y'(0) = 1: &\quad c_1 + c_2 = 1 \implies c_2 = 1 - 2 = -1
+        \end{aligned}$$
+        <p>IVP 的 solution：$y(t) = 2e^t - te^t = (2-t)e^t$。</p>
+        <p>分析 $t \to +\infty$：$(2 - t) \to -\infty$（因为 $-t \to -\infty$），而 $e^t \to +\infty$。这是 $(-\infty) \times (+\infty)$ 型，$e^t$ 比任意 polynomial 增长更快，所以整体 $(2-t)e^t \to -\infty$（$(2-t)$ 在 $t > 2$ 时为负，$e^t > 0$，乘积为负且绝对值趋向 $+\infty$）。</p>
+        <p><strong>结论：</strong>$\lim_{t \to +\infty} (2-t)e^t = -\infty$。</p>
+        <p class="note">
+          分析 $t \to +\infty$ 的极限时，$(2-t)e^t$ 是 $\pm\infty \times 0^+$ 型不定式，不能直接代入。正确方法是判断 $(2-t)$ 的符号何时变为负（当 $t > 2$ 时），然后注意 $te^t$ 的增长远快于 $2e^t$ 的增长（因为 $te^t / (2e^t) = t/2 \to \infty$），所以 $y(t) = 2e^t - te^t = e^t(2-t) \to -\infty$。另一种方法是用 L'Hôpital（如果写成 $0/0$ 型）。
+        </p>
+      </div>
+
+      <p>
+        Repeated roots case 的 IVP 流程和 distinct real roots 完全一样，唯一区别是 general solution 的形式含 $te^{rt}$，因此 $y'(t)$ 的计算需要用 product rule 处理 $te^{rt}$ 项：$(te^{rt})' = e^{rt} + rte^{rt}$。这一步容易忘记 $e^{rt}$ 那个额外的项，导致 $y'(0)$ 的值算错，进而 $c_2$ 的值错误。建议每次都把 $y'(t)$ 完整展开写出来，不要省略步骤。
+      </p>
+      <p>
+        从三种 cases 的全局视角来看：distinct real roots 给出"两个不同增长率的指数函数"；repeated root 给出"同一指数函数加上一个带 $t$ 因子的版本"；complex roots 给出"指数包络加振荡"。这三种形式各有特色，但背后的逻辑是统一的——都来自 characteristic equation 的 roots，只是 roots 的性质不同导致 solution 的形式不同。理解这个统一的逻辑，有助于在考试中不会因为遇到少见的参数值（比如 $r = 0$，或纯虚数 roots）而不知所措——只要按照三步法走，结果自然正确。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="complex-roots">3.3 — Constant coefficient · complex roots</h2>
+
+      <p>
+        最后处理 constant-coefficient ODE $(\star)$ 的第三种情形：当 $b^2 - 4ac < 0$ 时，characteristic equation 的 roots 是 conjugate complex numbers。Prof 把这一节（Sec 3.3）放在 Sec 3.4（repeated roots）之后讲，因此本文件也遵循这个顺序。
+      </p>
+
+      <p>
+        这一节的主要挑战是：characteristic equation 给出的是 complex-valued "solutions" $e^{(\lambda \pm i\mu)t}$，但在实际应用中我们需要 real-valued solutions——一方面物理问题里量都是实数，另一方面 real-valued solutions 更直接、更好操作。将 complex solutions 转化为 real solutions，桥梁是 Euler's formula。这个转化的过程值得仔细理解一遍，不要只记结论。
+      </p>
+
+      <h3 id="euler-formula">Euler's formula 与 real-valued solutions 的推导</h3>
+
+      <p>
+        设 characteristic equation $ar^2 + br + c = 0$ 的 roots 为 $r = \lambda \pm i\mu$（$\lambda = -b/(2a)$，$\mu = \frac{\sqrt{4ac - b^2}}{2a} > 0$，$b^2 - 4ac < 0$）。形式上这给出两个 complex-valued "solutions"：
+      </p>
+      $$e^{(\lambda + i\mu)t} \quad \text{和} \quad e^{(\lambda - i\mu)t}$$
+
+      <p>
+        利用 Euler's formula $e^{i\theta} = \cos\theta + i\sin\theta$，可以展开：
+      </p>
+      $$e^{(\lambda \pm i\mu)t} = e^{\lambda t} \cdot e^{\pm i\mu t} = e^{\lambda t}(\cos\mu t \pm i\sin\mu t)$$
+
+      <p>
+        取这两个 complex solutions 的 real part 和 imaginary part（两个 complex conjugate solutions 的 real part 是一样的，imaginary part 相差一个负号，所以取 $e^{(\lambda+i\mu)t}$ 就够了）：
+      </p>
+      $$\text{Re}\bigl(e^{(\lambda+i\mu)t}\bigr) = e^{\lambda t}\cos\mu t, \quad \text{Im}\bigl(e^{(\lambda+i\mu)t}\bigr) = e^{\lambda t}\sin\mu t$$
+
+      <p>
+        由 linearity（Superposition Principle），real part 和 imaginary part 各自也是 ODE 的 real-valued solutions。具体地说：如果 $u + iv$ 是 complex ODE（系数为实数的 ODE）的 solution，则 $u$ 和 $v$ 各自都是 solution。这是实系数 ODE 的一个重要性质：complex solution 的 real/imaginary parts 分别是 real-valued solutions。因此，我们从两个 complex solutions 中提取出了两个 real-valued solutions：$e^{\lambda t}\cos\mu t$ 和 $e^{\lambda t}\sin\mu t$。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (complex roots — real-valued general solution).</span>
+        若 characteristic equation $ar^2 + br + c = 0$ 的 roots 是 $\lambda \pm i\mu$（$b^2 - 4ac < 0$，$\mu > 0$），则
+        $$y_1(t) = e^{\lambda t}\cos(\mu t), \quad y_2(t) = e^{\lambda t}\sin(\mu t)$$
+        是 $(\star)$ 的两个 linearly independent real-valued solutions。General solution（在整个 $\mathbb{R}$ 上）为
+        $$y(t) = e^{\lambda t}\bigl[c_1 \cos(\mu t) + c_2 \sin(\mu t)\bigr], \quad c_1, c_2 \in \mathbb{R}.$$
+        $\square$
+      </div>
+
+      <p>
+        到这里可以总结 prof notes 开头对三种情形的分类（types of solutions to $(\star)$）。这个表格值得熟记，因为它是整个 constant-coefficient homogeneous ODE 理论的核心：
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>判别式 $b^2 - 4ac$</th>
+          <th>Roots 类型</th>
+          <th>General solution</th>
+        </tr>
+        <tr>
+          <td>$> 0$</td>
+          <td>Distinct real: $r_1, r_2 \in \mathbb{R}$，$r_1 \neq r_2$</td>
+          <td>$c_1 e^{r_1 t} + c_2 e^{r_2 t}$</td>
+        </tr>
+        <tr>
+          <td>$= 0$</td>
+          <td>Repeated real: $r_1 = r_2 = r$</td>
+          <td>$(c_1 + c_2 t)e^{rt}$</td>
+        </tr>
+        <tr>
+          <td>$< 0$</td>
+          <td>Complex conjugate: $\lambda \pm i\mu$</td>
+          <td>$e^{\lambda t}(c_1\cos\mu t + c_2\sin\mu t)$</td>
+        </tr>
+      </table>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — $\lambda$ 控制衰减/增长，$\mu$ 控制振荡：弹簧-阻尼类比</p>
+        <p>
+          General solution $e^{\lambda t}(c_1\cos\mu t + c_2\sin\mu t)$ 描述的是一种"振幅随时间按指数规律变化的振荡"。$\mu$ 是 angular frequency（振荡的快慢），$\lambda$ 决定振幅的长期趋势：
+          <ul>
+            <li>$\lambda < 0$（对应 $b > 0$，正阻尼）：$e^{\lambda t} \to 0$，振幅指数衰减 → <strong>oscillatory decay</strong>。物理上对应一个欠阻尼弹簧-质量系统（spring-mass with damping）：弹簧使系统振荡，阻尼使振幅越来越小，最终静止。$t \to \infty$ 时 $y \to 0$。</li>
+            <li>$\lambda = 0$（对应 $b = 0$，无阻尼）：$e^{\lambda t} = 1$，振幅恒定 → <strong>steady oscillations</strong>（undamped）。理想的无阻尼弹簧：永远振荡，振幅不变。</li>
+            <li>$\lambda > 0$（对应 $b < 0$，负阻尼）：$e^{\lambda t} \to +\infty$，振幅指数增长 → <strong>oscillatory growth</strong>。物理上对应一个"自激振荡"系统，能量不断注入，振幅无界增长。$\lim_{t\to\infty}y(t)$ DNE。</li>
+          </ul>
+          这三种行为在 prof notes 里都有对应的草图——振荡包络分别收缩、保持、扩张。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 求出 complex roots 后必须转成 real form</p>
+        <p>
+          当求出 roots $r = \lambda \pm i\mu$ 之后，下一步必须立刻写出 real-valued general solution：
+          $$y(t) = e^{\lambda t}(c_1\cos\mu t + c_2\sin\mu t)$$
+          而不是把 $e^{(\lambda+i\mu)t}$、$e^{(\lambda-i\mu)t}$ 留在答案里。
+          <br><br>
+          后者是 complex-valued representation，其中 $c_1, c_2$ 会是 complex numbers，不能直接套 real initial conditions。Real form 才是正确的 final answer。
+          <br><br>
+          另一个常见错误：把 $\lambda$ 和 $\mu$ 搞混，或者把 $e^{\lambda t}$ 遗漏。记住：$\lambda$ 是 root 的 real part（如果 $r = -2 \pm 3i$，则 $\lambda = -2$，$\mu = 3$），指数因子是 $e^{\lambda t} = e^{-2t}$，不是 $e^{-2t \pm 3it}$。
+        </p>
+      </div>
+
+      <p>
+        当 IVP 有 complex roots 时，求 particular solution 的流程和 distinct real roots 完全一样：先用 roots 写出 general solution（real form），然后计算 $y'(t)$（注意 product rule，因为 $e^{\lambda t}$ 和三角函数的乘积需要分别对两个因子求导），再代入 initial conditions 解 linear system 得 $c_1, c_2$。唯一麻烦的地方是 $y'(t)$ 的计算容易出错，建议每次都仔细展开写清楚。
+      </p>
+
+      <h3 id="complex-root-examples">Complex roots 例子（三种行为）</h3>
+
+      <p>
+        Prof notes 给出三个连续的例子，对应 complex roots 的三种行为（oscillatory decay、steady oscillation、oscillatory growth）。建议把这三个例子对比着看——唯一变化的是 $b$ 的符号（对应 $\lambda = -b/(2a)$ 的符号），其他结构完全一样。
+      </p>
+      <p>
+        读例子的时候注意以下几点：一，求 roots 时 $\sqrt{\Delta} = \sqrt{b^2 - 4ac}$ 会是纯虚数（因为 $\Delta < 0$），写成 $i\sqrt{|\Delta|}$ 的形式后除以 $2a$，实部和虚部分离得到 $\lambda$ 和 $\mu$。这里不要被虚数吓到，只是代数计算。二，写 general solution 时，$e^{\lambda t}$ 是一个实数因子，$c_1\cos\mu t + c_2\sin\mu t$ 是振荡部分，两个因子写在一起不要漏掉 $e^{\lambda t}$。三，分析行为时，只看 $\lambda$ 的符号，这决定了 $e^{\lambda t}$ 的趋势，从而决定了 solution 的 long-time behavior。四，如果题目还要求分析行为草图，注意 $e^{\lambda t}(\ldots)$ 的振幅包络是指数曲线，振荡在包络内来回——$\lambda < 0$ 时包络收缩趋向 0，$\lambda = 0$ 时包络水平，$\lambda > 0$ 时包络发散趋向无穷。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.3.1a — Oscillatory decay（$\lambda < 0$）</p>
+        <p>
+          求 $y'' + y' + y = 0$ 的 general solution，分析 $t \to +\infty$ 时的行为。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Step 1：Characteristic equation：$r^2 + r + 1 = 0$。</p>
+        <p>Step 2：Roots（判别式 $1 - 4 = -3 < 0$）：</p>
+        $$r = \frac{-1 \pm \sqrt{-3}}{2} = \frac{-1 \pm i\sqrt{3}}{2}$$
+        <p>$\lambda = -\dfrac{1}{2}$，$\mu = \dfrac{\sqrt{3}}{2}$。</p>
+        <p>Step 3：General solution：</p>
+        $$y(t) = e^{-t/2}\!\left[c_1 \cos\!\left(\frac{\sqrt{3}}{2}t\right) + c_2 \sin\!\left(\frac{\sqrt{3}}{2}t\right)\right]$$
+        <p>行为分析：$\lambda = -\frac{1}{2} < 0$，振幅 $e^{-t/2} \to 0$ as $t \to +\infty$，因此 $y(t) \to 0$。</p>
+        <p><strong>行为：Oscillatory decay</strong>（振幅指数衰减，趋向 0）。</p>
+        <p class="note">
+          物理解读：$y'' + y' + y = 0$ 对应弹簧-质量系统，$y$ 是位移，$y''$ 是加速度（弹簧恢复力），$y'$ 是阻尼力（正阻尼，$b = 1 > 0$）。系统欠阻尼（underdamped）：阻尼不足以防止振荡，但足以让振幅衰减。最终 $y \to 0$，弹簧静止。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.3.1b — Steady oscillation（$\lambda = 0$）</p>
+        <p>
+          求 $y'' + 4y = 0$ 的 general solution，分析其行为。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 + 4 = 0 \Rightarrow r^2 = -4 \Rightarrow r = \pm 2i$。</p>
+        <p>$\lambda = 0$，$\mu = 2$。</p>
+        $$y(t) = e^{0 \cdot t}(c_1\cos 2t + c_2\sin 2t) = c_1\cos 2t + c_2\sin 2t$$
+        <p>行为分析：$\lambda = 0$，$e^{0} = 1$，solution 是纯粹的 sinusoid，振幅恒为 $\sqrt{c_1^2 + c_2^2}$，永远振荡。</p>
+        <p><strong>行为：Steady oscillation（undamped）。</strong></p>
+        <p class="note">Prof notes 明确指出：这个 case 里"there is no exponential factor"——$e^{0 \cdot t} = 1$ 消失了，solution 就是 $c_1\cos 2t + c_2\sin 2t$，纯振荡，不衰减也不增长。物理上对应无阻尼弹簧（$b = 0$），能量守恒，永远振荡。这也是"harmonic oscillator"的经典模型。</p>
+        <p class="note">
+          特别注意：$y'' + 4y = 0$ 的 characteristic equation 是 $r^2 + 4 = 0$，不是 $r^2 + 9 = 0$。一个常见的误读是把"$4y$"看成"$9y$"（抄错了系数）。仔细检查 characteristic equation 的常数项与原方程中 $y$ 的 coefficient 一致。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.3.1c — Oscillatory growth（$\lambda > 0$）</p>
+        <p>
+          求 $y'' - 2y' + 2y = 0$ 的 general solution，分析 $t \to +\infty$ 时的行为。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 - 2r + 2 = 0$，判别式 $4 - 8 = -4 < 0$：</p>
+        $$r = \frac{2 \pm \sqrt{-4}}{2} = \frac{2 \pm 2i}{2} = 1 \pm i$$
+        <p>$\lambda = 1$，$\mu = 1$。General solution：</p>
+        $$y(t) = e^t(c_1\cos t + c_2\sin t)$$
+        <p>行为分析：$\lambda = 1 > 0$，振幅 $e^t \to +\infty$ as $t \to +\infty$，整体 $|y| \to +\infty$，$\lim_{t\to\infty} y(t)$ 不存在（DNE）。</p>
+        <p><strong>行为：Oscillatory growth</strong>（振幅指数增长，无界）。</p>
+        <p class="note">
+          这道题 $y'' - 2y' + 2y = 0$ 的 $b = -2 < 0$，对应弹簧系统里的"负阻尼"——阻尼力与运动方向相同而非相反，等效于不断向系统注入能量，导致振幅无界增长。这在物理上通常是不稳定的，代表系统在某种 feedback 机制下能量失控。
+        </p>
+      </div>
+
+      <p>
+        对比以上三个例子，可以看出 $\lambda$（即 characteristic equation 的 roots 的 real part）完全决定了 long-time behavior：$\lambda < 0$ 时 solution 衰减，$\lambda = 0$ 时 solution 永续振荡，$\lambda > 0$ 时 solution 增长。$\mu$（imaginary part）决定的是振荡频率，对 long-time behavior 的定性描述没有影响。这是分析 complex roots case 时一个非常有用的口诀：<em>看 $\lambda$ 的符号，判断 decay/steady/grow；$\mu$ 的大小不影响定性行为。</em>
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 3.3.2 — Complex roots IVP（代入 initial conditions 完整流程）</p>
+        <p>
+          解 IVP：$y'' + 4y' + 5y = 0$，$y(0) = 1$，$y'(0) = 1$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Characteristic equation：$r^2 + 4r + 5 = 0$，判别式 $16 - 20 = -4 < 0$：</p>
+        $$r = \frac{-4 \pm \sqrt{-4}}{2} = \frac{-4 \pm 2i}{2} = -2 \pm i$$
+        <p>$\lambda = -2$，$\mu = 1$。General solution：$y(t) = e^{-2t}(c_1\cos t + c_2\sin t)$。</p>
+        <p>求 $y'(t)$（用 product rule）：</p>
+        $$y'(t) = -2e^{-2t}(c_1\cos t + c_2\sin t) + e^{-2t}(-c_1\sin t + c_2\cos t)$$
+        $$= e^{-2t}\bigl[(-2c_1 + c_2)\cos t + (-2c_2 - c_1)\sin t\bigr]$$
+        <p>代入 initial conditions：</p>
+        $$\begin{aligned}
+        y(0) = 1: &\quad e^0(c_1\cos 0 + c_2\sin 0) = c_1 = 1 \implies c_1 = 1\\
+        y'(0) = 1: &\quad e^0\bigl[(-2c_1 + c_2)\cos 0 + (-2c_2 - c_1)\sin 0\bigr] = -2c_1 + c_2 = 1
+        \end{aligned}$$
+        <p>由 $c_1 = 1$ 代入：$-2(1) + c_2 = 1 \Rightarrow c_2 = 3$。</p>
+        <p>IVP 的 solution：</p>
+        $$y(t) = e^{-2t}(\cos t + 3\sin t)$$
+        <p>行为分析：$\lambda = -2 < 0$，oscillatory decay，$y(t) \to 0$ as $t \to +\infty$。（这是 prof notes 里 Example d 的问题。）</p>
+        <p class="note">
+          这道例题展示了完整的 complex roots IVP 流程。值得注意的是 $y'(t)$ 的计算：$y(t) = e^{-2t}(\cos t + 3\sin t)$ 是两个函数的乘积，所以 $y'(t) = (e^{-2t})' \cdot (\cos t + 3\sin t) + e^{-2t} \cdot (\cos t + 3\sin t)'$，分别计算：$(e^{-2t})' = -2e^{-2t}$；$(\cos t + 3\sin t)' = -\sin t + 3\cos t$。得 $y'(t) = -2e^{-2t}(\cos t + 3\sin t) + e^{-2t}(-\sin t + 3\cos t) = e^{-2t}[(-2+3)\cos t + (-6-1)\sin t]$（这里用 $c_1 = 1, c_2 = 3$ 代入了通用展开式）。可以验证 $y'(0) = e^0[1 \cdot \cos 0 + (-7)\sin 0] = 1 \cdot 1 + 0 = 1$，与 initial condition $y'(0) = 1$ 一致。这种"代回验证"是检查 IVP 答案是否正确的好习惯。
+        </p>
+      </div>
+
+      <p>
+        关于 complex roots case，有一个值得记住的"口诀"：要从 roots $\lambda \pm i\mu$ 读出正确的 $\lambda$ 和 $\mu$，一定要记住 $\lambda$ 是 real part，$\mu$ 是 imaginary part 的绝对值（取正数）。当 characteristic equation 求根结果是 $r = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$，实部 $\lambda = -b/(2a)$，虚部 $\mu = \frac{\sqrt{4ac - b^2}}{2a}$（注意 $4ac - b^2 > 0$ 时取正根）。不要把 $\lambda$ 写成复数。例如 $r = -2 \pm i$ 对应 $\lambda = -2$，$\mu = 1$，而不是 $\lambda = -2 + i$。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>
+        本文件覆盖了 second-order linear homogeneous ODEs 的完整理论与方法，按照 prof 的讲课顺序（3.1 framework → 3.2 Superposition/linear independence → 3.1 constant-coeff/characteristic equation → 3.2 Wronskian/fundamental set → 3.4 repeated roots → 3.3 complex roots）。下面是核心概念的梳理。
+      </p>
+      <p>
+        一个帮助记忆的大框架：整个 File 03 的逻辑是"先建骨架，再填血肉"。骨架是：second-order linear homogeneous ODE 的 general solution = 两个 linearly independent solutions 的 linear combination。血肉是：constant-coefficient 情形下，用 characteristic equation 的三种 roots 分别得到具体的 solutions。理解了骨架，所有的 cases 都只是在"填不同的 $y_1, y_2$"。理解了血肉，做题就是三步法：写 characteristic equation、求 roots、写 general solution。
+      </p>
+
+      <p><strong>框架与理论（Secs 3.1/3.2）</strong></p>
+      <p>
+        这一部分是"why it works"的理论基础。E&amp;U Theorem 保证我们在合适条件下不需要担心 solution 的存在性和唯一性，可以放心地用代数方法求解。Superposition 说明 solutions 可以"叠加"，这是 linear ODE 最核心的性质。Wronskian 和 fundamental set 提供了判断和构造"完整 general solution"的工具——没有这套理论，我们只能说"找到了一些 solutions"，无法确定是否已经找到了全部。
+      </p>
+      <ul>
+        <li><strong>Second-order linear homogeneous ODE：</strong>$a(t)y'' + b(t)y' + c(t)y = 0$，$f(t) = 0$。注意"homogeneous"这里指右边为零，不是"constant coefficient"，这两个概念是独立的。</li>
+        <li><strong>E&amp;U Theorem：</strong>将方程化为标准形式 $y'' + py' + qy = g$，若 $p, q, g$ 在 $(a,b)$ 上 continuous 且 $t_0 \in (a,b)$，则 IVP 在 $(a,b)$ 上有唯一解。确定最大 interval 的步骤：除以 leading coefficient → 找 discontinuity points → 找含 $t_0$ 的那段。</li>
+        <li><strong>Superposition Principle：</strong>两 solutions 的 linear combination 还是 solution（仅对 homogeneous ODE，对 nonhomogeneous 不直接成立）。</li>
+        <li><strong>General solution：</strong>$y = c_1 y_1 + c_2 y_2$，要求 $y_1, y_2$ linearly independent（$W \neq 0$）。General solution 覆盖 <em>所有</em> solutions，不遗漏。</li>
+        <li><strong>Wronskian：</strong>$W[y_1,y_2] = y_1 y_2' - y_2 y_1'$。对 homogeneous ODE 的 solutions：$W \neq 0 \Leftrightarrow$ linearly independent，且只需检验一个点（任意 $t_0$）。</li>
+        <li><strong>Abel's Theorem：</strong>$W(t) = ce^{-\int p\,dt}$，因此 $W$ 在区间上要么恒为零要么永不为零（由 constant $c$ 决定）。这解释了为什么"检验一个点就够了"。</li>
+        <li><strong>Fundamental set：</strong>任意两个 linearly independent solutions 构成 fundamental set；fundamental set 总存在（E&amp;U 保证），但不唯一（任意两个 linearly independent solutions 都可以）。</li>
+      </ul>
+
+      <p><strong>三种情形（constant-coefficient $ay'' + by' + cy = 0$）</strong></p>
+
+      <table class="data-table">
+        <tr>
+          <th>Case</th>
+          <th>条件</th>
+          <th>Roots</th>
+          <th>General solution</th>
+          <th>$t\to+\infty$ 行为</th>
+        </tr>
+        <tr>
+          <td>1. Distinct real（3.1）</td>
+          <td>$b^2-4ac > 0$</td>
+          <td>$r_1 \neq r_2 \in \mathbb{R}$</td>
+          <td>$c_1 e^{r_1 t} + c_2 e^{r_2 t}$</td>
+          <td>由 $r_1, r_2$ 的符号决定</td>
+        </tr>
+        <tr>
+          <td>2. Repeated（3.4）</td>
+          <td>$b^2-4ac = 0$</td>
+          <td>$r_1 = r_2 = r$</td>
+          <td>$(c_1 + c_2 t)e^{rt}$</td>
+          <td>由 $r$ 的符号决定</td>
+        </tr>
+        <tr>
+          <td>3. Complex（3.3）</td>
+          <td>$b^2-4ac < 0$</td>
+          <td>$\lambda \pm i\mu$</td>
+          <td>$e^{\lambda t}(c_1\cos\mu t + c_2\sin\mu t)$</td>
+          <td>$\lambda<0$：decay；$\lambda=0$：oscillate；$\lambda>0$：grow</td>
+        </tr>
+      </table>
+
+      <p><strong>IVP 求解流程（constant-coefficient case，标准五步）</strong></p>
+      <ol>
+        <li>写 characteristic equation $ar^2 + br + c = 0$，求 roots（注意计算判别式 $\Delta = b^2 - 4ac$ 以判断 case）。</li>
+        <li>根据 roots 类型写 general solution $y(t)$（含 $c_1, c_2$）。</li>
+        <li>计算 $y'(t)$（如果是 complex roots 或 repeated roots，用 product rule）。</li>
+        <li>代入 $y(t_0) = y_0$，$y'(t_0) = y_1$，解 $2\times 2$ linear system 得 $c_1, c_2$。</li>
+        <li>写出 particular solution。如有额外要求（如分析 $t\to\pm\infty$ 行为，求极值等），再进一步分析。</li>
+      </ol>
+      <p>
+        关于 IVP 的行为分析：对于 distinct real roots case，行为由 $r_1, r_2$ 的符号决定——如果两个 roots 都是负数，solution 趋向 0；如果至少一个是正数，solution 发散。对于 repeated roots，$r$ 的符号决定 $e^{rt}$ 的趋势，但还要注意 $(c_1 + c_2 t)$ 的因子：$t \to +\infty$ 时 $te^{rt}$（如果 $r > 0$）会发散得比 $e^{rt}$ 还快（虽然 polynomial 比 exponential 慢），$t \to -\infty$ 时 $te^{rt}$（$r < 0$）趋向 $0$（$e^{rt} \to 0$ 比 $t \to -\infty$ 快）。对于 complex roots，行为由 $\lambda$ 的符号单独决定，与 $\mu$（频率）无关。
+      </p>
+
+      <h3 id="looking-ahead">Looking Ahead — Nonhomogeneous ODEs（File 04）</h3>
+
+      <p>
+        本文件解决了 homogeneous second-order linear ODEs 的所有情形——包括理论框架（E&amp;U Theorem、Superposition、Wronskian、fundamental set）和 constant-coefficient case 的三种 roots（distinct real、repeated、complex）。下一文件（<a href="04-nonhomog-second-order.html">04. Nonhomogeneous Second-Order ODEs</a>）处理 $ay'' + by' + cy = g(t)$（$g(t) \not\equiv 0$），即有外部驱动力的情形。这是一个重要的延伸，因为在实际应用中，外部驱动力（forcing function）是无处不在的：弹簧被周期性地推动、电路里有交流电源、人口模型里有周期性迁移……所有这些都导致 nonhomogeneous term $g(t)$，而 homogeneous 方程只是"没有外力"的特殊情形。
+      </p>
+      <ul>
+        <li><strong>Superposition for nonhomogeneous：</strong>Nonhomogeneous ODE 的 general solution = homogeneous ODE 的 general solution（$c_1 y_1 + c_2 y_2$）+ 一个 particular solution $Y(t)$。用符号写：$y = y_h + Y$，其中 $y_h = c_1 y_1 + c_2 y_2$（homogeneous part）。</li>
+        <li><strong>Sec 3.5 — Undetermined coefficients：</strong>当 $g(t)$ 是 polynomial、exponential、sinusoid（或它们的乘积）时，猜测 particular solution 的形式，通过 coefficient matching 确定。</li>
+        <li><strong>Sec 3.6 — Variation of parameters：</strong>更一般的方法，$g(t)$ 可以是任意 continuous function。把 $c_1, c_2$ 变成关于 $t$ 的 functions $u_1(t), u_2(t)$，用 fundamental set 和 Wronskian 来积分求出。</li>
+      </ul>
+      <p>
+        本文件建立的所有基础——fundamental set $\{y_1, y_2\}$、Wronskian、general solution 结构——在 File 04 里会被直接用到。特别是 variation of parameters 方法，其公式
+        $$Y(t) = -y_1 \int \frac{y_2 g}{W}\,dt + y_2 \int \frac{y_1 g}{W}\,dt$$
+        直接调用了 $y_1, y_2$ 和 $W[y_1, y_2]$。File 03 的内容是 File 04 不可缺少的前提。因此，在学 File 04 之前，建议确保自己能熟练地：①解 constant-coefficient homogeneous ODE（三步法，不同 roots 类型）；②计算 Wronskian 并判断 fundamental set；③完整解决 IVP（代入 initial conditions，求 $c_1, c_2$）。这三个技能在 File 04 会直接作为 "已知技能" 使用，而不会再重新讲解。
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

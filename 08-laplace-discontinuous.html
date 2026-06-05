@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>08. Laplace · Discontinuous & Impulse · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">08. Laplace · Discontinuous &amp; Impulse</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>08. Laplace · Discontinuous &amp; Impulse</h1>
+    <p class="note">Textbook sections 6.3, 6.4, 6.5, 6.6 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; Step functions, discontinuous forcing, impulse functions, convolution</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+      <p>
+        本文件延续 File 07 的 Laplace transform 框架，覆盖 Sec 6.3（step functions 和 translation theorem）、Sec 6.4（discontinuous forcing 下的 IVPs）、Sec 6.5（impulse functions 和 Dirac delta）。Independent variable 是 $t \geq 0$（时间），dependent variable 是 $y(t)$。Prime notation：$y' = dy/dt$，$y'' = d^2y/dt^2$。
+      </p>
+      <p>
+        在进入正文之前，有必要回顾 File 07 已经建立的基础框架，以便本文件的内容能够无缝衔接：Laplace transform 把关于 $y(t)$ 的 ODE 变成关于 $Y(s) = \mathcal{L}\{y(t)\}$ 的代数方程，解出 $Y(s)$ 之后再用 inverse Laplace 还原到时域。这套方法的威力在于：微分 → 乘以 $s$（并减去初始条件），所以 ODE 变成了普通 algebraic equation（无微分）。File 07 处理的 $g(t)$ 都是 smooth 的（continuous，甚至是解析函数），因此逆变换时 inverse Laplace 只涉及 partial fractions + $s$-shifting（即 File 07 建立的那套 table）。本文件的新内容是：当 $g(t)$ 含 discontinuities 或 impulses 时，怎么把这套流程推广。核心答案是：step functions 和 delta functions 的 Laplace transforms 提供了关键的新"积木"。
+      </p>
+      <p>
+        两个新记号在本文件中大量出现，需要在开头明确约定：
+      </p>
+      <ul>
+        <li>
+          <strong>$u_c(t)$</strong>（也写作 $u(t-c)$）：unit step function（Heaviside function），在 $t = c$ 处从 0 跳到 1。两种写法完全等价；prof notes 用 $u(t-c)$ 记法，本文件两种都会出现，以和 prof notes 保持一致。
+        </li>
+        <li>
+          <strong>$\delta(t - t_0)$</strong>：Dirac delta function（impulse function），在 $t = t_0$ 处"无限高、无限窄"，积分为 1。它不是通常意义的 function，而是一个 distribution（generalized function）。
+        </li>
+        <li>
+          <strong>$\mathcal{L}\{f(t)\} = F(s)$</strong>：Laplace transform，和 File 07 完全一致。$\mathcal{L}^{-1}\{F(s)\} = f(t)$ 表示 inverse Laplace transform。
+        </li>
+      </ul>
+      <p>
+        关于大小写约定：$f(t)$ 的 Laplace transform 记为 $F(s)$，$g(t)$ 对应 $G(s)$，$y(t)$（IVP 的 unknown）对应 $Y(s)$。这和 File 07 以及 prof notes 一致。本文件出现的所有 Laplace transform 对均使用这套约定，不会单独说明。
+      </p>
+      <p>
+        本文件中会频繁出现"partial fractions + completing the square"的组合操作——这是 File 07 已经练熟的技能，本文件在此基础上增加了 $e^{-as}$ 因子的处理（即 $t$-shifting）。如果对 File 07 的 partial fractions 或 $s$-shifting 方法还不熟悉，建议先复习 File 07（Sec 6.1–6.2）的内容，再来看本文件。本文件的难点不在 Laplace transform 本身，而在于：(1) 把 piecewise function 正确转化为 step function 表达式（增量法），(2) 对 $Y(s)$ 里的每个 $e^{-a_k s}$ 因子分别还原为延迟信号，以及 (3) 在 inverse transform 时不忘记把 $f(t)$ 里的 $t$ 替换为 $t - a$。这三点是本文件所有 examples 的操作核心，值得在做题前和做题后各回顾一次。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="step-functions">6.3 Step functions and the translation theorem</h2>
+
+      <p>
+        到目前为止（File 07，Sec 6.1–6.2），我们用 Laplace transform 解的 IVP 都有 continuous forcing function $g(t)$——比如 $g(t) = \sin t$ 或 $g(t) = e^{2t}$，它们在整个时间轴上都是平滑的。但现实工程中，forcing function 经常是 <em>piecewise defined</em> 的，且带有 jump discontinuities：
+      </p>
+      <ul>
+        <li>电路中的开关：在 $t=t_0$ 时刻接通或断开，导致电压/电流突然改变。</li>
+        <li>机械系统的负荷：工厂机器在某时刻突然增加或减小负荷。</li>
+        <li>控制信号：方波（square wave）是交替 on/off 的周期信号，每半个周期切换一次。</li>
+        <li>压力容器：如 Example 6.4.3，压力从 0 线性增到 100 psi，保持一段，再线性降回 0。</li>
+      </ul>
+      <p>
+        这类 discontinuous forcing 用传统方法（undetermined coefficients、variation of parameters）很棘手——需要把时间轴分段处理，再用连续性条件拼接，工作量随 discontinuity 数量增加。Laplace transform 的强大之处正在于：它能优雅地处理这些 discontinuities，只需一次代数计算。前提是我们先把 piecewise function "翻译"成 step functions 的语言。
+      </p>
+
+      <h3 id="heaviside-definition">Unit step function（Heaviside function）的定义</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (unit step function).</span>
+        The <strong>unit step function</strong>（也叫 Heaviside function）$u_c(t) = u(t-c)$ 定义为
+        $$u_c(t) = u(t-c) = \begin{cases} 0, & t < c \\ 1, & t \geq c \end{cases}$$
+        其中 $c \geq 0$ 是 step 发生的时刻。特别地，当 $c = 0$ 时，$u(t) = 1$ 对所有 $t \geq 0$。
+      </div>
+
+      <p>
+        几何上，$u_c(t)$ 是一条在 $t = c$ 处从 0 跳到 1 的阶梯型 function：$t < c$ 时为 0，$t \geq c$ 时为 1。水平方向的平移 $c$ 就是 step 的"起跳时刻"。名字"Heaviside"来自英国物理学家/电气工程师 Oliver Heaviside（1850–1925），他在发展电磁场理论和电路分析时大量使用这类函数，也是 Laplace 方法在工程中推广的先驱之一。
+      </p>
+      <p>
+        从另一个角度看，$u_c(t)$ 是这门课里第一个真正的"不可微"function（在 $t=c$ 处没有 derivative，因为有 jump discontinuity）。传统的 ODE 理论（比如 Existence-Uniqueness Theorem，见 File 02 Sec 2.4）要求 forcing function $g(t)$ 满足一定的 continuity，但 Laplace 方法能够绕过这一要求——它通过积分（而非微分）来处理 $g(t)$，而积分对 piecewise continuous functions 的单点 jump 完全不敏感。这体现了 Laplace transform 的"平滑化"效果：在 $s$-domain 里处理 $G(s)$ 的代数操作，完全无需关心 $g(t)$ 在时域里是否 smooth。这正是 Laplace 方法的关键优势之一，也是为什么工程师在处理实际信号时几乎总是优先用 Laplace 方法。
+      </p>
+
+      <p>
+        几何上的关键细节：在 $t = c$ 处，$u_c(t)$ 的值通常约定为 1（即 $u_c(c) = 1$），但在 Laplace transform 的积分中这个单点的取值无关紧要（单点集的 Lebesgue 测度为 0，不影响 Lebesgue 积分的值），所以你可以看到教材里有时写 $t \geq c$，有时写 $t > c$——对 Laplace transform 的值完全没有区别，但在画 graph 时要注意（$t=c$ 处是实心点还是空心点取决于约定，prof notes 里用实心点表示 $u_c(c) = 1$）。
+      </p>
+
+      <p>
+        在此基础上有两种常用变体：
+      </p>
+      <ul>
+        <li><strong>Vertical scaling</strong>：$M \cdot u(t)$ 把高度从 1 变为 $M$——即 $t \geq 0$ 时值为 $M$，$t < 0$ 时为 0。这用来描述"突然施加大小为 $M$ 的恒定 force"。比如开关接通后恒定提供电压 $M$ 伏，就可以用 $M \cdot u(t)$ 建模。</li>
+        <li><strong>Horizontal shift</strong>：$u(t - c)$ 把 step 时刻延迟到 $t = c$——即从时刻 $c$ 开始才"打开"。这是描述"在 $t=c$ 时刻接通电源"的数学语言。对应地，$u(t-a) - u(t-b)$ 就是"在 $t=a$ 打开、$t=b$ 关闭"的矩形脉冲信号。</li>
+      </ul>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Step function 是 piecewise forcing 的"积木"</p>
+        <p>
+          想象你在控制一个机器的输出：从 $t=0$ 开始输出某个信号，在 $t=a$ 时暂停，在 $t=b$ 时再次开启。这样的 on/off 行为很难用一个 smooth formula 描述，但用 step functions 来写就非常自然：<br><br>
+          &bull; "从 $t=a$ 开始永远输出 1"：$u(t-a)$<br>
+          &bull; "从 $t=a$ 到 $t=b$ 之间输出 1，其余为 0"：$u(t-a) - u(t-b)$（两个 step functions 相减）<br>
+          &bull; "从 $t=a$ 开始输出 $g(t)$，之前为 0"：$g(t) \cdot u(t-a)$<br><br>
+          任何 piecewise constant function 都可以写成 step functions 的线性组合；更一般的 piecewise smooth function 只需再乘上相应的 $g(t)$。这就是为什么 unit step function 是"积木"——掌握了它，就能把各种形状的 forcing function 系统地表达出来，然后用 Laplace transform 统一处理。<br><br>
+          把 piecewise function 改写成 step functions 的标准策略是："增量法"——从最早的 segment 开始，每经过一个 breakpoint，把<em>变化的部分</em>乘上相应的 $u(t-c)$（增加则加，减少则减）。这样写出的表达式形式上是一个单一公式，对所有 $t \geq 0$ 有效，且每一项自然地"在合适时刻激活"。练习这个技巧的关键是：<strong>把每个新 segment 相对于前一个 segment 的"净变化"单独提取出来</strong>，而不是直接写出各段的公式再拼接。
+        </p>
+      </div>
+
+      <h3 id="rectangular-window">Rectangular window function（矩形窗函数）</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (rectangular window function).</span>
+        The <strong>rectangular window function</strong>（矩形窗函数）定义为两个 step functions 之差：
+        $$h(t) = u(t-a) - u(t-b) = \begin{cases} 0, & t < a \\ 1, & a \leq t < b \\ 0, & t \geq b \end{cases}$$
+        其中 $0 \leq a < b$。它在时间窗口 $[a, b)$ 内为 1，其余为 0。
+      </div>
+
+      <p>
+        验证这个 piecewise formula 很直接：当 $t < a$ 时，$u(t-a) = 0$ 且 $u(t-b) = 0$，差为 $0$；当 $a \leq t < b$ 时，$u(t-a)=1$ 且 $u(t-b)=0$，差为 $1$；当 $t \geq b$ 时，$u(t-a) = 1$ 且 $u(t-b) = 1$，差为 $0$。prof notes 里对这三种情况都显式列出，是理解"差消去"的好练习。
+      </p>
+      <p>
+        矩形窗函数还可以推广：$M \cdot [u(t-a) - u(t-b)]$ 是高度为 $M$ 的矩形脉冲。更进一步，把任意 function $f(t)$ 乘上矩形窗 $[u(t-a) - u(t-b)]$，就得到"$f(t)$ 在 $[a,b)$ 上的截断版本"——这在描述工程中"有限时间作用的力"时非常有用，比如一个弹簧系统在 $t \in [2,5]$ 期间受到某个特定外力，$t$ 之前和之后都没有外力。在计算这类 truncated function 的 Laplace transform 时，要把乘积展开：$f(t)[u(t-a) - u(t-b)] = f(t)u(t-a) - f(t)u(t-b)$，然后分别对两项改写并套 translation theorem。这和直接对矩形窗的 step function 展开并不是一样的操作，但最终代数结果是一致的。注意理解"矩形窗是工具，piecewise forcing 是目标"——不同的 piecewise forcing 都可以用 step functions 来表达，矩形窗只是其中最简单的特殊情形。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 注意矩形窗的"左闭右开"约定和符号处理</p>
+        <p>
+          在写矩形窗 $h(t) = u(t-a) - u(t-b)$ 时，有几个细节需要注意：<br><br>
+          第一，约定 $a < b$（否则两个 step functions 的顺序要调换，或者结果恒为负数 / 零）。<br>
+          第二，在 $t = b$ 处，$h(b) = u(b-a) - u(b-b) = 1 - u(0) = 1 - 1 = 0$（右端闭合处值为 0，即窗函数在 $t=b$ 处"关闭"）。这是因为 $u(0)=1$ 的约定。<br>
+          第三，用矩形窗乘以某个 function $f(t)$ 时，得到的是 $f(t)$ 在 $[a,b)$ 上的"截断"：$f(t)[u(t-a) - u(t-b)]$。这个组合不满足 translation theorem（因为 $f$ 没有 shift），要改写成 $f(t)[u(t-a) - u(t-b)] = f(t)u(t-a) - f(t)u(t-b)$，再分别把每一项里的 $f(t)$ 改写成关于 $(t-a)$ 或 $(t-b)$ 的函数，然后才能套 translation theorem。这个额外的代数步骤是 Sec 6.4 例题里最繁琐的部分，需要耐心。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.1 — Rectangular window on $[\pi, 2\pi)$</p>
+        <p>
+          Sketch the graph of $y = h(t)$ where $h(t) = u(t-\pi) - u(t-2\pi)$.
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          $u(t-\pi)$ 在 $t = \pi$ 处跳到 1，之后保持 1；$u(t-2\pi)$ 在 $t = 2\pi$ 处跳到 1，之前为 0。两者相减：
+        </p>
+        $$h(t) = \begin{cases} 0, & t < \pi \\ 1, & \pi \leq t < 2\pi \\ 0, & t \geq 2\pi \end{cases}$$
+        <p>
+          图形是一个宽度为 $\pi$ 的矩形脉冲，高度为 1，从 $t=\pi$ 到 $t=2\pi$。$u(t-\pi)$ 在 $\pi$ 处"打开"，$u(t-2\pi)$ 在 $2\pi$ 处"关闭"，两个 step functions 协作产生一个有限宽度的"窗口"。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 如何把复杂 piecewise function 改写成 step functions（增量法详解）</p>
+        <p>
+          把 piecewise function 改写成 step functions 是本章最核心的操作技能。这里用一个例子详细展示"增量法"的思维过程，帮助建立直觉。<br><br>
+          设 $f(t)$ 在三段上分别为 $A$（$t < a$），$B$（$a \leq t < b$），$C$（$t \geq b$）。用增量法：<br>
+          &bull; $t < a$ 时：基础值 $A$，直接写。<br>
+          &bull; 在 $t=a$ 处：从 $A$ 变成 $B$，变化量是 $(B-A)$。在 $t=a$ 处"打开"这个变化：加上 $(B-A)u(t-a)$。<br>
+          &bull; 在 $t=b$ 处：从 $B$ 变成 $C$，变化量是 $(C-B)$。加上 $(C-B)u(t-b)$。<br>
+          &bull; 结果：$f(t) = A + (B-A)u(t-a) + (C-B)u(t-b)$。<br><br>
+          验证：$t < a$ 时，$f = A + 0 + 0 = A$；$a \leq t < b$ 时，$f = A + (B-A) + 0 = B$；$t \geq b$ 时，$f = A + (B-A) + (C-B) = C$。完全正确。<br><br>
+          当段数更多、或每段是线性/非线性函数时，思路相同：每过一个 breakpoint，就计算"新增（或减少）的部分"，乘上对应的 $u(t-c)$。关键是要识别"净变化量"，而不是每段的绝对值。当段内函数是 linear（比如 $50t$），改写时要特别注意把 $t$ 换成 $(t-c)$ 的形式，以便后续套 translation theorem。
+        </p>
+      </div>
+
+      <h3 id="laplace-of-step">Step function 的 Laplace transform</h3>
+
+      <p>
+        知道了 step function 的定义，下一步自然是计算 $\mathcal{L}\{u(t-a)\}$。这个计算不难，因为 $u(t-a)$ 的定义本身就把积分域分成了两段（$[0,a)$ 上为 0，$[a,\infty)$ 上为 1），第一段贡献为零，只需计算第二段。计算结果的重要性在于：$e^{-as}/s$ 就是"step function forcing 从时刻 $a$ 开始"在 $s$-domain 里的签名，是后续所有 IVP 求解的基础积木之一。
+      </p>
+
+      $$\begin{aligned}
+      \mathcal{L}\{u(t-a)\} &= \int_0^\infty u(t-a)\,e^{-st}\,dt \\
+      &= \int_0^a 0 \cdot e^{-st}\,dt + \int_a^\infty 1 \cdot e^{-st}\,dt \\
+      &= \lim_{N\to\infty} \left[\frac{e^{-st}}{-s}\right]_a^N \\
+      &= \lim_{N\to\infty} \left(\frac{e^{-sN}}{-s} + \frac{e^{-sa}}{s}\right) = \frac{e^{-sa}}{s}
+      \end{aligned}$$
+
+      <p>
+        （对 $s > 0$，$e^{-sN} \to 0$，所以极限存在。）注意：这个计算的关键是让 $[0,a)$ 上的"零段"自然消去，让积分从 $a$ 开始；而 $[a,\infty)$ 上的"常数 1"则是最简单的 Laplace 被积函数，直接积分出 $e^{-as}/s$。结果简洁而优美：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (Laplace transform of step function).</span>
+        对 $a \geq 0$ 和 $s > 0$：
+        $$\mathcal{L}\{u(t-a)\} = \frac{e^{-as}}{s}$$
+      </div>
+
+      <h3 id="translation-theorem">Translation theorem（平移定理）</h3>
+
+      <p>
+        仅仅知道 $\mathcal{L}\{u(t-a)\} = e^{-as}/s$ 还不够——实际中 forcing function 并不是常数型的"开关"，而是在时刻 $a$ 之后以某个 function $f(t)$ 的形式作用。例如，一个弹簧系统在 $t=2$ 时突然受到 $\sin(t-2)$ 型的 force（从 $t=2$ 开始的正弦）。这样的组合写成数学语言是 $\sin(t-2)\,u(t-2)$：$u(t-2)$ 确保 $t < 2$ 时为 0，$\sin(t-2)$ 是从"新零点" $t=2$ 开始计时的正弦。要计算这类 function 的 Laplace transform，就需要下面这个 theorem。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Second Translation Theorem / $t$-shifting).</span>
+        设 $F(s) = \mathcal{L}\{f(t)\}$ 对 $s > \alpha \geq 0$ 存在，且 $a > 0$。则
+        $$\mathcal{L}\{f(t-a)\,u(t-a)\} = e^{-as} F(s)$$
+        等价地，对应的 inverse transform 为：
+        $$\mathcal{L}^{-1}\{e^{-as} F(s)\} = f(t-a)\,u(t-a)$$
+        <br>
+        <em>Proof.</em> 直接由定义计算：
+        $$\mathcal{L}\{f(t-a)\,u(t-a)\} = \int_0^\infty f(t-a)\,u(t-a)\,e^{-st}\,dt$$
+        由于 $u(t-a) = 0$ 当 $t < a$，积分下限有效地变为 $a$：
+        $$= \int_a^\infty f(t-a)\,e^{-st}\,dt$$
+        令 $\tau = t - a$（即 $t = \tau + a$，$dt = d\tau$），当 $t = a$ 时 $\tau = 0$：
+        $$= \int_0^\infty f(\tau)\,e^{-s(\tau+a)}\,d\tau = e^{-as}\int_0^\infty f(\tau)\,e^{-s\tau}\,d\tau = e^{-as}F(s). \qquad \square$$
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — $e^{-as}$ 就是"时间延迟"在 $s$-domain 的签名</p>
+        <p>
+          Translation theorem 有一个非常直观的解读：在时域里把一个 function 延迟 $a$ 个时间单位（即从时刻 $a$ 才"开始"），在 $s$-domain 里等价于乘上一个 $e^{-as}$ 因子。这是 Laplace transform 的另一个 $t$-shifting 性质（注意和 File 07 里的 $s$-shifting 区分：那个是 $e^{at}f(t)$ 在 $s$-domain 里平移，这个是 $f(t-a)u(t-a)$ 在 $t$-domain 里平移）。<br><br>
+          关键记忆点：<strong>两个位移必须匹配</strong>。$\mathcal{L}\{f(t-a)u(t-a)\} = e^{-as}F(s)$ 要求 $f$ 里的平移量（$t-a$）和 $u$ 里的平移量（$t-a$）以及指数里的 $a$ 三个完全一致。如果写成 $f(t) \cdot u(t-a)$（$f$ 没有平移），就不能直接套这个公式，必须先拆分或重写。<br><br>
+          实际做 inverse transform 时，遇到含 $e^{-as}$ 因子的 $Y(s)$，操作流程是：<strong>先把 $e^{-as}$ 剥掉</strong>，对剩余部分 $F(s)$ 做 inverse transform 得到 $f(t)$，然后把 $f(t)$ 里所有的 $t$ 换成 $t-a$，再乘上 $u(t-a)$，就是答案。这是一个非常机械化的操作，一旦熟悉了 $F(s)$ 的 inverse transform（包括 partial fractions + completing the square），后续步骤就是固定套路。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 两个 shifting theorems 的对比</p>
+        <p>
+          File 07（Sec 6.2）介绍了 First Shifting Theorem（$s$-shifting）：$\mathcal{L}\{e^{at}f(t)\} = F(s-a)$。本节的 Second Shifting Theorem（$t$-shifting）：$\mathcal{L}\{f(t-a)u(t-a)\} = e^{-as}F(s)$。两者是"对偶"的：<br><br>
+          &bull; <strong>First Shifting ($s$-shifting)</strong>：时域乘 $e^{at}$ → $s$-domain 的 $F$ 平移 $a$（$s \to s-a$）。<br>
+          &bull; <strong>Second Shifting ($t$-shifting)</strong>：时域延迟 $a$（乘 $u(t-a)$）→ $s$-domain 乘 $e^{-as}$。<br><br>
+          用信号处理的语言：$s$-shifting 对应"调制"（modulation，乘指数载波），$t$-shifting 对应"延迟"（delay，时域平移）。两者互为对偶，是 Laplace transform 最核心的两个 structural properties。遇到 $Y(s)$ 里有 $e^{-as}$ 因子时，直接联想"这对应 $t$-domain 里的一个延迟信号"，然后用 $\mathcal{L}^{-1}\{e^{-as}F(s)\} = f(t-a)u(t-a)$ 还原。
+        </p>
+      </div>
+
+      <p>
+        Translation theorem 的 inverse 方向是我们做题时用得最多的：每当 $Y(s)$ 里出现 $e^{-as}$ 乘以某个 $F(s)$，就立刻知道 inverse transform 是 $u(t-a)f(t-a)$，其中 $f(t) = \mathcal{L}^{-1}\{F(s)\}$。整个 Sec 6.3–6.4 的 examples 几乎都是在练习这个逆方向的操作——所以要把 inverse 方向练到熟练：看到 $e^{-as}$，不加思索地联想到"延迟 $a$ 个单位的时域信号"。
+      </p>
+      <p>
+        在处理含有 $e^{-as}F(s)$ 的 inverse transform 时，有一个容易犯的错误值得单独强调：不要忘记在 $f(t)$ 里把 $t$ 换成 $t-a$。例如，$\mathcal{L}^{-1}\{e^{-2s}/(s^2+4)\}$：先忽略 $e^{-2s}$，计算 $\mathcal{L}^{-1}\{1/(s^2+4)\} = \dfrac{1}{2}\sin 2t$，然后把 $t$ 换成 $t-2$，得 $\dfrac{1}{2}\sin 2(t-2)$，最后乘上 $u(t-2)$，答案是 $\dfrac{1}{2}u(t-2)\sin 2(t-2)$。常见错误是漏掉"把 $t$ 换成 $t-2$"这一步，直接写成 $\dfrac{1}{2}u(t-2)\sin 2t$——这是错误的（注意 $\sin 2t \neq \sin 2(t-2)$）。
+      </p>
+      <p>
+        还有一个互补的 theorem 也在 prof notes 里出现（这是 File 07 里已经介绍过的 $s$-shifting，这里作为回顾，因为 6.3 的 examples 同时涉及两个 shifting theorems）：
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (First Shifting / $s$-shifting, reminder).</span>
+        设 $F(s) = \mathcal{L}\{f(t)\}$，则
+        $$\mathcal{L}\{e^{at}f(t)\} = F(s-a), \qquad s > \alpha + a$$
+        <br>
+        <em>Proof.</em>
+        $$\mathcal{L}\{e^{at}f(t)\} = \int_0^\infty e^{-st}e^{at}f(t)\,dt = \int_0^\infty e^{-(s-a)t}f(t)\,dt = F(s-a). \qquad \square$$
+      </div>
+
+      <h3 id="examples-6-3">Examples — 计算 Laplace transform 和 inverse Laplace transform</h3>
+
+      <p>
+        下面的 examples 涵盖了 prof notes 里 6.3 的所有例题，涉及 translation theorem 的两个方向（forward 和 inverse）以及 $s$-shifting 和 $t$-shifting 的综合运用。做这类题的关键习惯是：<strong>先识别结构</strong>（$e^{-as}F(s)$ 还是 $F(s-a)$？）→ <strong>再套公式</strong>（$t$-shifting 还是 $s$-shifting？）→ <strong>最后处理细节</strong>（partial fractions, completing the square, trig identities）。不要一开始就展开所有代数——先确定 high-level 结构，再逐步填细节。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.2 — Laplace transform of piecewise function $r(t)$</p>
+        <p>
+          Determine $\mathcal{L}\{r(t)\}$，其中
+          $$r(t) = \begin{cases} \cos t, & 0 \leq t < 2 \\ \cos t + (t-2), & t \geq 2 \end{cases}$$
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p><strong>Step 1：将 $r(t)$ 用 step function 表达。</strong></p>
+        <p>
+          观察：对 $t \geq 2$，$r(t)$ 比 $t < 2$ 时多出了 $(t-2)$，而这一项从 $t=2$ 才"打开"。因此：
+        </p>
+        $$r(t) = \cos t + u(t-2)\cdot(t-2)$$
+        <p>
+          验证：当 $t < 2$ 时，$u(t-2) = 0$，得 $r(t) = \cos t$；当 $t \geq 2$ 时，$u(t-2)=1$，得 $r(t) = \cos t + (t-2)$。正确。
+        </p>
+        <p><strong>Step 2：应用 translation theorem。</strong></p>
+        <p>
+          注意 $u(t-2)\cdot(t-2)$ 的形式是 $f(t-a)\,u(t-a)$，其中 $f(t) = t$，$a = 2$。由 translation theorem：
+        </p>
+        $$\mathcal{L}\{(t-2)u(t-2)\} = e^{-2s}\cdot\mathcal{L}\{t\} = e^{-2s}\cdot\frac{1}{s^2}$$
+        <p>
+          因此：
+        </p>
+        $$\mathcal{L}\{r(t)\} = \frac{s}{s^2+1} + \frac{e^{-2s}}{s^2}$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.3 — Inverse Laplace transform of $G(s) = \dfrac{se^{-3s}}{s^2+4s+5}$</p>
+        <p>
+          Find $g(t) = \mathcal{L}^{-1}\left\{\dfrac{se^{-3s}}{s^2+4s+5}\right\}$.
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p><strong>Step 1：识别 $e^{-as}F(s)$ 的结构。</strong></p>
+        <p>
+          $G(s) = e^{-3s} \cdot \dfrac{s}{s^2+4s+5}$，所以 $a = 3$，$F(s) = \dfrac{s}{s^2+4s+5}$。
+        </p>
+        <p><strong>Step 2：计算 $f(t) = \mathcal{L}^{-1}\{F(s)\}$（先忽略 $e^{-3s}$）。</strong></p>
+        <p>
+          完成平方：$s^2 + 4s + 5 = (s+2)^2 + 1$。于是：
+        </p>
+        $$F(s) = \frac{s}{(s+2)^2+1} = \frac{(s+2) - 2}{(s+2)^2+1} = \frac{s+2}{(s+2)^2+1} - \frac{2}{(s+2)^2+1}$$
+        <p>
+          由 $s$-shifting（First Shifting Theorem）：
+        </p>
+        $$f(t) = e^{-2t}\cos t - 2e^{-2t}\sin t$$
+        <p><strong>Step 3：应用 $t$-shifting（Second Shifting Theorem）。</strong></p>
+        <p>
+          $\mathcal{L}^{-1}\{e^{-3s}F(s)\} = f(t-3)\,u(t-3)$，把 $f$ 里的 $t$ 换成 $t-3$：
+        </p>
+        $$g(t) = u(t-3)\left[e^{-2(t-3)}\cos(t-3) - 2e^{-2(t-3)}\sin(t-3)\right]$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.4 — Inverse Laplace transform of $H(s) = \dfrac{e^{-2s}}{s^2+s-2}$</p>
+        <p>
+          Find $h(t) = \mathcal{L}^{-1}\left\{\dfrac{e^{-2s}}{s^2+s-2}\right\}$.
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          $H(s) = e^{-2s} \cdot \dfrac{1}{s^2+s-2}$，所以 $a = 2$，$F(s) = \dfrac{1}{s^2+s-2}$。
+        </p>
+        <p>
+          因式分解：$s^2 + s - 2 = (s-1)(s+2)$。Partial fractions：
+        </p>
+        $$\frac{1}{(s-1)(s+2)} = \frac{A}{s-1} + \frac{B}{s+2}$$
+        <p>
+          令 $s=1$：$1 = A(3) \Rightarrow A = 1/3$；令 $s=-2$：$1 = B(-3) \Rightarrow B = -1/3$。所以：
+        </p>
+        $$F(s) = \frac{1/3}{s-1} + \frac{-1/3}{s+2}$$
+        <p>
+          对应 $f(t) = \dfrac{1}{3}e^t - \dfrac{1}{3}e^{-2t}$。由 $t$-shifting，$a=2$：
+        </p>
+        $$h(t) = \frac{1}{3}u(t-2)\left[e^{t-2} - e^{-2(t-2)}\right]$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.5 — Inverse Laplace transform of $Y(s) = \dfrac{e^{-s}}{s^2+4}$</p>
+        <p>
+          Find $y(t) = \mathcal{L}^{-1}\left\{\dfrac{e^{-s}}{s^2+4}\right\}$.
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          改写：$Y(s) = e^{-s} \cdot \dfrac{1}{s^2+4} = \dfrac{1}{2} e^{-s} \cdot \dfrac{2}{s^2+4}$，所以 $a=1$，$F(s) = \dfrac{2}{s^2+4}$。
+        </p>
+        <p>
+          $f(t) = \mathcal{L}^{-1}\left\{\dfrac{2}{s^2+4}\right\} = \sin 2t$。由 $t$-shifting：
+        </p>
+        $$y(t) = \frac{1}{2}u(t-1)\sin 2(t-1)$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.3.6 — Laplace transform using $s$-shifting: $f(t) = e^{7t}\sin^2 t$</p>
+        <p>
+          Find $\mathcal{L}\{e^{7t}\sin^2 t\}$.
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          先用 double angle identity：$\sin^2 t = \dfrac{1 - \cos 2t}{2}$，所以：
+        </p>
+        $$e^{7t}\sin^2 t = \frac{1}{2}e^{7t} - \frac{1}{2}e^{7t}\cos 2t$$
+        <p>
+          由 First Shifting Theorem（$\mathcal{L}\{e^{at}f(t)\} = F(s-a)$），令 $a=7$：
+        </p>
+        $$\mathcal{L}\left\{\frac{1}{2}e^{7t}\right\} = \frac{1}{2(s-7)}$$
+        $$\mathcal{L}\left\{\frac{1}{2}e^{7t}\cos 2t\right\} = \frac{1}{2}\cdot\frac{s-7}{(s-7)^2+4}$$
+        <p>
+          相减：
+        </p>
+        $$\mathcal{L}\{e^{7t}\sin^2 t\} = \frac{1}{2(s-7)} - \frac{s-7}{2[(s-7)^2+4]} = \frac{2}{(s-7)[(s-7)^2+4]}$$
+        <p class="note">注：最后一步通分化简，验证两项合并后的分子为 $2$（= $(s-7)^2+4 - (s-7)^2$）。这道题综合了 trig identity（$\sin^2 t = (1-\cos 2t)/2$）和 First Shifting Theorem，是练习 $s$-shifting 的好题型。遇到 $e^{at} \cdot [\text{trig 或多项式}]$ 的组合时，标准流程是：先处理 trig/polynomial 部分的 Laplace transform 得到 $F(s)$，再用 $s \to s-a$ 做 $s$-shift 得到 $F(s-a)$，这就是整体的 Laplace transform。这道例题出现在 6.3 的 prof notes 里，是为了复习 $s$-shifting 和 trig identity 的综合运用，和 6.3 主题（$t$-shifting）形成对比，帮助区分两个 shifting theorems 的适用场景。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — $f(t-a)u(t-a)$ 和 $f(t)u(t-a)$ 是不同的！</p>
+        <p>
+          Translation theorem 要求 $f$ 里的时间平移量和 $u$ 里的完全匹配：<br>
+          &bull; <strong>正确形式</strong>：$f(t-a)\,u(t-a)$ → $\mathcal{L} = e^{-as}F(s)$<br>
+          &bull; <strong>错误用法</strong>：$f(t)\,u(t-a)$ → <em>不能</em>直接套公式<br><br>
+          遇到 $f(t)\,u(t-a)$，正确做法是把 $f(t)$ 改写成以 $(t-a)$ 为变量的表达式，再套公式。例如：$t \cdot u(t-a) = [(t-a)+a]\,u(t-a) = (t-a)u(t-a) + a\,u(t-a)$，然后对每项分别用 translation theorem。忽略这个匹配条件是最常见的错误。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="discontinuous-forcing">6.4 IVPs with discontinuous forcing functions</h2>
+
+      <p>
+        掌握了 step functions 的 Laplace transform 工具之后，就可以来解真正有 discontinuous forcing 的 IVPs 了。这一节完全是应用性的——没有新的 theory，只有 method 的熟练运用。从结构上讲，这一节是 Sec 6.3（工具）和 Sec 6.4（应用）的衔接：6.3 告诉我们"如何用 step functions 描述 piecewise forcing"以及"这类 functions 的 Laplace transform 是什么"，而 6.4 把这些工具直接插入"解 IVP"的标准流程里。
+      </p>
+      <p>核心流程是：</p>
+      <ol>
+        <li>把 piecewise forcing function $g(t)$ 写成 step functions 的组合（"增量法"）。</li>
+        <li>对整个 ODE 两边取 Laplace transform，代入 $y(0)$ 和 $y'(0)$，得到关于 $Y(s)$ 的代数方程。</li>
+        <li>解代数方程得到 $Y(s)$，其中会出现若干 $e^{-a_k s}$ 因子（每个 discontinuity 对应一个）。</li>
+        <li>对 $Y(s)$ 做 partial fractions（先把 $e^{-a_k s}$ 因子"剥离"，只对剩余部分展开），然后套 $t$-shifting 还原每一项：$\mathcal{L}^{-1}\{e^{-a_k s}F(s)\} = u(t-a_k)f(t-a_k)$。</li>
+        <li>（可选）如有需要，把结果写成显式的 piecewise form（按各 breakpoint 分段代入 $u$ 的取值）。</li>
+      </ol>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 Laplace 是处理 discontinuous forcing 的"天然工具"</p>
+        <p>
+          传统方法（undetermined coefficients、variation of parameters）处理 discontinuous forcing 非常麻烦：你需要把时间轴分成若干段（比如 $[0, 10)$、$[10, 20)$、$[20, \infty)$），在每一段分别解 ODE，然后用连续性条件把各段拼起来。如果有 $n$ 个 discontinuity，就要做 $n+1$ 次分段求解，工作量随 $n$ 线性增长。<br><br>
+          Laplace transform 的优雅之处在于：只需做<em>一次</em>代数计算，就能同时处理所有 discontinuities。Discontinuities 对应 $Y(s)$ 里的 $e^{-a_k s}$ 因子，每个因子只是给 inverse transform 加一个"延迟版本"的解，可以机械地套 $t$-shifting 还原。整个过程不需要分段、不需要拼接——这是 Laplace 方法最大的实践优势。<br><br>
+          换句话说：传统方法把 discontinuity 视为"把问题切成多块"的理由，而 Laplace 方法把 discontinuity 视为"forcing function 里的一个代数因子"（$e^{-as}/s$ 之类），两者的哲学完全不同。对于有很多个 breakpoints 的问题（比如 Example 6.4.4 里无穷多个 $u_{k\pi}$ 之和），Laplace 方法甚至可以写出 closed-form 的 sum，而传统方法则无法操作。
+        </p>
+      </div>
+
+      <h3 id="method-discontinuous">Method: step function decomposition + Laplace</h3>
+
+      <p>
+        关键技巧：把 piecewise function 写成 step functions 时，<strong>每一段的"增量"</strong>（相对于上一段新增的部分）乘上对应的 $u(t-c)$。具体地：
+      </p>
+      <ul>
+        <li>从 $t=0$ 开始的"基础"部分直接写（不乘 step function，或者乘 $u(t)=1$）。</li>
+        <li>在 $t=c_1$ 处新增（或移除）的部分乘上 $u(t-c_1)$（新增为正，移除为负）。注意：写的是"从 $c_1$ 之后<em>新增</em>的那部分"，而不是 $c_1$ 之后的完整表达式。</li>
+        <li>在 $t=c_2$ 处的变化再乘 $u(t-c_2)$……以此类推。</li>
+        <li>最后一段如果是"全部清零"，则减去之前所有仍在运行的项（让它们在 $c_n$ 时刻关闭）。</li>
+      </ul>
+      <p>
+        这样写出的公式对所有 $t \geq 0$ 都有效，且每一项自然地"在合适时刻打开"，可以逐项用 translation theorem 处理。写出 step function 表达式后，一个好习惯是<strong>验证</strong>：选若干代表性的 $t$ 值（比如每个区间里取一个点），代入检查结果是否和 piecewise form 一致。
+      </p>
+      <p>
+        在应用 translation theorem 处理每一项时，关键操作是"把 $f(t)$ 改写成 $g(t-c)$ 的形式"。这一步需要一点代数技巧，是做题中最容易出错的地方。比如 $(100-50t)u(t-2)$：这里 $f(t) = 100-50t$ 没有以 $(t-2)$ 的形式出现，需要先做代换：令 $\tau = t-2$（即 $t = \tau+2$），则 $100 - 50t = 100 - 50(\tau+2) = -50\tau = -50(t-2)$，于是 $(100-50t)u(t-2) = -50(t-2)u(t-2)$，这才能套 translation theorem：$\mathcal{L}\{-50(t-2)u(t-2)\} = -50 \cdot e^{-2s}/s^2$。一般规律：遇到 $p(t) \cdot u(t-c)$（$p$ 是关于 $t$ 的多项式），用 $t = (t-c)+c$ 代入 $p(t)$，展开后写成关于 $(t-c)$ 的多项式形式，再逐项套 translation theorem。对于 Example 6.4.3（pressurized tank）这样有多个 breakpoints 的情况，每个 $u(t-c_k)$ 项都需要独立做这个改写，不能混用不同 breakpoints 的 $c$ 值。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.4.1 — Unit triangular pulse written as step functions</p>
+        <p>
+          Write the unit triangular pulse as a combination of step functions and sketch its graph:
+          $$f(t) = \begin{cases} 0, & t < 0 \\ 2t, & 0 < t < \tfrac{1}{2} \\ 2-2t, & \tfrac{1}{2} < t < 1 \\ 0, & 1 < t \end{cases}$$
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          分析每个 breakpoint 处的"增量"：
+        </p>
+        <ul>
+          <li>$t = 0$：从 0 开始，基础部分为 $2t \cdot u(t)$。</li>
+          <li>$t = 1/2$：slope 从 $+2$ 变成 $-2$，变化量为 $-4$。新增的部分是 $(2 - 4t) \cdot u(t - 1/2)$（注意：在 $t = 1/2$ 之后，$f$ 从 $2t$ 变成 $2-2t = 2t + (2-4t)$）。</li>
+          <li>$t = 1$：slope 从 $-2$ 变为 $0$，函数变回 $0$。新增 $(2t-2) \cdot u(t-1)$。</li>
+        </ul>
+        <p>因此：</p>
+        $$f(t) = 2t\,u(t) + (2-4t)\,u\!\left(t-\tfrac{1}{2}\right) + (2t-2)\,u(t-1)$$
+        <p class="note">验证：当 $t \in (0, 1/2)$：$f = 2t$；当 $t \in (1/2, 1)$：$f = 2t + (2-4t) = 2-2t$；当 $t > 1$：$f = 2t + (2-4t) + (2t-2) = 0$。正确。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.4.2 — IVP with piecewise constant forcing: $y'' + 2y' + 10y = g(t)$</p>
+        <p>
+          Solve the IVP $y'' + 2y' + 10y = g(t)$，$y(0) = -1$，$y'(0) = 0$，其中
+          $$g(t) = \begin{cases} 10, & 0 \leq t < 10 \\ 20, & 10 \leq t < 20 \\ 0, & 20 \leq t \end{cases}$$
+        </p>
+        <p><strong>Step 1：将 $g(t)$ 写成 step functions。</strong></p>
+        <p>
+          分析增量：$t \in [0,10)$ 时基础值为 $10$（不乘 step function）；在 $t=10$ 时从 10 增到 20，增量为 $+10$，因此加上 $10 \cdot u(t-10)$；在 $t=20$ 时从 20 降到 0，增量为 $-20$，因此减去 $20 \cdot u(t-20)$：
+        </p>
+        $$g(t) = 10 + 10\,u(t-10) - 20\,u(t-20)$$
+        <p>
+          验证：$t=5$，$g = 10$；$t=15$，$g = 10+10=20$；$t=25$，$g = 10+10-20=0$。三个区间各取一代表点验证正确。
+        </p>
+        <p><strong>Step 2：两边取 Laplace transform，代入初始条件。</strong></p>
+        <p>
+          对 ODE 两边取 $\mathcal{L}$，回忆 $\mathcal{L}\{y''\} = s^2Y - sy(0) - y'(0)$ 和 $\mathcal{L}\{y'\} = sY - y(0)$，代入初始条件 $y(0)=-1$，$y'(0)=0$：
+        </p>
+        $$s^2Y - (-s) + 2sY - 2(-1) + 10Y = \frac{10}{s} + \frac{10e^{-10s}}{s} - \frac{20e^{-20s}}{s}$$
+        $$\bigl(s^2 + 2s + 10\bigr)Y = -s - 2 + \frac{10}{s} + \frac{10e^{-10s}}{s} - \frac{20e^{-20s}}{s}$$
+
+        <p>
+          这里 $s^2+2s+10 = (s+1)^2+9$（完成平方，irreducible quadratic，因为 discriminant $= 4 - 40 < 0$）。解出 $Y(s)$：
+        </p>
+        $$Y(s) = \frac{-(s+2)}{(s+1)^2+9} + \frac{10}{s[(s+1)^2+9]} + \frac{10e^{-10s}}{s[(s+1)^2+9]} - \frac{20e^{-20s}}{s[(s+1)^2+9]}$$
+        <p><strong>Step 3：对 $Y(s)$ 做 partial fractions 和 inverse transform。</strong></p>
+        <p>
+          设 $F(s) = \dfrac{1}{s} - \dfrac{s+1}{(s+1)^2+9} - \dfrac{1}{3}\cdot\dfrac{3}{(s+1)^2+9}$，则 $f(t) = 1 - e^{-t}\cos 3t - \dfrac{1}{3}e^{-t}\sin 3t$。
+        </p>
+        <p>
+          （Partial fractions 详解：对 $\dfrac{10}{s[(s+1)^2+9]}$，设 $\dfrac{10}{s[(s+1)^2+9]} = \dfrac{A}{s} + \dfrac{Bs+C}{(s+1)^2+9}$。令 $s=0$：$A = 10/[(0+1)^2+9] = 10/10 = 1$。再把 $A=1$ 代回，比较 $s^2$ 和常数项可得 $B = -1$，$C=-2$。于是 $\dfrac{10}{s[(s+1)^2+9]} = \dfrac{1}{s} - \dfrac{s+1}{(s+1)^2+9} - \dfrac{1}{3}\cdot\dfrac{3}{(s+1)^2+9}$，对应 $\mathcal{L}^{-1} = 1 - e^{-t}\cos 3t - \dfrac{1}{3}e^{-t}\sin 3t = f(t)$。这个 $f(t)$ 就是 partial fraction 计算后得到的 "base solution"，prof notes 里用这个 $f(t)$ 来简洁地写出最终的 $y(t)$。）
+        </p>
+        <p>
+          由 $t$-shifting：$\mathcal{L}^{-1}\{e^{-10s}F(s)\} = u(t-10)f(t-10)$，$\mathcal{L}^{-1}\{e^{-20s}F(s)\} = u(t-20)f(t-20)$。最终解为：
+        </p>
+        $$\begin{aligned}
+        y(t) &= -e^{-t}\cos 3t - \frac{1}{3}e^{-t}\sin 3t + f(t) \\
+        &\quad + u(t-10)\,f(t-10) - 2\,u(t-20)\,f(t-20)
+        \end{aligned}$$
+        <p>其中 $f(t) = 1 - e^{-t}\cos 3t - \dfrac{1}{3}e^{-t}\sin 3t$。</p>
+        <p>
+          展开写出完整形式：
+        </p>
+        $$\begin{aligned}
+        y(t) &= -e^{-t}\cos 3t - \frac{1}{3}e^{-t}\sin 3t \\
+        &\quad + \left[1 - e^{-t}\cos 3t - \frac{1}{3}e^{-t}\sin 3t\right] \\
+        &\quad + u(t-10)\left[1 - e^{-(t-10)}\cos 3(t-10) - \frac{1}{3}e^{-(t-10)}\sin 3(t-10)\right] \\
+        &\quad - 2\,u(t-20)\left[1 - e^{-(t-20)}\cos 3(t-20) - \frac{1}{3}e^{-(t-20)}\sin 3(t-20)\right]
+        \end{aligned}$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.4.3 — Pressurized storage tank (piecewise linear forcing)</p>
+        <p>
+          A pressurized storage tank changes over an 8-second interval. From 0 to 2 sec, pressure $P(t)$ increases linearly from 0 to 100 psi. From 2 to 5 sec, $P(t)$ remains constant at 100 psi. From 5 to 8 sec, $P(t)$ decreases linearly back to 0 psi.
+        </p>
+        <p>
+          (a) Define $P(t)$ as both a piecewise function and using step functions.<br>
+          (b) Find $\mathcal{L}\{P(t)\}$.
+        </p>
+        <p><strong>Solution (a) — Piecewise form：</strong></p>
+        $$P(t) = \begin{cases} 50t, & 0 \leq t < 2 \\ 100, & 2 \leq t < 5 \\ 100 - \dfrac{100}{3}(t-5), & 5 \leq t < 8 \\ 0, & 8 \leq t \end{cases}$$
+        <p>
+          注意 $5 \leq t < 8$ 时：$P(t)$ 从 100 线性降到 0，slope 为 $-100/3$，写成 $100 - \dfrac{100}{3}(t-5) = -\dfrac{100}{3}(t-8)$。
+        </p>
+        <p><strong>Step function form（分析各 breakpoint 的增量）：</strong></p>
+        $$P(t) = 50t\,u(t) + (100-50t)\,u(t-2) + \left(-\frac{100}{3}(t-8)-100\right)u(t-5) + \frac{100}{3}(t-8)\,u(t-8)$$
+        <p class="note">验证：$t \in [0,2)$：$P = 50t$（仅基础项）；$t \in [2,5)$：$P = 50t + (100-50t) = 100$（两项之和，constant = 100）；$t \in [5,8)$：验证需展开第三项，此时 $P = 50t + (100-50t) + [(-100/3)(t-8)-100] = 100 + (-100/3)(t-8)-100 = (-100/3)(t-8)$，即从 100（$t=5$ 时）线性降到 0（$t=8$ 时：$(-100/3)(8-8)=0$），正确；$t \geq 8$：四项相加，$P=0$。全段验证通过。</p>
+        <p><strong>Solution (b) — Laplace transform：</strong></p>
+        <p>
+          先处理 $u(t-2)$ 项：$(100-50t)u(t-2)$。改写为关于 $(t-2)$ 的表达式：
+        </p>
+        $$100 - 50t = 100 - 50[(t-2)+2] = -50(t-2)$$
+        <p>
+          因此 $(100-50t)u(t-2) = -50(t-2)u(t-2)$，Laplace transform 为 $-\dfrac{50e^{-2s}}{s^2}$。
+        </p>
+        <p>
+          类似地处理 $u(t-5)$ 和 $u(t-8)$ 项：
+        </p>
+        $$\mathcal{L}\left\{\left(-\frac{100}{3}(t-8)-100\right)u(t-5)\right\} = \mathcal{L}\left\{-\frac{100}{3}(t-5)u(t-5)\right\} = -\frac{100}{3}\cdot\frac{e^{-5s}}{s^2}$$
+        $$\mathcal{L}\left\{\frac{100}{3}(t-8)u(t-8)\right\} = \frac{100}{3}\cdot\frac{e^{-8s}}{s^2}$$
+        <p>
+          合并（$\mathcal{L}\{50t\,u(t)\} = 50/s^2$）：
+        </p>
+        $$\mathcal{L}\{P(t)\} = \frac{50}{s^2} - \frac{50e^{-2s}}{s^2} - \frac{100e^{-5s}}{3s^2} + \frac{100e^{-8s}}{3s^2}$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.4.4 — Resonance with periodic square-wave forcing: $y'' + y = g(t)$</p>
+        <p>
+          Given IVP $y'' + y = g(t)$，$y(0) = 0$，$y'(0) = 0$，其中 $g(t) = u_0(t) + \displaystyle\sum_{k=1}^{n}(-1)^k u_{k\pi}(t)$ 是一个 square wave（交替 on/off 的周期信号，如图所示每 $\pi$ 个单位切换一次）。
+        </p>
+        <p>
+          (a) Find the solution of the IVP.<br>
+          (b) Plot and analyze as $n \to \infty$.
+        </p>
+        <p><strong>Solution (a)：</strong></p>
+        <p>两边取 Laplace transform：</p>
+        $$(s^2+1)\mathcal{L}\{y\} = \frac{1}{s} + \sum_{k=1}^{n}(-1)^k\frac{e^{-k\pi s}}{s}$$
+        $$Y(s) = \frac{1}{(s^2+1)s} + \sum_{k=1}^{n}(-1)^k\frac{e^{-k\pi s}}{s(s^2+1)}$$
+        <p>
+          用 partial fractions：$\dfrac{1}{s(s^2+1)} = \dfrac{1}{s} - \dfrac{s}{s^2+1}$，所以 $\mathcal{L}^{-1}\left\{\dfrac{1}{s(s^2+1)}\right\} = 1 - \cos t$。
+        </p>
+        <p>
+          由 $t$-shifting：$\mathcal{L}^{-1}\left\{e^{-k\pi s}\cdot\dfrac{1}{s(s^2+1)}\right\} = u_{k\pi}(t)\left[1 - \cos(t-k\pi)\right]$。
+        </p>
+        <p>
+          注意 $\cos(t - k\pi) = (-1)^k \cos t$（余弦的半周期平移性质），因此：
+        </p>
+        $$y(t) = 1 - \cos t + \sum_{k=1}^{n}(-1)^k u_{k\pi}(t)\left[1 - (-1)^k\cos t\right]$$
+        <p>
+          化简（合并常数项和 $\cos t$ 项）：
+        </p>
+        $$y(t) = \sum_{k=0}^{n}(-1)^k u_{k\pi}(t) - \cos t\sum_{k=0}^{n}(-1)^k u_{k\pi}(t)$$
+        <p><strong>Solution (b) — 分段表达和 $n \to \infty$ 的行为：</strong></p>
+        <p>对 $n\pi < t < (n+1)\pi$（以 $n=4$ 为例验证）：</p>
+        <table class="data-table">
+          <tr><th>区间</th><th>$y(t)$</th></tr>
+          <tr><td>$t \in [0,\pi)$</td><td>$1 - \cos t$</td></tr>
+          <tr><td>$t \in [\pi, 2\pi)$</td><td>$-2\cos t$</td></tr>
+          <tr><td>$t \in [2\pi, 3\pi)$</td><td>$1 - 3\cos t$</td></tr>
+          <tr><td>$t \in [3\pi, 4\pi)$</td><td>$-4\cos t$</td></tr>
+          <tr><td>$t > 4\pi$</td><td>$1 - 5\cos t$</td></tr>
+        </table>
+        <p>
+          一般地，对 $n\pi < t < (n+1)\pi$：$y(t) = -(n+1)\cos t + \dfrac{1+(-1)^n}{2}$，其中振幅 $(n+1)$ 随 $n$ 增长而无界增大（forcing 与系统 natural frequency $\omega = 1$ 共振）。
+        </p>
+        <p>
+          <strong>结论：</strong>As $n \to \infty$，解是 periodic 的，但振幅 $\to \infty$——这是 <strong>resonance</strong> 现象（square-wave forcing 的基频与系统 natural frequency 一致）。这和 File 04（Sec 3.5）里 undamped resonance（$y'' + y = \cos t$ 产生 $t\sin t$ 解）的物理本质相同：当 forcing frequency 恰好等于 natural frequency 时，能量持续注入系统而无法散发，振幅随时间无界增大。值得注意的是：这个例子里的 ODE 是无阻尼的（$y'' + y = g(t)$，没有 $y'$ 项），如果加上阻尼项（如 $y'' + \epsilon y' + y = g(t)$），则 $\delta > 0$ 时振幅会趋向一个有界的 steady state，而不是无界增大——阻尼是防止 resonance 破坏的关键。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 为什么 square wave 会导致 resonance</p>
+        <p>
+          Example 6.4.4 展示了一个很有意思的现象：$y'' + y = g(t)$，其中 $g(t)$ 是周期为 $2\pi$ 的 square wave（每 $\pi$ 切换一次），系统产生了 resonance（振幅无界增长）。为什么会这样？<br><br>
+          系统的 natural frequency 是 $\omega_0 = 1$（来自 $y'' + y = 0$ 的 characteristic equation $r^2+1=0$，roots $r = \pm i$）。Square wave 的基频也是 $1/T = 1/(2\pi)$（以弧度计是 $2\pi/T = 1$）——恰好等于系统的 natural frequency。这就是 resonance 的根本原因：driving frequency = natural frequency。<br><br>
+          有趣的是：square wave 本身不是 $\sin t$ 这样的 pure sinusoidal forcing——它是一个复杂的 piecewise constant signal。但 Fourier 理论告诉我们，任何周期信号都可以分解为一系列正弦/余弦的叠加（Fourier series）。Square wave 的 Fourier series 里包含 $\sin t$（基频）分量，正是这个分量与系统产生 resonance。<br><br>
+          这个例子的物理意义：如果你想避免 resonance，仅仅把 forcing 从 $\sin t$ 改成"看起来不一样的" square wave 是不够的——只要 forcing 的基频和系统 natural frequency 一致，就会有 resonance，振幅随时间无界增大。这对工程设计（桥梁、飞机、电路）有重要的实践警示意义。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 哪些时间段 $u(t-c)$ 才"打开"，以及解的连续性</p>
+        <p>
+          在还原 $y(t)$ 时，要记住每个 $u(t-c)$ 项只对 $t \geq c$ 才为 1。写出 $y(t)$ 的具体表达式后，<strong>不要</strong>试图合并所有时段——$y(t)$ 在不同区间的形式本来就不同（每过一个 breakpoint 就多出一项）。这是 discontinuous forcing 的本质：解在不同时段有不同的"主导项"。如果你想写成显式的 piecewise form，需要按 breakpoints 逐段代入 $u$ 的取值（0 或 1）化简。<br><br>
+          关于解的正则性（smoothness）：ODE $y'' + py' + qy = g(t)$ 的解 $y(t)$，当 $g(t)$ 是 piecewise continuous 时（如 step function forcing），$y(t)$ 本身和 $y'(t)$ 都是 continuous 的，只有 $y''(t)$ 在 discontinuity points 处可能有 jump。物理直觉：位移（$y$）和速度（$y'$）不能瞬间突变，加速度（$y''$）才可以（因为 force $g$ 可以瞬间改变）。如果 $g(t)$ 本身是 delta function forcing（Sec 6.5），那么 $y'(t)$ 也会在 impulse 点处有 jump（因为 delta 对应 force 瞬间产生动量变化，即速度突变），但 $y(t)$ 仍然 continuous。<br><br>
+          这个区别很有用：做 exam 时，如果看到解里某个 $u(t-c)$ 项让 $y$ 本身跳跃了，说明你的计算有误——解的连续性可以作为 sanity check。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="impulse">6.5 Impulse functions and the Dirac delta</h2>
+
+      <p>
+        Step functions 让我们处理了 piecewise continuous forcing（有限时间内的 on/off 信号、线性变化的 pressure 等）。现在考虑更极端的情况：力在<em>极短</em>时间内施加，且量级极大，比如：
+      </p>
+      <ul>
+        <li>锤击弹簧质量系统：锤子接触弹簧只有几毫秒，但产生的冲量（impulse）是有限的（几牛·秒）。</li>
+        <li>电路中的电压尖峰（spike）：持续时间极短（微秒量级），但峰值电压极大。</li>
+        <li>子弹撞击：作用时间极短，但动量变化（冲量）是确定的物理量。</li>
+      </ul>
+      <p>
+        这类"瞬间极大"的 forcing 用普通 function 描述时面临一个困境：作用时间 $\to 0$，力的幅度 $\to \infty$，但如何同时让乘积（即总 impulse）保持有限？我们需要一个超越 function 框架的新对象：<strong>Dirac delta function</strong> $\delta(t-t_0)$，它是这门课里第一个真正意义上的"广义函数"（generalized function / distribution）。
+      </p>
+
+      <h3 id="impulse-motivation">物理动机：impulsive force 的极限</h3>
+
+      <p>
+        设 $F(t)$ 是从 $t_0$ 到 $t_1$ 施加的 impulsive force，$v(t)$ 是物体速度，$m$ 是质量。由牛顿第二定律：
+      </p>
+      $$\text{Impulse} = \int_{t_0}^{t_1} F(t)\,dt = \int_{t_0}^{t_1} m\frac{dv}{dt}\,dt = mv(t_1) - mv(t_0)$$
+      <p>
+        Impulse = 动量变化量。这里的关键洞察是：对于工程中的"短暂但强烈"的 forcing（比如锤击持续 0.001 秒，但力极大），我们更关心的是它的总 impulse（力对时间的积分），而不是力在每个瞬间的具体值——因为短暂 forcing 的细节难以测量，但总冲量是可以测量的（通过动量变化）。这种"只知道总量、不知道细节"的建模思路，正是 idealization（理想化）在数学物理中的典型体现：把"极短时间内的有限冲量"极限化为"瞬间的 unit impulse"，用一个数学对象来刻画，而不拘泥于实际 force profile 的细节。
+      </p>
+      <p>
+        现在考虑让 impulse 作用时间越来越短但总量保持为 1 的极限过程。定义：
+      </p>
+      $$F_n(t) = \begin{cases} n, & t_0 < t < t_0 + \dfrac{1}{n} \\ 0, & \text{otherwise} \end{cases}$$
+      <p>
+        可以验证 $\displaystyle\int_{-\infty}^{\infty} F_n(t)\,dt = n \cdot \dfrac{1}{n} = 1$（总 impulse 始终为 1，不论 $n$ 多大）。随着 $n \to \infty$，$F_n(t)$ 在 $[t_0, t_0 + 1/n]$ 上越来越高（高度 $n \to \infty$）、越来越窄（宽度 $1/n \to 0$），但面积始终为 1——prof notes 里有一张很形象的图，展示了 $F_1, F_2, F_3, F_4$ 的形状：一系列越来越瘦、越来越高的矩形，都作用在 $t_0$ 附近，总面积恒为 1。这个极限过程的几何直觉：最终的极限是一个"无限高、宽度为 0"的脉冲，但"面积"（积分）仍然等于 1。这就是 Dirac delta function：
+      </p>
+      $$\lim_{n\to\infty} F_n(t) \;``="\; \delta(t-t_0)$$
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Delta function 是"无限高、无限窄"的脉冲</p>
+        <p>
+          $\delta(t-t_0)$ 是这样一个极端对象：它在 $t = t_0$ 处无限高，在其他地方为 0，但"面积"（积分）恰好等于 1。这当然不是通常意义的 function（一个 function 在一个点上为无穷但处处有限的积分必须为 0）——它是一个 <em>distribution</em>（广义函数），这里的"相等"要在 distribution 理论框架下才严格。<br><br>
+          物理直觉：hammer blow（锤击）持续时间极短（微秒量级），但产生的动量变化（impulse）是有限的。$\delta(t-t_0)$ 正是这种"几乎瞬间完成的 impulse"的数学抽象。更具体地：用 $3\delta(t-\pi)$ 作为 forcing，意思是"在 $t=\pi$ 时刻施加一个总大小为 3 的瞬间冲量"。<br><br>
+          关键点：$\delta$ 不是 function，所以你不能像普通 function 一样"在某点求值"。但你可以用它来做积分——它的所有有意义的运算都通过积分（sifting property）来定义。
+        </p>
+      </div>
+
+      <h3 id="dirac-delta-definition">Dirac delta function 的定义和性质</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (Dirac delta function).</span>
+        The <strong>Dirac delta function</strong> $\delta(t-t_0)$（也叫 unit impulse function）是满足以下条件的 distribution（generalized function）：
+        $$\delta(t-t_0) = \begin{cases} 0, & t \neq t_0 \\ ``\infty", & t = t_0 \end{cases}$$
+        其操作性定义通过以下三个 properties 给出（见下）。注意：这里的 "$\infty$" 加了引号，因为在通常的 function 意义下，一个 function 不能在某点取值为无穷大——$\delta$ 真正的数学定义是通过 properties 来给出的，而不是通过"每点的值"。$\delta$ 属于 distribution theory（分布理论）的研究对象，由法国数学家 Laurent Schwartz 在 20 世纪 50 年代严格化；而在此之前，物理学家（包括 Dirac 本人）已经把它当作有用的工具在量子力学中大量使用了。
+      </div>
+
+      <p>
+        <strong>Properties of the Dirac delta function：</strong>这三个 properties 是我们在 ODE 课里需要掌握的全部——它们把 $\delta$ 的所有有用信息封装了进去。记住：$\delta$ 本身无法"求值"，但它的积分行为（Properties 1 和 3）和 Laplace transform（Property 2）是完全确定的，而这就足够我们解 IVPs 了。
+      </p>
+
+      <p><strong>Property 1（归一化）：</strong></p>
+      $$\int_{-\infty}^{\infty} \delta(t-t_0)\,dt = 1$$
+
+      <p><strong>Property 2（Laplace transform）：</strong></p>
+      $$\mathcal{L}\{\delta(t-t_0)\} = e^{-st_0}, \qquad t_0 \geq 0$$
+      <p>
+        这个公式极其简洁——$\delta(t-t_0)$ 的 Laplace transform 就是 $e^{-st_0}$，没有 $s$ 在分母，没有 $s^2$，什么都没有，就是一个纯指数。这和 $u(t-t_0)$ 的 transform $e^{-st_0}/s$ 相比少了 $1/s$，正反映了 $\delta = u'$（$\delta$ 是 $u$ 的广义导数）的关系（导数对应 $s$-domain 里乘 $s$）。
+      </p>
+
+      <p><strong>Property 3（Sifting property，筛选性质）：</strong></p>
+      $$\int_{-\infty}^{\infty} \delta(t-t_0)\,g(t)\,dt = g(t_0)$$
+      <p>
+        即：用 $\delta(t-t_0)$ 对任意连续 function $g(t)$ 积分，结果是把 $g$ 在 $t_0$ 处的"值" sift（筛选）出来。这是 $\delta$ 最本质的性质，也是它在数学和物理中最重要的用途。直觉上：$\delta$ 把全部"权重"集中在 $t_0$ 这一个点上，所以和 $g(t)$ 积分时，只有 $g(t_0)$ 这一个值"被选出来"，其他地方的 $g$ 值完全不起作用。这和 Riemann integral 对任意一点（测度为零的集合）求值为 0 完全不同——$\delta$ 恰恰是一个"单点有重量"的测度，而不是普通的 function。
+      </p>
+
+      <p>
+        Property 3 的"推导"（prof notes 里的非严格论证）：当 $n$ 很大时，$F_n(t)$ 在 $[t_0, t_0+1/n]$ 上非零，而 $g(t)$ 在此小区间内近似为常数 $g(t_0)$（因为 $g$ 在 $t_0$ 处连续），因此：
+      </p>
+      $$\int_{-\infty}^{\infty} F_n(t)\,g(t)\,dt \approx g(t_0) \int_{t_0}^{t_0+1/n} n\,dt = g(t_0) \cdot 1 = g(t_0)$$
+      <p>
+        取 $n \to \infty$ 极限，得 Property 3。这个论证在 distribution 理论中可以严格化：sifting property 实际上就是 $\delta$ 作为 distribution 的<em>定义</em>——$\delta$ 就是那个把连续 function $g$ 在 $t_0$ 处"筛出"的线性泛函。
+      </p>
+
+      <p>
+        Property 2 的推导由 Property 3 直接给出：
+      </p>
+      $$\mathcal{L}\{\delta(t-t_0)\} = \int_0^\infty e^{-st}\delta(t-t_0)\,dt = e^{-st_0}$$
+      <p>
+        （这里用 Property 3，令 $g(t) = e^{-st}$，sifting 结果是 $g(t_0) = e^{-st_0}$。）特别地，当 $t_0 = 0$（impulse 在时间原点处）时，$\mathcal{L}\{\delta(t)\} = e^0 = 1$。这和 $\mathcal{L}\{u(t)\} = 1/s$（step function 的 transform）形成对比：$u$ 的 transform 有 $1/s$，而 $\delta = u'$（广义导数意义下）的 transform 有 $s \cdot (1/s) = 1$——和"导数的 Laplace transform 在初始值为零时等于 $s \cdot F(s)$"一致。这再次印证了 $\delta$ 是 $u$ 的广义导数。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Delta 是 step function 的 derivative</p>
+        <p>
+          Distribution 理论告诉我们：$\delta(t-c)$ 是 $u(t-c)$（Heaviside step function）的 derivative，记作 $\delta(t-c) = u'(t-c)$（广义导数意义下）。<br><br>
+          直觉上这完全合理：$u(t-c)$ 在 $t=c$ 处发生了一个大小为 1 的 jump。一个在单点处有 jump 的 function，其 derivative 在该点应该是"无限大"——而且 jump 的大小（1）正好等于 $\delta$ 的积分值（1）。这和 Fundamental Theorem of Calculus 的精神一致：$\int_a^b f'(t)\,dt = f(b) - f(a)$，这里 $\int_a^b \delta(t-c)\,dt = u(c+\varepsilon) - u(c-\varepsilon) = 1 - 0 = 1$（当 $a < c < b$）。<br><br>
+          这个关系在解 IVPs 时有实际意义：$\delta$ forcing 会导致 $y'$ 在 $t_0$ 处出现 jump（而 step function forcing 只导致 $y''$ 等更高阶导数的 jump）。换句话说，impulse 把"动量突然改变了"这件事编码成了解的 $y'$ 的不连续性。<br><br>
+          这还提供了一个对 IVPs with delta forcing 的另一种理解方式：与其用 Laplace transform 计算（虽然这是最系统的方法），也可以把 $\delta(t-t_0)$ forcing 理解为"在 $t_0$ 处给 $y'$ 施加一个 jump"。即：在 $[0,t_0)$ 内按原来的 homogeneous equation 演化；在 $t=t_0$ 处，$y$ 保持不变但 $y'$ 突然跳跃（跳跃量 = impulse 大小 / ODE 最高阶系数）；在 $(t_0, \infty)$ 内以新的初始条件继续演化。这种分段理解和 Laplace 方法的结果完全一致，且有助于理解为什么 impulse forcing 解出来总是 $u(t-t_0)\sin(\omega(t-t_0))$ 这种形式——它就是"$t_0$ 时刻的初始速度跳跃"引发的自由振荡。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Delta forcing 改变速度，step forcing 改变 force（加速度）</p>
+        <p>
+          用 Laplace transform 解 IVP 时，$\delta(t-t_0)$ 和 $u(t-t_0)$ 作为 forcing 的本质区别，可以通过它们的 Laplace transforms 直接看出来：<br><br>
+          &bull; $\mathcal{L}\{\delta(t-t_0)\} = e^{-st_0}$（就是一个指数）<br>
+          &bull; $\mathcal{L}\{u(t-t_0)\} = e^{-st_0}/s$（多了一个 $1/s$ 因子）<br><br>
+          在 $s$-domain 里，多一个 $1/s$ 因子对应时域里的"积分"——也就是说，step function forcing $u$ 是 delta forcing $\delta$ 的"积分"（这和 $u' = \delta$（广义导数）的关系一致）。<br><br>
+          这导致了一个清晰的对比：delta forcing 造成的冲击效果更"集中"（动量瞬变），而 step function forcing 的效果是把那个冲击"摊平"到时间轴上（force 持续施加）。从解 $y(t)$ 的 smoothness 角度：delta forcing 使 $y'$ 在 $t_0$ 处有 jump（速度突变）；step forcing 使 $y''$ 在 $t_0$ 处有 jump（加速度突变，即力突变），但速度仍 continuous。<br><br>
+          更一般的规律：如果 forcing 是"$n$ 次积分的 delta"，那么 $y$ 的第 $(n)$ 阶导数会在 $t_0$ 处有 jump，更低阶的导数都保持 continuous。这个规律在处理高阶 ODEs 时很有用。
+        </p>
+      </div>
+
+      <h3 id="examples-6-5">Examples — IVPs with delta forcing</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.5.1 — Spring system with hammer blow: $y'' + 9y = 3\delta(t-\pi)$</p>
+        <p>
+          Solve $y'' + 9y = 3\delta(t-\pi)$，$y(0) = 1$，$y'(0) = 0$。然后解释物理意义。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>两边取 Laplace transform，代入初始条件：</p>
+        $$s^2Y(s) - s + 9Y(s) = 3e^{-\pi s}$$
+        $$(s^2+9)Y(s) = s + 3e^{-\pi s}$$
+        $$Y(s) = \frac{s}{s^2+9} + \frac{3e^{-\pi s}}{s^2+9}$$
+        <p>
+          注意 $\dfrac{3}{s^2+9} = \dfrac{3}{s^2+9}$，改写为 $e^{-\pi s} \cdot \dfrac{3}{s^2+9}$。由 $t$-shifting（$\mathcal{L}^{-1}\left\{\dfrac{3}{s^2+9}\right\} = \sin 3t$）：
+        </p>
+        $$y(t) = \cos 3t + u(t-\pi)\sin 3(t-\pi)$$
+        <p>
+          注意 $\sin 3(t-\pi) = -\sin 3t$，所以：
+        </p>
+        $$y(t) = \cos 3t - u(t-\pi)\sin 3t = \begin{cases} \cos 3t, & t < \pi \\ \cos 3t - \sin 3t, & t \geq \pi \end{cases}$$
+        <p>
+          合并（利用 $A\cos\theta + B\sin\theta = R\cos(\theta - \phi)$）：当 $t \geq \pi$，$\cos 3t - \sin 3t = \sqrt{2}\cos\!\left(3t + \dfrac{\pi}{4}\right)$。
+        </p>
+          <p><strong>物理解释（prof notes 中的 part (b)）：</strong>系统代表一个 mass-spring 系统，初始时弹簧从平衡位置下方 1m 处释放（$y(0)=1$，初速度为 0），以 natural frequency $\omega_0 = 3$ 进行 free oscillation：$y = \cos 3t$（未受外力时的行为）。在 $t = \pi$ 时，锤击系统施加一个总大小为 3 的 impulse（$3\delta(t-\pi)$）。这个 impulse 瞬间改变了系统的动量（等价于速度 $y'$ 在 $t=\pi$ 处的突然跳跃），但不改变位移 $y$（位移的连续性保持）。跳跃后的系统继续以相同 natural frequency $\omega_0 = 3$ 振荡，但振幅从 1 变为 $\sqrt{2}$，相位也从 0 变为 $\pi/4$。这正是 impulse forcing 的特征：改变振幅和相位，但不改变 natural frequency。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.5.2 — Zero initial conditions: $y'' + 9y = \delta(t-8)$</p>
+        <p>
+          Solve $y'' + 9y = \delta(t-8)$，$y(0) = y'(0) = 0$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        $$s^2Y + 9Y = e^{-8s} \implies Y(s) = \frac{e^{-8s}}{s^2+9} = \frac{1}{3}\cdot e^{-8s}\cdot\frac{3}{s^2+9}$$
+        <p>
+          由 $t$-shifting：$\mathcal{L}^{-1}\left\{\dfrac{3}{s^2+9}\right\} = \sin 3t$，所以：
+        </p>
+        $$y(t) = \frac{1}{3}u(t-8)\sin 3(t-8)$$
+        <p>
+          即系统在 $t < 8$ 时完全静止（初始条件为零，没有 forcing），在 $t=8$ 时被 impulse 激发，之后进入自由振荡 $\dfrac{1}{3}\sin 3(t-8)$。振幅为 $1/3$（来自 impulse 大小 1 除以 ODE 的 leading coefficient 1，再除以 natural frequency 3）。注意 $y(t)$ 本身在 $t=8$ 处是 continuous 的（都为 0），但 $y'(t)$ 在 $t=8$ 处有 jump（从 0 跳到 1，等于 impulse 大小）。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.5.3 — Mixed delta and step forcing: $y'' + 3y' + 2y = \delta(t-5) + u(t-10)$</p>
+        <p>
+          Solve $y'' + 3y' + 2y = \delta(t-5) + u(t-10)$，$y(0) = 0$，$y'(0) = 1/2$。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>两边取 Laplace transform，代入 $y(0)=0$，$y'(0)=1/2$：</p>
+        $$s^2Y - \frac{1}{2} + 3sY + 2Y = e^{-5s} + \frac{e^{-10s}}{s}$$
+        $$(s^2+3s+2)Y = \frac{1}{2} + e^{-5s} + \frac{e^{-10s}}{s}$$
+        $$Y(s) = \left(\frac{1}{2} + e^{-5s}\right)\frac{1}{(s+1)(s+2)} + e^{-10s}\cdot\frac{1}{s(s+1)(s+2)}$$
+        <p><strong>Partial fractions：</strong></p>
+        <p>对 $\dfrac{1}{(s+1)(s+2)}$：用 plug-in method，令 $s=-1$：$A=1$；令 $s=-2$：$B=-1$。所以 $\dfrac{1}{(s+1)(s+2)} = \dfrac{1}{s+1} - \dfrac{1}{s+2}$。</p>
+        <p>对 $\dfrac{1}{s(s+1)(s+2)}$：令 $s=0$：$A=1/2$；$s=-1$：$B=-1$；$s=-2$：$C=1/2$。所以 $\dfrac{1}{s(s+1)(s+2)} = \dfrac{1/2}{s} - \dfrac{1}{s+1} + \dfrac{1/2}{s+2}$。</p>
+        <p>
+          对应 $f(t) = e^{-t} - e^{-2t}$（来自 $1/(s+1) - 1/(s+2)$，即 $1/2 \cdot e^{-5s}$ 部分和 $e^{-5s}$ 部分的 inverse transform）。对于 $u(t-10)$ 对应的 $p(t)$：$\mathcal{L}^{-1}\left\{\dfrac{1/2}{s} - \dfrac{1}{s+1} + \dfrac{1/2}{s+2}\right\} = \dfrac{1}{2} - e^{-t} + \dfrac{1}{2}e^{-2t}$。
+        </p>
+        <p>最终解（三段分别来自：初始条件产生的自由运动 + $t=5$ 的 impulse 激发 + $t=10$ 的 step forcing）：</p>
+        $$y(t) = \frac{1}{2}(e^{-t} - e^{-2t}) + u(t-5)(e^{-(t-5)} - e^{-2(t-5)}) + u(t-10)\!\left(\frac{1}{2} - e^{-(t-10)} + \frac{1}{2}e^{-2(t-10)}\right)$$
+        <p>
+          物理解读：系统（ODE $y''+3y'+2y=0$ 是 overdamped 的，characteristic roots $r=-1,-2$，对应指数衰减）从非零初始状态 $y'(0)=1/2$ 开始自由衰减（第一项）；在 $t=5$ 时受 impulse 激发，产生一个额外的指数衰减振动（第二项，只在 $t \geq 5$ 才"打开"）；在 $t=10$ 时受 step forcing $u(t-10)$ 激发，系统趋向新的 equilibrium（第三项，$p(t) = 1/2 - e^{-t} + e^{-2t}/2$ 的 $t \to \infty$ 极限为 $1/2$，即 $u(t-10)$ 的 step size 1 除以 $s=0$ 时的 transfer 系数 $q(0) = 2$，所以稳态值 = $1/2$）。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Delta 是 distribution，不是 function；以及积分的约定</p>
+        <p>
+          $\delta(t-t_0)$ 不是通常意义的 function，所以"$\delta(t_0)$ 等于多少"这个问题本身就是无意义的——你不能在一个点上"求值"一个 distribution。$\delta$ 的所有操作必须通过积分来进行。<br><br>
+          关于积分下限的约定：在 Laplace transform 中，$\int_0^\infty \delta(t-t_0)\,dt$，我们默认 $t_0 > 0$（即 impulse 发生在 $t > 0$），此时结果为 1。若 $t_0 = 0$，需要特别小心（有些教材约定 $\int_0^\infty \delta(t)\,dt = 1$，有些取 $1/2$）——这门课的 prof notes 里只处理 $t_0 > 0$ 的情况，所以不用担心这个 edge case。<br><br>
+          另一个常见混淆：$3\delta(t-\pi)$ 里的系数 3 表示 impulse 的"大小"（总冲量为 3），不是 $\delta$ 在 $\pi$ 处的"函数值"（后者无意义）。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="convolution">6.6 Convolution integral</h2>
+
+      <p>到目前为止，我们用 Laplace transform 解 $ay'' + by' + cy = f(t)$ 的标准流程是：取 Laplace、解出 $Y(s)$、做 partial fractions、查表反变换。这套流程当 $Y(s)$ 能被 partial fractions 完全展开时很顺，但当 $Y(s)$ 是两个已知 Laplace transforms 的<strong>乘积</strong>（比如 $Y(s) = \dfrac{1}{(s^2+1)^2}$）、partial fractions 又特别繁琐时，就需要一个新工具。这一节引入的 <strong>convolution integral</strong> 正是为此而生：它给出 $\mathcal{L}^{-1}\{F(s)G(s)\}$ 的直接公式，并由此引出 transfer function、impulse response 这些控制工程的核心语言。</p>
+
+      <h3 id="convolution-derivation">从 Laplace 乘积反推：convolution 的诞生</h3>
+
+      <p>考虑 zero-IC 的二阶 ODE $ay'' + by' + cy = f(t)$, $y(0) = y'(0) = 0$. 取 Laplace transform：</p>
+      $$\bigl(as^2 + bs + c\bigr) Y(s) = F(s) \quad\Longrightarrow\quad Y(s) = \underbrace{\frac{1}{as^2 + bs + c}}_{G(s)}\, F(s) = G(s)F(s).$$
+      <p>右边是两个 Laplace transforms 的<em>乘积</em>。一个自然的问题：$y(t)$ 能不能用 $g(t) = \mathcal{L}^{-1}\{G(s)\}$ 和 $f(t)$ 直接表示出来？答案不是 $y = g \cdot f$（pointwise 乘法没有这种性质），而是下面的<em>积分</em>。推导思路是把 $G(s)F(s)$ 展开成 double integral 后交换积分次序：</p>
+
+      $$\begin{aligned}
+        G(s)F(s) &= \int_0^\infty e^{-su}g(u)\,du \int_0^\infty e^{-s\tau}f(\tau)\,d\tau \\
+        &= \int_0^\infty\!\!\int_0^\infty e^{-s(u+\tau)}\, g(u)\,f(\tau)\,du\,d\tau.
+      \end{aligned}$$
+
+      <p>做变量替换 $t = u + \tau$（即 $u = t - \tau$，固定 $\tau$ 时 $du = dt$）。当 $u$ 从 $0$ 跑到 $\infty$ 时 $t$ 从 $\tau$ 跑到 $\infty$，所以</p>
+
+      $$G(s)F(s) = \int_0^\infty\!\!\int_\tau^\infty e^{-st}\, g(t-\tau)\,f(\tau)\,dt\,d\tau.$$
+
+      <p>积分区域是 $\tau$-$t$ 平面上 $0 < \tau < t < \infty$ 的三角形区域。交换积分次序后 $\tau$ 从 $0$ 跑到 $t$：</p>
+
+      $$G(s)F(s) = \int_0^\infty e^{-st}\underbrace{\left[\int_0^t g(t-\tau)\,f(\tau)\,d\tau\right]}_{\text{这就是 } y(t)}dt = \mathcal{L}\!\left\{\int_0^t g(t-\tau)\,f(\tau)\,d\tau\right\}.$$
+
+      <p>方括号里的积分就是 $g$ 和 $f$ 的 <strong>convolution</strong>。我们把它单独命名：</p>
+
+      <div class="def">
+        <span class="def-label">Definition (convolution).</span>
+        若 $f(t)$ 和 $g(t)$ 在 $[0, \infty)$ 上 piecewise continuous，则它们的 convolution 定义为
+        $$(f * g)(t) \;=\; \int_0^t f(t-\tau)\,g(\tau)\,d\tau, \qquad t \ge 0.$$
+        （prof 用 $\star$ 表示 convolution，textbook 用 $*$，本文沿用 $*$；不是普通乘法。）
+      </div>
+
+      <h3 id="convolution-theorem">Convolution Theorem</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Convolution Theorem).</span>
+        若 $f, g$ 在 $[0, \infty)$ 上 piecewise continuous 且 of exponential order $\alpha$，则
+        $$\mathcal{L}\{(f * g)(t)\} = F(s)\,G(s), \qquad \mathcal{L}^{-1}\{F(s)G(s)\} = (f * g)(t)$$
+        对 $s > \alpha$ 成立。$\square$
+      </div>
+
+      <p>这个定理就是上面推导的精炼总结：<strong>时域里做 convolution ↔ $s$ 域里做乘法</strong>。它有两个直接用途：</p>
+      <ol>
+        <li><strong>求 inverse Laplace transform</strong>：当 $Y(s) = F(s)G(s)$ 且 partial fractions 麻烦时，用 $y = f * g$。</li>
+        <li><strong>对 convolution 求 Laplace transform</strong>：看到积分写成 $\int_0^t f(t-\tau)g(\tau)d\tau$ 的形式时，直接得到 $F(s)G(s)$，不必硬算积分。</li>
+      </ol>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么是 $f(t-\tau)g(\tau)$，不是 $f(\tau)g(\tau)$？</p>
+        <p>
+          Convolution 不是普通乘积。直观上，可以把 $f(\tau)$ 想成"在时刻 $\tau$ 发生的输入"，$g(t-\tau)$ 想成"输入发生后经过 $t - \tau$ 时间，对现在时刻 $t$ 的剩余影响"。整个积分把<em>所有过去时刻 $\tau \in [0, t]$ 的输入</em>按"还剩多少影响"做加权求和——所以也叫"weighted historical sum"。这种"$t - \tau$ 反向滑动 + 权重叠加"的结构正是它和普通乘法的本质区别。<br><br>
+          数学上之所以是 $t - \tau$ 而不是 $\tau$，源自上面推导里 $t = u + \tau$ 的代换：$g$ 的 Laplace 变量 $u$ 被替换成 $t - \tau$，所以 $g(u) \to g(t - \tau)$。
+        </p>
+      </div>
+
+      <h3 id="convolution-properties">Convolution 的性质</h3>
+
+      <p>把 $*$ 当成一种"广义乘法"时，它满足普通乘法的大部分性质，但<em>不</em>满足所有性质（特别是它没有"乘以 1 等于自己"那种 identity）：</p>
+
+      <table class="data-table">
+        <tr>
+          <th>性质</th>
+          <th>陈述</th>
+        </tr>
+        <tr>
+          <td>① Commutative</td>
+          <td>$f * g = g * f$</td>
+        </tr>
+        <tr>
+          <td>② Distributive</td>
+          <td>$f * (g + h) = f * g + f * h$</td>
+        </tr>
+        <tr>
+          <td>③ Associative</td>
+          <td>$(f * g) * h = f * (g * h)$</td>
+        </tr>
+        <tr>
+          <td>④ Zero</td>
+          <td>$f * 0 = 0$</td>
+        </tr>
+      </table>
+
+      <p><em>Proof of ①.</em> 由定义 $f * g = \int_0^t f(t-\tau)g(\tau)\,d\tau$。做代换 $v = t - \tau$, $dv = -d\tau$. 当 $\tau = 0$ 时 $v = t$；当 $\tau = t$ 时 $v = 0$. 所以</p>
+      $$f * g = \int_t^0 f(v)\,g(t-v)\,(-dv) = \int_0^t f(v)\,g(t-v)\,dv = g * f. \quad\square$$
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Convolution 没有 "乘以 1" 的恒等元</p>
+        <p>
+          普通乘法里 $f \cdot 1 = f$，但 convolution 一般 <strong>不</strong> 满足 $f * 1 = f$。比如取 $f(t) = \cos t$：<br>
+          $$(f * 1)(t) = \int_0^t \cos(t-\tau)\,d\tau = \sin(t) \neq \cos t.$$
+          实际上 convolution 的 identity 是 $\delta(t)$（Dirac delta）：$f * \delta = f$。这正是为什么 $\delta$ 在线性系统里的地位类似于"乘法里的 1"——后面 transfer function 一节会用到这点。
+        </p>
+      </div>
+
+      <h3 id="convolution-intuition">直觉：从离散卷积到 damped spring（not testable）</h3>
+
+      <p>Prof 专门强调下面两个例子<strong>不会考</strong>，但对建立"convolution 到底在物理上做什么"的直觉非常有帮助。</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 离散版：咖啡随室温变化</p>
+        <p>
+          想象一杯咖啡在和外界换热。记：
+        </p>
+        <ul>
+          <li>$y[t]$ = 咖啡在 $t$ 分钟时高于 baseline 的温度</li>
+          <li>$f[n]$ = 房间在 $n$ 分钟时高于 baseline 的温度</li>
+          <li>$g[k]$ = 咖啡对 $k$ 分钟前外界温度的"记忆比例"（也叫 heat remaining after $k$ min）</li>
+        </ul>
+        <p>
+          取数值 $f[0]=0°,\ f[1]=10°,\ f[2]=10°,\ f[3]=0°$；$g[0]=100\%$（"完全记得现在"），$g[1]=50\%,\ g[2]=25\%,\ g[3]=0\%$（"完全忘记 3 分钟前"）。<br><br>
+          按 discrete convolution 公式：
+          $$y[3] = (f * g)[3] = \sum_{\tau=0}^3 f[3-\tau]\,g[\tau] = f[3]g[0] + f[2]g[1] + f[1]g[2] + f[0]g[3]$$
+          $$= 0 \cdot 1 + 10 \cdot 0.5 + 10 \cdot 0.25 + 0 \cdot 0 = 7.5°.$$
+          所以 3 分钟时咖啡的温度比 baseline 高 7.5°。<br><br>
+          直觉解读：$g[\tau]$ 编码的是"距离<em>现在</em>多久前"的权重——$\tau = 0$ 是"现在"（权重 100%），$\tau$ 越大越是"久远的过去"（权重越小）。Convolution 把 $f$ 从"过去到现在"按"还记多少"加权求和。
+        </p>
+        <p>
+          两个极端：若咖啡"完美记忆"（$g \equiv 1$），把过去所有 $f$ 等权累加得 $0+10+10+0 = 20°$；若咖啡"零记忆"（$g[0]=1$, 其余 0），只看当前室温 $f[3] = 0°$。$g$ 越缓慢衰减（"长记性"），$y$ 受过去影响越大；$g$ 越快归零（"短记性"），$y$ 越只反映当下。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 连续版：damped spring 的位移历史</p>
+        <p>
+          对一个 damped spring–mass system $my'' + cy' + ky = f(t)$（$f$ 是外力），假设零初始条件，convolution 解为 $y(t) = (h * f)(t) = \int_0^t h(t-\tau)f(\tau)\,d\tau$，其中 $h$ 是 impulse response（下一小节定义）。<br><br>
+          物理含义：$f(\tau)\,d\tau$ 是时刻 $\tau$ 注入系统的"冲量元"；$h(t-\tau)$ 是"$t - \tau$ 时间后这冲量元剩下多少位移贡献"。系统现在的位移 $y(t)$ 就是<em>所有过去冲量的加权历史叠加</em>。<br><br>
+          <strong>Damping 的物理意义</strong>：
+        </p>
+        <ul>
+          <li><em>Low damping</em>（$c$ 小）：$h$ 衰减得慢，convolution"记得"很久以前的输入——所以系统的振荡能持续较长时间。</li>
+          <li><em>High damping</em>（$c$ 大）：$h$ 衰减得快，convolution 只"记得"最近的输入——所以系统对早期输入"忘记"得很快，最终行为主要由当下 forcing 决定。</li>
+        </ul>
+        <p>这正是为什么 convolution 在 signal processing、控制系统里被叫做 "system memory" 的数学体现。</p>
+      </div>
+
+      <h3 id="convolution-examples">Examples — 用 convolution 解题</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.6.1 — 用 Laplace + Convolution Theorem 解 IVP</p>
+        <p>
+          Solve $y'' + 3y' + 2y = e^{-t}$，$y(0) = y'(0) = 0$.
+        </p>
+        <p>
+          <strong>Solution.</strong> 取 Laplace transform：
+          $$(s^2 + 3s + 2)\,Y(s) = \frac{1}{s+1} \quad\Longrightarrow\quad Y(s) = \frac{1}{s^2+3s+2} \cdot \frac{1}{s+1}.$$
+          注意 $s^2 + 3s + 2 = (s+1)(s+2)$，所以 partial fractions $\dfrac{1}{s^2+3s+2} = \dfrac{1}{s+1} - \dfrac{1}{s+2}$. 让
+          $$G(s) = \tfrac{1}{s+1} - \tfrac{1}{s+2}, \quad H(s) = \tfrac{1}{s+1}, \quad\text{i.e.}\quad g(t) = e^{-t} - e^{-2t}, \;\; h(t) = e^{-t}.$$
+          由 Convolution Theorem：
+          $$y(t) = (h * g)(t) = \int_0^t e^{-(t-\tau)}\bigl(e^{-\tau} - e^{-2\tau}\bigr)d\tau = e^{-t}\int_0^t \bigl(1 - e^{-\tau}\bigr)d\tau$$
+          $$= e^{-t}\bigl[\tau + e^{-\tau}\bigr]_0^t = e^{-t}\bigl(t + e^{-t} - 1\bigr).$$
+          展开得最终答案 $\boxed{y(t) = t\,e^{-t} + e^{-2t} - e^{-t}}$。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.6.2 — Inverse Laplace via convolution</p>
+        <p>
+          Find $\mathcal{L}^{-1}\!\left\{\dfrac{1}{(s^2+1)^2}\right\}$.
+        </p>
+        <p>
+          <strong>Solution.</strong> 令 $G(s) = H(s) = \dfrac{1}{s^2+1}$，则 $g(t) = h(t) = \sin t$. 由 Convolution Theorem：
+          $$\mathcal{L}^{-1}\!\left\{\frac{1}{(s^2+1)^2}\right\} = (g * h)(t) = \int_0^t \sin(t-\tau)\sin\tau\,d\tau.$$
+          用积化和差 $\sin a \sin b = \tfrac{1}{2}[\cos(b-a) - \cos(b+a)]$（这里 $a = t-\tau, b = \tau$，所以 $b - a = 2\tau - t$, $b + a = t$）：
+          $$= \int_0^t \tfrac{1}{2}\bigl[\cos(2\tau - t) - \cos t\bigr]d\tau = \tfrac{1}{2}\left[\frac{\sin(2\tau - t)}{2} - (\cos t)\,\tau\right]_0^t$$
+          $$= \tfrac{1}{2}\!\left[\tfrac{\sin t}{2} - t\cos t - \tfrac{\sin(-t)}{2}\right] = \tfrac{1}{2}\!\left[\tfrac{\sin t}{2} + \tfrac{\sin t}{2} - t\cos t\right] = \boxed{\tfrac{1}{2}\sin t - \tfrac{1}{2}t\cos t}.$$
+          （用到 $\sin(-t) = -\sin t$.）这个 $\dfrac{1}{(s^2+1)^2} \;\longleftrightarrow\; \dfrac{1}{2}(\sin t - t \cos t)$ 是<strong>非常常考</strong>的查表条目之一，建议背下来。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.6.3 — Laplace transform of a convolution integral</p>
+        <p>
+          Find $\mathcal{L}\!\left\{\int_0^t (t-\tau)^3 e^{-3\tau}\cos 2\tau\,d\tau\right\}$.
+        </p>
+        <p>
+          <strong>Solution.</strong> 把积分识别成 convolution $g * h$，其中
+          $$g(t) = t^3, \qquad h(t) = e^{-3t}\cos 2t.$$
+          查表：$G(s) = \mathcal{L}\{t^3\} = \dfrac{3!}{s^4} = \dfrac{6}{s^4}$. 对 $h$ 用 $s$-shifting（File 07 Sec 6.2）：$\mathcal{L}\{e^{-3t}\cos 2t\} = \dfrac{s+3}{(s+3)^2 + 4}$. 由 Convolution Theorem：
+          $$\mathcal{L}\{g * h\} = G(s)\,H(s) = \boxed{\;\frac{6}{s^4} \cdot \frac{s+3}{(s+3)^2 + 4}\;}.$$
+          注意这里完全不用算积分——这就是 Convolution Theorem 的省力之处。
+        </p>
+      </div>
+
+      <h3 id="transfer-function">Transfer function 和 impulse response</h3>
+
+      <p>Convolution Theorem 在线性系统理论里有一个统一的应用，叫 transfer function 分解。考虑<strong>带任意 IC</strong> 的 ODE：</p>
+      $$ay'' + by' + cy = g(t), \qquad y(0) = y_0, \;\; y'(0) = y_1.$$
+      <p>取 Laplace transform 并解 $Y(s)$：</p>
+      $$(as^2 + bs + c)\,Y(s) - (as + b)y_0 - a\,y_1 = G(s),$$
+      $$Y(s) = \underbrace{\frac{1}{as^2 + bs + c}}_{H(s)}\,G(s) \;+\; \underbrace{\frac{(as + b)\,y_0 + a\,y_1}{as^2 + bs + c}}_{\phi(s)}.$$
+      <p>所以 $Y(s) = H(s)G(s) + \phi(s)$，反变换得</p>
+      $$\boxed{\;y(t) = (h * g)(t) + \phi(t).\;}$$
+      <p>这个分解告诉我们：系统的输出可以拆成"外力的响应"和"初始能量的响应"两部分之和。</p>
+
+      <div class="def">
+        <span class="def-label">Definition (transfer function, impulse response).</span>
+        $$H(s) = \frac{1}{as^2 + bs + c}$$
+        叫做 <strong>transfer function</strong>。它的 inverse Laplace transform $h(t) = \mathcal{L}^{-1}\{H(s)\}$ 叫做系统的 <strong>impulse response</strong>——这是 $ay'' + by' + cy = \delta(t)$, $y(0) = y'(0) = 0$ 的解。
+      </div>
+
+      <p>下面整理 prof 给的 7 条 observations：</p>
+
+      <table class="data-table">
+        <tr>
+          <th>#</th>
+          <th>陈述</th>
+          <th>含义</th>
+        </tr>
+        <tr>
+          <td>①</td>
+          <td>$\phi(t)$ 是 $ay'' + by' + cy = 0$, $y(0)=y_0$, $y'(0)=y_1$ 的解</td>
+          <td>$\phi(t) = y_H$，即对应 homogeneous 的解</td>
+        </tr>
+        <tr>
+          <td>②</td>
+          <td>$h * g$ 是 $ay'' + by' + cy = g(t)$, $y(0)=y'(0)=0$ 的解</td>
+          <td>零初始条件下，外力 $g$ 产生的响应</td>
+        </tr>
+        <tr>
+          <td>③</td>
+          <td>$H(s) = 1/(as^2 + bs + c)$ 是 transfer function</td>
+          <td><strong>只</strong>依赖 $a, b, c$（系统本身的属性）</td>
+        </tr>
+        <tr>
+          <td>④</td>
+          <td>$G(s)$ 只依赖 $g(t)$</td>
+          <td>$G$ 完全反映 forcing function 信息</td>
+        </tr>
+        <tr>
+          <td>⑤</td>
+          <td>impulse response $h(t)$ 是 $ay'' + by' + cy = \delta(t)$, $y(0) = y'(0) = 0$ 的解</td>
+          <td>"系统被一记单位冲量后的反应"</td>
+        </tr>
+        <tr>
+          <td>⑥</td>
+          <td>$h * g$ 是 impulse response 和 forcing function 的 convolution</td>
+          <td>体现"过去 forcing 的加权历史叠加"</td>
+        </tr>
+        <tr>
+          <td>⑦</td>
+          <td>$y(t) = h * g + \phi(t)$</td>
+          <td><em>response due to external forces</em> + <em>response due to initial energy</em></td>
+        </tr>
+      </table>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 为什么叫 "impulse response"？$h(t)$ 和 $\delta$ 的联系</p>
+        <p>
+          为什么 $h(t) = \mathcal{L}^{-1}\{1/(as^2+bs+c)\}$ 恰好是"$\delta(t)$ forcing 的零初值响应"？因为 $\mathcal{L}\{\delta(t)\} = 1$（File 08 Sec 6.5），所以解 $ay'' + by' + cy = \delta(t)$, $y(0)=y'(0)=0$ 给出
+          $$Y(s) = \frac{\mathcal{L}\{\delta\}}{as^2 + bs + c} = \frac{1}{as^2+bs+c} = H(s),$$
+          反变换正好是 $h(t)$。于是 $h$ 既可以"代数地"理解为 transfer function 的 inverse Laplace，也可以"物理地"理解为系统对单位冲量的响应。<br><br>
+          一旦知道 $h(t)$，<em>任何</em> forcing $g$ 对应的零初值响应都能由 convolution 一步给出——这是控制系统、信号处理整个学科的基石之一。也是为什么本节里 prof 单独把 transfer function 这块从 Boyce textbook 抽出来强调。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 6.6.4 — 用 transfer function 框架重做 Example 6.6.1 (supplementary)</p>
+        <p>
+          回看 Example 6.6.1：$y'' + 3y' + 2y = e^{-t}$, $y(0) = y'(0) = 0$. 这里 $a = 1, b = 3, c = 2$，所以
+          $$H(s) = \frac{1}{s^2 + 3s + 2} = \frac{1}{s+1} - \frac{1}{s+2} \;\;\Longrightarrow\;\; h(t) = e^{-t} - e^{-2t}.$$
+          $G(s) = \mathcal{L}\{e^{-t}\} = \dfrac{1}{s+1}$, 所以 $g(t) = e^{-t}$. 因为 IC 为零，$\phi(t) = 0$。代入 $y(t) = (h * g)(t)$:
+          $$y(t) = \int_0^t \bigl(e^{-(t-\tau)} - e^{-2(t-\tau)}\bigr)\,e^{-\tau}\,d\tau = e^{-t}\int_0^t d\tau \;-\; e^{-2t}\int_0^t e^{\tau}\,d\tau$$
+          $$= t\,e^{-t} - e^{-2t}(e^t - 1) = t\,e^{-t} + e^{-2t} - e^{-t},$$
+          与 Example 6.6.1 答案一致。两种角度——"先做 partial fraction 把 $1/(s^2+3s+2)$ 拆开再卷 $g$"和"把 $H(s) = 1/(s^2+3s+2)$ 整体认作 transfer function、$h$ 直接是 system impulse response"——殊途同归，但 transfer function 视角对带 IC 的问题更通用。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>本文件涵盖了 Laplace transform 在 discontinuous、impulsive forcing 和 convolution 下的应用（Sec 6.3–6.6）。从整个课程的视角来看，本文件是 Laplace transform 应用范围的重要扩展：File 07 奠定了基础框架（什么是 Laplace transform，如何解 smooth forcing 下的 IVP），本文件把这个框架推广到三类延伸——piecewise discontinuous forcing（用 step functions 处理）、impulsive forcing（用 delta function 处理），以及把"$s$ 域乘法"翻译成"时域 convolution"的统一视角（由此引出 transfer function 和 impulse response 的概念）。这三类工具在工程应用中极其普遍，是 Laplace transform 方法比传统 ODE 解法更强大的核心体现。</p>
+      <p>
+        一个便于复习的对比总结：
+      </p>
+      <table class="data-table">
+        <tr>
+          <th>Forcing 类型</th>
+          <th>数学对象</th>
+          <th>Laplace transform 特征</th>
+          <th>解 $y(t)$ 的特征</th>
+        </tr>
+        <tr>
+          <td>Smooth (continuous)</td>
+          <td>$g(t)$（如 $\sin t$, $e^{2t}$）</td>
+          <td>$G(s)$ 无 $e^{-as}$ 因子</td>
+          <td>$y$, $y'$, $y''$ 都 continuous</td>
+        </tr>
+        <tr>
+          <td>Piecewise constant/linear</td>
+          <td>$u(t-a)$ 组合</td>
+          <td>$G(s)$ 含 $e^{-a_k s}/s$ 因子</td>
+          <td>$y$, $y'$ continuous；$y''$ 有 jump</td>
+        </tr>
+        <tr>
+          <td>Impulse（瞬间冲量）</td>
+          <td>$\delta(t-t_0)$</td>
+          <td>$G(s) = e^{-st_0}$（纯指数）</td>
+          <td>$y$ continuous；$y'$ 有 jump</td>
+        </tr>
+      </table>
+      <ul>
+        <li>
+          <strong>Unit step function $u_c(t) = u(t-c)$</strong>：在 $t=c$ 处跳到 1 的阶梯函数。
+          <ul>
+            <li>$\mathcal{L}\{u(t-c)\} = \dfrac{e^{-cs}}{s}$</li>
+            <li>Rectangular window：$u(t-a) - u(t-b) = 1$ on $[a,b)$，其余为 0。两个 step functions 相减产生"有限宽度的窗口"，这是描述 piecewise forcing 最基本的积木。</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Translation Theorem（$t$-shifting）</strong>：
+          $$\mathcal{L}\{f(t-a)u(t-a)\} = e^{-as}F(s), \quad \mathcal{L}^{-1}\{e^{-as}F(s)\} = f(t-a)u(t-a)$$
+          两个平移量必须匹配（$f$ 里的和 $u$ 里的都是 $t-a$）。遇到 $F(s)$ 含 $e^{-as}$ 因子时，先把 $e^{-as}$ 剥掉，对 $F(s)$ 求 inverse transform 得 $f(t)$，再把 $t$ 换成 $t-a$，乘 $u(t-a)$。
+        </li>
+        <li>
+          <strong>IVPs with discontinuous forcing（Sec 6.4）</strong>：标准流程——把 piecewise $g(t)$ 写成 step functions（增量法：每个 breakpoint 处的"净变化"乘上 $u(t-c)$）→ 取 Laplace → 解代数方程（注意 completing the square 处理 irreducible quadratic）→ partial fractions + $t$-shifting 还原。Laplace 方法的核心优势是只需一次代数计算，不需要分段求解和拼接。
+        </li>
+        <li>
+          <strong>Dirac delta function $\delta(t-t_0)$</strong>（Sec 6.5）：impulse 的数学抽象（distribution，不是 function）。
+          <ul>
+            <li>$\int_{-\infty}^\infty \delta(t-t_0)\,dt = 1$（归一化）</li>
+            <li>$\mathcal{L}\{\delta(t-t_0)\} = e^{-st_0}$</li>
+            <li>Sifting：$\int_{-\infty}^\infty \delta(t-t_0)g(t)\,dt = g(t_0)$</li>
+          </ul>
+        </li>
+        <li>
+          <strong>关键区分</strong>：
+          <ul>
+            <li>Step function forcing（piecewise continuous $g$）：解 $y(t)$ 和 $y'(t)$ 都 continuous，$y''(t)$ 在 discontinuity 处有 jump。</li>
+            <li>Delta forcing（impulse）：$y(t)$ 仍 continuous，但 $y'(t)$ 在 impulse 时刻有 jump（物理上是速度突变 = 动量突变）。</li>
+          </ul>
+        </li>
+        <li>
+          <strong>实用流程（做题 checklist）</strong>：
+          <ol>
+            <li>识别 $g(t)$ 的 breakpoints，用增量法写出 step function 表达式。每段的"净变化量"乘上 $u(t-c)$，不是该段的绝对值。</li>
+            <li>对 ODE 两边取 $\mathcal{L}$，代入 $y(0)$ 和 $y'(0)$（注意 $\mathcal{L}\{y''\} = s^2Y - sy(0) - y'(0)$）。</li>
+            <li>解代数方程得 $Y(s)$，注意分母可能需要 completing the square（处理 irreducible quadratic），记住 $s^2+2as+a^2+b^2 = (s+a)^2+b^2$。</li>
+            <li>把 $Y(s)$ 里的 $e^{-c_k s}$ 因子"剥离"，对剩余部分做 partial fractions（用 cover-up / plug-in method 加速）。</li>
+            <li>套 $t$-shifting 还原：$\mathcal{L}^{-1}\{e^{-as}F(s)\} = u(t-a)f(t-a)$，把 $f(t)$ 中的每个 $t$ 都换成 $t-a$。这是最容易漏掉的步骤。</li>
+          </ol>
+        </li>
+        <li>
+          <strong>Convolution（Sec 6.6）</strong>：
+          $$(f * g)(t) = \int_0^t f(t-\tau)\,g(\tau)\,d\tau, \qquad \mathcal{L}\{f * g\} = F(s)\,G(s).$$
+          <ul>
+            <li>满足 commutative、distributive、associative；但 $f * 1 \ne f$ —— convolution 的 identity 是 $\delta(t)$。</li>
+            <li>用途 ①：求 inverse Laplace 时若 $Y(s) = F(s)G(s)$ 且 partial fractions 太繁，用 $y = f * g$ 更省力（如 $\mathcal{L}^{-1}\{1/(s^2+1)^2\} = \tfrac{1}{2}(\sin t - t\cos t)$）。</li>
+            <li>用途 ②：看到积分形如 $\int_0^t f(t-\tau)g(\tau)d\tau$ 时，直接得到 $F(s)G(s)$，不必硬算。</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Transfer function 分解</strong>：对带 IC 的 $ay'' + by' + cy = g(t)$,
+          $$Y(s) = H(s)G(s) + \phi(s), \quad H(s) = \frac{1}{as^2+bs+c}, \quad y(t) = (h*g)(t) + \phi(t).$$
+          $h(t) = \mathcal{L}^{-1}\{H(s)\}$ 是 <em>impulse response</em>（即 $g = \delta(t)$ 时的零初值响应）。$h * g$ 给"外力的响应"，$\phi(t)$ 给"初始能量的响应"。这是控制工程语言。
+        </li>
+      </ul>
+
+      <table class="data-table">
+        <tr>
+          <th>Time-domain $f(t)$</th>
+          <th>$s$-domain $F(s)$</th>
+          <th>Condition</th>
+        </tr>
+        <tr>
+          <td>$u(t-a)$</td>
+          <td>$\dfrac{e^{-as}}{s}$</td>
+          <td>$a \geq 0$</td>
+        </tr>
+        <tr>
+          <td>$f(t-a)u(t-a)$</td>
+          <td>$e^{-as}F(s)$</td>
+          <td>$a > 0$，$F=\mathcal{L}\{f\}$</td>
+        </tr>
+        <tr>
+          <td>$e^{at}f(t)$</td>
+          <td>$F(s-a)$</td>
+          <td>$s$-shifting（Sec 6.2）</td>
+        </tr>
+        <tr>
+          <td>$\delta(t-t_0)$</td>
+          <td>$e^{-st_0}$</td>
+          <td>$t_0 \geq 0$</td>
+        </tr>
+        <tr>
+          <td>$(f * g)(t) = \int_0^t f(t-\tau)g(\tau)\,d\tau$</td>
+          <td>$F(s)\,G(s)$</td>
+          <td>Convolution Theorem</td>
+        </tr>
+      </table>
+
+      <h3 id="looking-ahead">Looking Ahead</h3>
+
+      <p>
+        Ch 6（Laplace transform）至此告一段落。本文件 + File 07 涵盖了所有考点：定义、existence theorem、一阶/二阶 IVP、step / delta / convolution forcing、transfer function。复习时建议把这些工具按"输入是什么形状"组织——continuous smooth、piecewise jumps、impulse spike、convolution-product——而不是按章节顺序背公式表。
+      </p>
+      <p>
+        课程最后进入 Ch 5（Series Solutions），覆盖 Sec 5.1（power series review）、5.2（series solutions near an ordinary point, Part I）、5.3（series solutions near an ordinary point, Part II）。这些内容在 <a href="09-series-solutions.html">File 09</a> 中展开。Series solutions 用完全不同的思路解 ODE：与其找 closed-form 解，不如假设解是一个 power series $\sum_{n=0}^\infty a_n (x - x_0)^n$，代入方程后逐阶确定 coefficient $a_n$ 的 recurrence relation。这条路适用于<em>变系数</em>的 second-order linear ODE——典型例子是 Airy's equation $y'' - xy = 0$、Hermite equation $y'' - 2xy' + \lambda y = 0$、Legendre / Bessel 等"特殊函数方程"，这些 ODE 用 Ch 3 的 characteristic equation 法<strong>无法</strong>处理，但 series methods 总能给出 power series 形式的解。
+      </p>
+      <p>
+        从 File 01 开始，我们依次学了：integration-based 方法（Ch 2，first-order ODEs）→ characteristic equation 方法（Ch 3，constant-coefficient second-order ODEs）→ eigensystem 方法（Ch 7，systems of ODEs）→ Laplace transform（Ch 6，统一处理 IVPs with arbitrary forcing）→ 最后是 power series（Ch 5，处理变系数 ODE）。这是一个由浅入深、工具逐步扩展的学习路径，而 series solutions 是整个本科 ODE 课程方法论上最具一般性的技术之一。
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>05. Systems of ODEs · Theory · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">05. Systems of ODEs · Theory</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>05. Systems of ODEs · Theory</h1>
+    <p class="note">Textbook sections 7.1, 7.2, 7.3, 7.4 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+
+      <p>
+        从这个文件开始，我们进入 Ch 7——systems of first-order ODEs。在这一章里，unknown 不再是单个 scalar function，而是一组 scalar functions 组成的 vector，所以 notation 需要做一些调整。
+      </p>
+
+      <ul>
+        <li>
+          <strong>Vector-valued functions</strong>：用粗体小写字母 $\mathbf{x}(t)$ 表示 column vector，其每个 component 都是 $t$ 的 scalar function。Prof notes 中写的是 $\vec{x}(t)$，本文件统一写 $\mathbf{x}(t)$，两者意思完全相同。
+        </li>
+        <li>
+          <strong>Components</strong>：$\mathbf{x}(t)$ 的 components 记为 $x_1(t), x_2(t), \ldots, x_n(t)$——注意这里 $x_i$ 是 scalar functions，不是空间坐标。
+        </li>
+        <li>
+          <strong>Matrices</strong>：用大写字母 $A$（或 $A(t)$ 当 entries 依赖 $t$ 时）表示 $n \times n$ coefficient matrix。
+        </li>
+        <li>
+          <strong>Zero vector</strong>：$\mathbf{0}$ 表示各 component 均为 0 的 column vector，注意与 scalar 0 区分，写法不同是有意为之。
+        </li>
+        <li>
+          <strong>Derivative of a vector</strong>：$\mathbf{x}'(t)$ 表示对 $t$ 逐 component 求导，即
+          $$\mathbf{x}'(t) = \begin{pmatrix} x_1'(t) \\ x_2'(t) \\ \vdots \\ x_n'(t) \end{pmatrix}$$
+          这是最自然的推广：对 vector function 求导就是对每个 entry 分别求导。
+        </li>
+        <li>
+          <strong>Eigenvalues / eigenvectors</strong>：eigenvalue 记作 $\lambda$（scalar，可以是 real 或 complex），eigenvector 记作 $\mathbf{v}$（nonzero column vector）。Characteristic polynomial 记作 $p_n(\lambda) = \det(A - \lambda I)$，其中 $I$ 是 $n \times n$ identity matrix。
+        </li>
+        <li>
+          <strong>Wronskian for systems</strong>：
+          $$W[\mathbf{x}_1, \ldots, \mathbf{x}_n](t) = \det\!\begin{pmatrix} \mathbf{x}_1(t) & \mathbf{x}_2(t) & \cdots & \mathbf{x}_n(t) \end{pmatrix}$$
+          即把 $n$ 个 vector-valued solutions 并排放成 $n \times n$ matrix 再求 determinant，结果是 $t$ 的 scalar function。
+        </li>
+      </ul>
+
+      <p>
+        这个文件（File 05）专注于 theory——搭建 systems 的语言框架，回顾所需的 linear algebra 工具，以及建立 solution structure 的理论保证。具体的 solution 方法（constant-coefficient systems、eigenvalue 方法、complex/repeated roots 的处理）留在 File 06 展开。这里的目标是理解"为什么找 $n$ 个 linearly independent solutions 就够了"——这个问题的答案是这一章最重要的 insight，也是 File 06 里所有算法的合法性基础。
+      </p>
+
+      <p>
+        在阅读本文件时，建议心中始终牵挂一条主线：Ch 1–3 里 scalar second-order ODE 的整套理论（general solution = homogeneous general solution + particular solution；homogeneous general solution 由两个 linearly independent solutions 的 linear combination 构成；fundamental set 的存在性由 Abel's theorem + existence-uniqueness 保证），在这里几乎原封不动地被复刻到了 $n$ 维的 vector 情形。"scalar"变"vector"，"2"变"$n$"，"Wronskian of scalar functions"变"Wronskian of vector-valued functions"——其余一切结构完全平行。这种跨 chapter 的结构对应，是数学里 abstraction（抽象化）威力的绝佳展示。
+      </p>
+
+      <p>
+        文件里有四个核心 h2 sections，逻辑上有如下依赖关系：Sec 7.1（框架：matrix form $\mathbf{x}' = A\mathbf{x}$）$\to$ Sec 7.2（工具：linear algebra 回顾，特别是 linear independence 的微妙之处）$\to$ Sec 7.3（工具：eigenvalues/eigenvectors，为 File 06 的 solution algorithm 做准备）$\to$ Sec 7.4（理论：existence-uniqueness、Wronskian、Abel、superposition、fundamental set——保证 general solution 的结构）。把这条逻辑链搞清楚，文件的结构就非常自然了。每一步都有明确的问题意识：matrix form 回答"怎么表示 system"，linear algebra 回顾回答"什么叫 solutions 不同"，eigenvalues/eigenvectors 回答"怎么找 solutions"，而 Sec 7.4 的 theory 回答"找到几个 solutions 就够了，以及怎么验证"。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="systems-intro">7.1 — Systems of First-Order ODEs</h2>
+
+      <p>
+        在 Ch 1–3 里，我们研究的是单个 ODE：一个 scalar function $y(t)$ 满足一个含有它的 derivatives 的方程。这套框架可以处理很多问题，但它有一个根本局限：只能描述"一个量随时间变化"。当问题涉及多个量同时演化、彼此耦合时，scalar ODE 力不从心——你无法用一个方程 $y' = f(t,y)$ 同时追踪两个物种的种群数量、或者电路里两个 state variable（电容电压和电感电流）。这时就需要 system of ODEs 的框架。
+      </p>
+
+      <p>
+        从 scalar ODE 到 system of ODEs 不是一个简单的推广，而是一次 paradigm shift：从描述一条"曲线"（$y(t)$ 在实轴上的图像）转向描述一条"轨迹"（$\mathbf{x}(t)$ 在 $n$ 维 phase space 里的路径）。这个 paradigm shift 让我们能处理更复杂、更丰富的动力学行为——螺旋、节点、鞍点等几何形态，这些在 scalar ODE 的 one-dimensional phase line 里根本无法出现（一维只能 increase/decrease/constant，二维才开始有旋转和周期运动）。现实中许多系统涉及多个相互耦合的 quantities，它们之间互相影响，无法单独分析，必须联立建模。几个经典例子：
+      </p>
+      <ul>
+        <li>
+          <strong>生态学中的 predator-prey model</strong>（Lotka-Volterra）：设 $x_1(t)$ = 猎物数量（比如兔子），$x_2(t)$ = 捕食者数量（比如狐狸）。$x_1$ 的增长率取决于 $x_1$ 本身（兔子繁殖）以及 $x_2$（被狐狸捕食减少）；$x_2$ 的增长率取决于 $x_2$ 本身（狐狸自然死亡）以及 $x_1$（因食物而增加）。两个 quantities 耦合在一起，必须写成 system。
+        </li>
+        <li>
+          <strong>RLC 电路</strong>：电容两端电压 $V_C(t)$ 和流过电感的电流 $I_L(t)$ 满足一对耦合方程，共同描述电路的动态响应。
+        </li>
+        <li>
+          <strong>耦合弹簧</strong>（coupled spring-mass system）：两个质量块通过弹簧相连，每个质量块的位移 $x_1(t), x_2(t)$ 不仅受自身弹簧的约束，还受连接两者的弹簧的影响——这是两个耦合的 second-order ODEs，可以进一步降阶成 first-order system。
+        </li>
+      </ul>
+
+      <p>
+        这些物理问题的共同数学结构就是 <strong>system of ODEs</strong>。为了统一处理，我们专注于 linear 且 homogeneous 的情形。非 linear systems（比如 Lotka-Volterra 方程本身是 nonlinear 的：$x_1' = ax_1 - bx_1 x_2$，含有 $x_1 x_2$ 这个 nonlinear 项）超出本课范围，只在定性分析（phase plane）里简单提及。Nonhomogeneous systems（$\mathbf{x}' = A(t)\mathbf{x} + \mathbf{g}(t)$，右边有 forcing term $\mathbf{g}(t)$）本课也基本不涉及——类似 Ch 3 里先学 homogeneous 再处理 nonhomogeneous，这里我们把重心放在 homogeneous linear systems 上。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (general system of $n$ first-order linear homogeneous ODEs).</span>
+        以下形式的方程组称为 general system of $n$ first-order linear homogeneous ODEs：
+        $$\begin{aligned}
+          x_1'(t) &= a_{11}(t)\,x_1 + a_{12}(t)\,x_2 + \cdots + a_{1n}(t)\,x_n \\
+          x_2'(t) &= a_{21}(t)\,x_1 + a_{22}(t)\,x_2 + \cdots + a_{2n}(t)\,x_n \\
+                  &\;\;\vdots \\
+          x_n'(t) &= a_{n1}(t)\,x_1 + a_{n2}(t)\,x_2 + \cdots + a_{nn}(t)\,x_n
+        \end{aligned}$$
+        其中 $a_{ij}(t)$ 是 continuous functions of $t$ 定义在某个 interval $(a, b)$ 上。System 的 solution 是一组 scalar functions $x_1(t), x_2(t), \ldots, x_n(t)$，同时满足所有 $n$ 个方程。
+      </div>
+
+      <h3 id="matrix-form">Matrix form $\mathbf{x}' = A(t)\mathbf{x}$</h3>
+
+      <p>
+        上面的 system 写起来十分冗长。但如果引入 matrix notation，就能把 $n$ 行方程压缩成一行。定义 solution vector 和 coefficient matrix：
+      </p>
+
+      $$\mathbf{x}(t) = \begin{pmatrix} x_1(t) \\ \vdots \\ x_n(t) \end{pmatrix}, \qquad A(t) = \begin{pmatrix} a_{11}(t) & \cdots & a_{1n}(t) \\ \vdots & \ddots & \vdots \\ a_{n1}(t) & \cdots & a_{nn}(t) \end{pmatrix}$$
+
+      <p>
+        则整个 system 精简为：
+      </p>
+
+      $$\mathbf{x}'(t) = A(t)\,\mathbf{x}(t)$$
+
+      <p>
+        这就是 <strong>matrix form of the homogeneous linear system</strong>，也是 Ch 7 最核心的方程，贯穿整个章节。从现在开始，每当看到 $\mathbf{x}' = A\mathbf{x}$，就知道它代表了 $n$ 个耦合的 first-order linear ODEs。当 $A$ 是 <strong>constant matrix</strong>（entries 全是常数，不依赖 $t$）时，这个 system 有特别优美的 eigenvalue-based 解法——这是 File 06 的主题。在本文件的 Sec 7.4 里，$A(t)$ 允许是 $t$ 的 function，只需要 entries continuous 即可，以建立最一般的理论。
+      </p>
+
+      <p>
+        值得注意：matrix form 不仅是 notation 上的压缩，更是思想上的升华。原来的 $n$ 个 scalar equations 在 matrix 语言下变成一个 <em>operator equation</em>，让我们可以把所有针对 scalar ODE 开发的直觉（"解是 exponential"、"superposition 成立"、"general solution 是 $n$ 个 independent solutions 的 linear combination"）直接搬到 $n$ 维 vector 情形，只需把 scalar 的 multiplication 换成 matrix-vector multiplication。这种"把复杂对象换成 matrix，把已知结论直接推广"的思路，在数学中随处可见——linear algebra 是这种推广的通用语言。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Nonhomogeneous system：$\mathbf{x}' = A(t)\mathbf{x} + \mathbf{g}(t)$ 的结构</p>
+        <p>
+          虽然本课重点是 homogeneous system，了解 nonhomogeneous system 的结构有助于理解为什么 homogeneous theory 这么重要。对 nonhomogeneous system $\mathbf{x}' = A(t)\mathbf{x} + \mathbf{g}(t)$，<strong>general solution = homogeneous general solution + particular solution</strong>，即：
+          $$\mathbf{x}(t) = \underbrace{c_1\mathbf{x}_1(t) + \cdots + c_n\mathbf{x}_n(t)}_{\text{homogeneous general solution}} + \underbrace{\mathbf{x}_p(t)}_{\text{particular solution}}$$
+          其中 $\{\mathbf{x}_1,\ldots,\mathbf{x}_n\}$ 是 corresponding homogeneous system $\mathbf{x}' = A(t)\mathbf{x}$ 的 fundamental set，$\mathbf{x}_p$ 是 nonhomogeneous system 的任意一个 particular solution。<br><br>
+          这与 Ch 3（Sec 3.5, 3.6）完全平行：nonhomogeneous second-order ODE $ay''+by'+cy = f(t)$ 的 general solution = homogeneous general solution（$c_1y_1+c_2y_2$）+ particular solution $Y(t)$。结构完全相同，只是 scalar 变 vector。<br><br>
+          这就是为什么把 homogeneous theory 建立扎实如此重要：nonhomogeneous case 的 homogeneous part（arbitrary constants $c_i$ 乘以 fundamental solutions）完全依赖 Sec 7.4 的 theory；particular solution $\mathbf{x}_p$ 则需要 variation of parameters 或其他方法（超出本课范围）。掌握 homogeneous theory = 掌握 general solution 中最核心的一半。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Matrix form 把 $n$ 个耦合方程压缩成一个 operator equation</p>
+        <p>
+          回想 Ch 3 里 second-order homogeneous linear ODE $ay'' + by' + cy = 0$ 的分析：我们把整个方程写成 $Ly = 0$，其中 $L$ 是 differential operator $L = a\dfrac{d^2}{dt^2} + b\dfrac{d}{dt} + c$。这个 operator notation 的好处是：它揭示了方程的 linearity（$L(\alpha y_1 + \beta y_2) = \alpha Ly_1 + \beta Ly_2$），从而保证 superposition principle 成立，solution space 是 vector space，general solution 是两个 linearly independent solutions 的 linear combination。整套结构源于 $L$ 的 linearity。<br><br>
+          现在 $\mathbf{x}' = A\mathbf{x}$ 扮演类似的角色——只不过 operator 从 scalar differential operator $L$ 换成了 matrix $A$，从 scalar function 换成了 vector-valued function。Matrix-vector multiplication 本身是 linear 的（$A(\alpha\mathbf{u} + \beta\mathbf{v}) = \alpha A\mathbf{u} + \beta A\mathbf{v}$），所以所有在 Ch 3 里依赖 linearity 的结论——superposition、solution space 是 vector space、fundamental set 构成 basis——在 systems 里都能平移过来，只需把"scalar"换成"vector"。这是一种极其强大的抽象：同一套逻辑，放大到了 $n$ 维。<br><br>
+          此外，matrix form 还有一个实用价值：$\mathbf{x}' = A\mathbf{x}$ 就是 scalar ODE $y' = ay$ 的多维推广。后者的 solution 是 $y = Ce^{at}$。我们自然猜：也许 $\mathbf{x}' = A\mathbf{x}$ 的 solution 是 $\mathbf{x} = e^{\lambda t}\mathbf{v}$（某种 exponential）？代入验证：$\lambda e^{\lambda t}\mathbf{v} = Ae^{\lambda t}\mathbf{v}$，即 $A\mathbf{v} = \lambda\mathbf{v}$——这正是 eigenvalue equation！于是 Sec 7.3 的 eigenvalue 计算直接给出 Sec 7.5 的 solution。这个联系是 Ch 7 最核心的 idea，现在先有个预感，File 06 里会完整展开。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.1.1 — Writing a $2\times 2$ system in matrix form</p>
+        <p>
+          将如下 system 用 matrix notation 表示：
+          $$\begin{cases} \dfrac{dx_1}{dt} = 8x_1 - x_2 \\[6pt] \dfrac{dx_2}{dt} = x_1 \end{cases}$$
+        </p>
+        <p><strong>Solution：</strong>直接读出 coefficients，第一个方程的 row 是 $[8, -1]$，第二个的 row 是 $[1, 0]$，组成 coefficient matrix：</p>
+        $$A = \begin{pmatrix} 8 & -1 \\ 1 & 0 \end{pmatrix}, \qquad \mathbf{x}(t) = \begin{pmatrix} x_1(t) \\ x_2(t) \end{pmatrix}$$
+        <p>Matrix form：</p>
+        $$\mathbf{x}' = A\mathbf{x} = \begin{pmatrix} 8 & -1 \\ 1 & 0 \end{pmatrix}\begin{pmatrix} x_1 \\ x_2 \end{pmatrix}$$
+        <p class="note">
+          验证：矩阵乘法展开，第一行得 $8x_1 + (-1)x_2 = 8x_1 - x_2$；第二行得 $1\cdot x_1 + 0\cdot x_2 = x_1$。与原 system 完全吻合。
+        </p>
+      </div>
+
+      <h3 id="reducing-higher-order">Converting higher-order ODEs to first-order systems</h3>
+
+      <p>
+        Systems 的框架不仅适用于本来就是"多个量耦合"的问题，还用于处理单个高阶 ODE——任何 $n$-th order linear ODE 都可以通过引入新变量的技巧，转化为 $n$ 个 first-order ODEs 构成的 system。
+      </p>
+
+      <p>
+        为什么要这样做？两个原因：第一，数值求解器（numerical solvers，例如 Python 的 <code>scipy.integrate.solve_ivp</code>、MATLAB 的 <code>ode45</code>）几乎都只接受 first-order systems 作为输入；第二，first-order system 的理论框架（superposition、fundamental set、Wronskian）非常完善，通过降阶可以直接利用这套理论。如 prof notes 所说：几乎所有生成 ODE 数值解的代码都是为 first-order systems 编写的，降阶不是可选项，而是工程接口规范。
+      </p>
+
+      <p>
+        <strong>方法（prof notes 的标准两步法）：</strong>给定 $n$-th order linear homogeneous ODE
+        $$a_n(t)\,y^{(n)} + a_{n-1}(t)\,y^{(n-1)} + \cdots + a_1(t)\,y' + a_0(t)\,y = 0$$
+      </p>
+
+      <p><strong>Step 1 — 定义新变量，</strong>用各阶导数依次命名：</p>
+      $$x_1 = y, \quad x_2 = y', \quad x_3 = y'', \quad \ldots, \quad x_n = y^{(n-1)}$$
+
+      <p><strong>Step 2 — 写出 $x_i'$。</strong> 对于 $i = 1, \ldots, n-1$，有 $x_i' = x_{i+1}$（定义之间的递推关系）。对于最后一个变量，从原 ODE 解出 $y^{(n)}$：</p>
+      $$x_n' = y^{(n)} = \frac{-a_{n-1}(t)}{a_n(t)}\,x_n - \cdots - \frac{a_1(t)}{a_n(t)}\,x_2 - \frac{a_0(t)}{a_n(t)}\,x_1$$
+
+      <p>
+        整理成 matrix form $\mathbf{x}' = A(t)\mathbf{x}$，其中 $\mathbf{x} = [x_1, \ldots, x_n]^T$。这个 matrix 有一种特殊的 pattern，叫做 <strong>companion matrix</strong>——上方 "super-diagonal" 全是 1，最后一行是原 ODE 的 coefficients（除以 leading coefficient，取负号）。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.1.2a — Reduction of $y'' + 5y' + 2y = 0$</p>
+        <p>
+          将 second-order ODE $y'' + 5y' + 2y = 0$ 转化为 $2\times 2$ first-order system。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>Step 1：令 $x_1 = y$，$x_2 = y'$。（两个新变量对应 second-order ODE 的两阶导数。）</p>
+        <p>Step 2：写出 $x_i'$：</p>
+        $$\begin{aligned}
+          x_1' &= y' = x_2 \\
+          x_2' &= y'' = -5y' - 2y = -5x_2 - 2x_1
+        \end{aligned}$$
+        <p>Matrix form：</p>
+        $$\begin{pmatrix} x_1' \\ x_2' \end{pmatrix} = \begin{pmatrix} 0 & 1 \\ -2 & -5 \end{pmatrix} \begin{pmatrix} x_1 \\ x_2 \end{pmatrix}$$
+        <p class="note">
+          注意 matrix 的 pattern：第一行 $[0, 1]$ 对应 $x_1' = x_2$，最后一行 $[-2, -5]$ 来自原 ODE 的 coefficients（$y'' = -5y' - 2y$ 中 $x_1$ 的系数 $-2$，$x_2$ 的系数 $-5$）。这是 companion matrix 的标准形式。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.1.2b — Reduction of $y^{(4)} - y = 0$</p>
+        <p>
+          将 4th-order ODE $y^{(4)} - y = 0$ 转化为 $4 \times 4$ first-order system。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          4th order $\Rightarrow$ 需要 4 个变量。令 $x_1 = y,\; x_2 = y',\; x_3 = y'',\; x_4 = y'''$。
+        </p>
+        $$\begin{aligned}
+          x_1' &= x_2 \\
+          x_2' &= x_3 \\
+          x_3' &= x_4 \\
+          x_4' &= y^{(4)} = y = x_1
+        \end{aligned}$$
+        $$\begin{pmatrix} x_1' \\ x_2' \\ x_3' \\ x_4' \end{pmatrix} = \begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ 1 & 0 & 0 & 0 \end{pmatrix} \begin{pmatrix} x_1 \\ x_2 \\ x_3 \\ x_4 \end{pmatrix}$$
+        <p class="note">
+          最后一行来自原 ODE：$y^{(4)} = y$，即 $x_4' = x_1$（系数为 1），其他 $x_2, x_3, x_4$ 的系数为 0。整个 matrix 就是一个 $4\times4$ companion matrix。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Reduction 的几何意义：从 scalar 曲线到 $\mathbb{R}^n$ 中的 trajectory</p>
+        <p>
+          这里有一个帮助理解 reduction 意义的几何视角。<br><br>
+          考虑 second-order ODE $y'' = f(t, y, y')$。要预测 $y$ 在 $t+\Delta t$ 的值，你不仅需要知道当前 $y$，还需要知道当前 $y'$（速度）——仅凭 $y$ 本身，无法确定系统接下来的走向。换句话说，系统的完整"状态"是二维的：$(y, y')$，而不是一维的 $y$。<br><br>
+          令 $x_1 = y$，$x_2 = y'$，则 $(x_1(t), x_2(t))$ 是 $\mathbb{R}^2$ 中的一条 <strong>trajectory</strong>（轨迹）：随着 $t$ 增大，这个点在二维 <strong>phase plane</strong>（相平面）上运动。ODE $\mathbf{x}' = A\mathbf{x}$ 告诉你：在每个点 $(x_1, x_2)$，velocity vector（速度向量 $= $ 切线方向）等于 $A\begin{pmatrix}x_1\\x_2\end{pmatrix}$，这就是 phase plane 上的 vector field。<br><br>
+          对一般 $n$-th order ODE，状态空间是 $\mathbb{R}^n$（phase space），trajectory 是 $\mathbb{R}^n$ 中的一条曲线。这是 dynamical systems 理论的基本视角：解不是 $\mathbb{R}$ 上的 scalar 曲线 $y(t)$，而是 $\mathbb{R}^n$ 中的 trajectory $\mathbf{x}(t)$。Phase plane 里 trajectory 的形态（螺旋、节点、鞍点……）由 eigenvalues 决定——这正是 File 06 里 Sec 7.5/7.6 的几何图像。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="linear-algebra-review">7.2 — Linear Algebra Refresher</h2>
+
+      <p class="note">
+        Sec 7.2 是 linear algebra 的 review，本学期无 HW 作业。这里覆盖 systems theory 所需的核心概念；如需系统回顾，可参见 MATH 18 教材。
+      </p>
+
+      <p>
+        解 linear systems of ODEs 需要 linear algebra 的两块核心知识：<strong>linear independence of vectors</strong>（区分 solutions 是否"真正不同"、能否构成 basis）和 <strong>determinant / invertibility</strong>（判断 matrix 是否 singular，能否用 Wronskian 判断 independence）。这两块内容在 MATH 18 里已经学过；这里的目的是回顾定义、建立语言，并强调几个在 ODE 语境里特别重要的细节。
+      </p>
+
+      <p>
+        先明确一下本节的使用场景：Sec 7.2 的 linear algebra 主要用于两处。第一，判断 <strong>constant vectors</strong>（比如 eigenvectors）是否 linearly independent，用 det 直接判断（这很快）。第二，判断 <strong>vector-valued functions</strong>（solution candidates）是否 linearly independent，这里情况更复杂，需要区分"在一个点判断"和"在整个区间判断"——这是 prof notes Sec 7.2 花大篇幅讲述的细节，Sec 7.4 的 Abel's theorem 才是关键工具。搞清楚"什么时候可以用 det，什么时候必须用定义"，是本节最重要的 takeaway。
+      </p>
+
+      <p>
+        另外有一个 notation 细节：当 prof notes 和教材提到 "linearly independent"，在 Sec 7.2 里往往指<em>常数向量</em>的 independence（来自 MATH 18，用 det 判断），而在 Sec 7.3/7.4 里说"$n$ 个 solutions are linearly independent"指的是<em>向量值函数</em>的 independence（要么用定义，要么用 Abel's theorem + Wronskian）。这两种 independence 使用相同的词，但检验方法不同——要根据 context 判断用哪个。读题时先问："这些对象是常数向量，还是 functions of $t$？它们是 solutions of $\mathbf{x}' = A\mathbf{x}$，还是任意函数？"
+      </p>
+
+      <p>
+        另一个容易混淆的点：在 Sec 7.2（通过 det 判断 constant vectors）里，如果 $n$ 个常数向量是 linearly independent，则它们可以作为 $\mathbb{R}^n$ 的 basis，构成 $n \times n$ invertible matrix。在 Sec 7.4 里，如果 $n$ 个 vector-valued <em>functions</em> 作为 $(\star)$ 的 solutions 且 Wronskian $\neq 0$，则它们构成 fundamental set，general solution 是它们的 linear combination。这两个语境都说"$n$ 个 linearly independent 东西足以生成所有想要的对象"，但一个是 $\mathbb{R}^n$ 中的 spanning，另一个是 solution space 中的 spanning。
+      </p>
+
+      <h3 id="linear-independence-constant-vectors">Linear independence of constant vectors</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (linearly dependent vectors).</span>
+        Vectors $\mathbf{v}_1, \ldots, \mathbf{v}_n \in \mathbb{R}^n$ 被称为 <strong>linearly dependent</strong>，如果存在 constants $c_1, \ldots, c_n$ 不全为零，使得
+        $$c_1\mathbf{v}_1 + c_2\mathbf{v}_2 + \cdots + c_n\mathbf{v}_n = \mathbf{0}$$
+        也就是说，其中至少一个 vector 可以写成其他 vectors 的 linear combination——它们"冗余"，没有提供新的方向信息。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (linearly independent vectors).</span>
+        Vectors $\mathbf{v}_1, \ldots, \mathbf{v}_n \in \mathbb{R}^n$ 被称为 <strong>linearly independent</strong>，如果
+        $$c_1\mathbf{v}_1 + \cdots + c_n\mathbf{v}_n = \mathbf{0} \implies c_1 = c_2 = \cdots = c_n = 0$$
+        即只有 trivial（所有系数为零）的 linear combination 才能得到零向量。每个向量都"贡献了新的方向"，缺少任何一个都无法用其他几个替代。
+      </div>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (determinant criterion for linear independence).</span>
+        设 $A$ 是 $n \times n$ matrix，columns 为 $\mathbf{v}_1, \ldots, \mathbf{v}_n$。那么：
+        <br><br>
+        (1) Column vectors are <strong>linearly dependent</strong> $\Longleftrightarrow$ $\det A = 0$ $\Longleftrightarrow$ $A$ is singular $\Longleftrightarrow$ $A\mathbf{c} = \mathbf{0}$ has a nontrivial solution.
+        <br><br>
+        (2) Column vectors are <strong>linearly independent</strong> $\Longleftrightarrow$ $\det A \neq 0$ $\Longleftrightarrow$ $A$ is invertible $\Longleftrightarrow$ $A\mathbf{c} = \mathbf{0}$ only if $\mathbf{c} = \mathbf{0}$.
+        <br><br>
+        <em>Sketch.</em> $c_1\mathbf{v}_1 + \cdots + c_n\mathbf{v}_n = A\mathbf{c}$（matrix 乘以 column vector 就是 columns 的 linear combination）。方程 $A\mathbf{c} = \mathbf{0}$ 有 nontrivial solution 当且仅当 $A$ is singular，即 $\det A = 0$（来自 MATH 18 的 invertible matrix theorem）。$\square$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.2.1 — Linear independence of two constant vectors</p>
+        <p>
+          判断 $\mathbf{v}_1 = \begin{pmatrix}2\\1\end{pmatrix}$ 和 $\mathbf{v}_2 = \begin{pmatrix}0\\-1\end{pmatrix}$ 是否 linearly independent。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>
+          把两个 vectors 作为 columns 组成 $2\times 2$ matrix $A = [\mathbf{v}_1 \mid \mathbf{v}_2]$，计算 determinant：
+        </p>
+        $$\det \begin{pmatrix}2 & 0\\1 & -1\end{pmatrix} = (2)(-1) - (0)(1) = -2 \neq 0$$
+        <p>
+          Since $\det A \neq 0$，column vectors are linearly independent。即 $\{\mathbf{v}_1, \mathbf{v}_2\}$ are <strong>linearly independent</strong>。
+        </p>
+        <p class="note">
+          等价地：$c_1\mathbf{v}_1 + c_2\mathbf{v}_2 = \mathbf{0}$ 给出 $2c_1 = 0$ 和 $c_1 - c_2 = 0$，解出 $c_1 = c_2 = 0$——与 det criterion 一致。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 为什么 linear algebra 是 ODEs 的语言</p>
+        <p>
+          在 Ch 3 里，我们处理 scalar second-order ODE，用 Wronskian $W[y_1, y_2](t) = y_1 y_2' - y_1' y_2$ 来判断 scalar solutions $y_1(t), y_2(t)$ 是否 linearly independent。这个 Wronskian 实际上就是 $\det\begin{pmatrix}y_1 & y_2\\y_1' & y_2'\end{pmatrix}$——一个 $2\times 2$ matrix 的 determinant，矩阵由两个 scalar solutions 和它们的导数组成。<br><br>
+          现在切换到 systems，unknown 变成了 vector-valued functions $\mathbf{x}_i(t)$，linear independence 的定义形式上完全相同（只是把 scalar 换成 vector）。而判断工具也类似——Wronskian for systems（Sec 7.4）是以 $n$ 个 vector-valued solutions 为 columns 的 matrix 的 determinant。<br><br>
+          更深层的结构：homogeneous linear system $\mathbf{x}' = A(t)\mathbf{x}$ 的所有 solutions 构成一个 $n$ 维 <strong>vector space</strong>（solution space）。要找到"最小完整描述"，就是要找这个 vector space 的一组 basis，即 $n$ 个 linearly independent solutions。这里的 linear algebra（linear independence、basis、dimension）是 ODEs 解理论的数学骨架——没有 linear algebra，就无法严格解释 general solution 为什么"包含所有 solutions"。
+        </p>
+      </div>
+
+      <h3 id="linear-independence-vector-functions">Linear independence of vector-valued functions</h3>
+
+      <p>
+        在 systems of ODEs 的语境里，我们关心的不是常数向量，而是 vector-valued <em>functions</em> $\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)$ 的 linear independence。定义在形式上完全相同，但有一个关键细节：$c_i$ 必须是常数（不依赖 $t$），并且等式要对整个区间上所有 $t$ 成立。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (linearly independent vector-valued functions).</span>
+        Vector-valued functions $\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)$ 在区间 $(a,b)$ 上 <strong>linearly independent</strong>，如果
+        $$c_1\mathbf{x}_1(t) + c_2\mathbf{x}_2(t) + \cdots + c_n\mathbf{x}_n(t) = \mathbf{0} \quad \text{for all } t \in (a,b)$$
+        蕴含 $c_1 = c_2 = \cdots = c_n = 0$。否则称为 <strong>linearly dependent</strong> on $(a,b)$。
+      </div>
+
+      <p>
+        这里有一个极其微妙的陷阱，prof notes 特别用了两页专门讲这个区别：<strong>"在某个点 $t_0$ 处 linearly dependent"和"在整个区间 $(a,b)$ 上 linearly dependent"是两个不同的概念</strong>，不能混淆。一旦混淆，就会在 Wronskian 的使用上犯错——比如错误地认为"在某点 Wronskian = 0 就说明函数组在整个区间上 linearly dependent"，但这只对 ODE solutions 成立（由 Abel's theorem），对一般函数组不成立。
+      </p>
+
+      <p>
+        直觉上来说：想象两个 function-valued "向量" $\mathbf{x}_1(t)$ 和 $\mathbf{x}_2(t)$。在某一时刻 $t_0$，它们的"快照"$\mathbf{x}_1(t_0)$ 和 $\mathbf{x}_2(t_0)$（两个常数向量）可能恰好平行——但在其他时刻 $t_1$，快照 $\mathbf{x}_1(t_1)$ 和 $\mathbf{x}_2(t_1)$ 可能不再平行。作为<em>函数</em>，它们之间是否"线性相关"要求存在<em>固定的</em>常数比例让它们在<em>所有时刻</em>都保持平行。仅在一个时刻平行，完全不够。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — "在某点 linearly dependent" $\neq$ "在区间上 linearly dependent"</p>
+        <p>
+          <strong>在某点 $t_0$ linearly dependent</strong>（作为常数向量）：在固定时刻 $t_0$，把 $\mathbf{x}_i(t_0)$ 拼成 matrix，determinant = 0。这说明在该时刻这几个常数向量共面（或共线），但这只是某一时刻的"快照"，不代表作为 functions 它们有线性关系。<br><br>
+          <strong>在区间 $(a,b)$ 上 linearly dependent</strong>（作为函数）：存在固定的 constants $c_i$（不随 $t$ 变化！），使得 $\sum c_i\mathbf{x}_i(t) = \mathbf{0}$ 对区间上所有 $t$ 同时成立。<br><br>
+          三条关系（prof notes 列出）：
+        </p>
+        <ul>
+          <li>在区间上 linearly dependent $\Rightarrow$ 在区间内每个点 linearly dependent（constants $c_i$ 固定，每个时刻都成立）。</li>
+          <li>在某点 linearly independent $\Rightarrow$ 在包含该点的某个区间上 linearly independent（逆不一定成立）。</li>
+          <li>在区间上 linearly independent $\not\Rightarrow$ 在区间内某个（甚至每个）点 linearly independent。</li>
+        </ul>
+        <p>
+          最后一条是反直觉的：两个函数作为"函数组"完全独立，但在每个具体时刻评估，得到的常数向量却总是线性相关的。下面的 Example 7.2.2 给出了这种情形的具体例子。这就是为什么对一般函数组，必须用定义（解方程 $\sum c_i \mathbf{x}_i = \mathbf{0}$）来判断 linear independence，而不能只看一个时刻的 determinant。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.2.2 — Dependent at each point, independent on $[0,1]$</p>
+        <p>
+          设 $\mathbf{x}_1(t) = \begin{pmatrix}e^t \\ te^t\end{pmatrix}$，$\mathbf{x}_2(t) = \begin{pmatrix}1\\t\end{pmatrix}$。<br>
+          (a) 证明在 $[0,1]$ 的每个固定点 $t_0$，$\{\mathbf{x}_1(t_0), \mathbf{x}_2(t_0)\}$ 作为常数向量是 linearly dependent。<br>
+          (b) 证明 $\{\mathbf{x}_1(t), \mathbf{x}_2(t)\}$ 作为函数在 $[0,1]$ 上 linearly independent。
+        </p>
+        <p><strong>Part (a)：</strong>在固定点 $t_0$，把两个常数向量拼成 $2\times 2$ matrix 计算 determinant：</p>
+        $$\det\begin{pmatrix}e^{t_0} & 1 \\ t_0 e^{t_0} & t_0\end{pmatrix} = t_0 e^{t_0} - t_0 e^{t_0} = 0$$
+        <p>
+          Determinant = 0 for every $t_0$，所以在每个点，$\mathbf{x}_1(t_0)$ 和 $\mathbf{x}_2(t_0)$ 作为常数向量都 linearly dependent（一个是另一个的 $e^{t_0}$ 倍）。
+        </p>
+        <p><strong>Part (b)：</strong>用定义。设存在 constants $c_1, c_2$，使得对所有 $t \in [0,1]$：</p>
+        $$c_1\begin{pmatrix}e^t\\te^t\end{pmatrix} + c_2\begin{pmatrix}1\\t\end{pmatrix} = \begin{pmatrix}0\\0\end{pmatrix} \implies \begin{cases} c_1 e^t + c_2 = 0 \\ c_1 te^t + c_2 t = 0 \end{cases}$$
+        <p>
+          从第一个方程：$c_2 = -c_1 e^t$，这要求 $c_2$ 对所有 $t \in [0,1]$ 都成立，但 $e^t$ 是变化的 function——要让 $c_2 = -c_1 e^t$ 对所有 $t$ 都成立（$c_2$ 是常数），只有 $c_1 = 0$，从而 $c_2 = 0$。
+        </p>
+        <p>
+          更严格地：取 $t_0 \neq t_1$，分别代入第一个方程得 $c_2 = -c_1 e^{t_0}$ 和 $c_2 = -c_1 e^{t_1}$。若 $c_1 \neq 0$，则 $e^{t_0} = e^{t_1}$，矛盾（因为 $t_0 \neq t_1$）。故 $c_1 = 0$，进而 $c_2 = 0$。
+        </p>
+        <p>
+          因此 $\{\mathbf{x}_1, \mathbf{x}_2\}$ are <strong>linearly independent on $[0,1]$</strong>，尽管在每个点处都 linearly dependent。
+        </p>
+        <p class="note">
+          这个例子说明：对不是 ODE solutions 的函数组，Wronskian（每点 determinant）= 0 并不等于 linearly dependent on the interval。必须回到定义。但如果加上"是 $\mathbf{x}' = A\mathbf{x}$ 的 solutions"这个约束，Abel's theorem（Sec 7.4）会消除这种 ambiguity：solutions 的 Wronskian 要么恒为 0（dependent），要么恒非 0（independent）。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="eigenvalues">7.3 — Eigenvalues and Eigenvectors</h2>
+
+      <p>
+        现在进入 linear algebra 工具箱里最核心的概念：eigenvalues 和 eigenvectors。这套理论是 Sec 7.5/7.6 实际求解 $\mathbf{x}' = A\mathbf{x}$ 的直接基础——先把定义和计算方法打牢，File 06 里会看到 eigenvalue/eigenvector 如何直接给出 solutions。
+      </p>
+
+      <p>
+        考虑 $n \times n$ constant matrix $A$ 作用在 $\mathbb{R}^n$ 上：$\mathbf{y} = A\mathbf{x}$。一般情况下，$A$ 会把向量 $\mathbf{x}$ 旋转并拉伸，变成指向完全不同方向的 $\mathbf{y}$。但有一类特殊的向量：$A$ 作用后只改变它的长度（或取反），不改变方向。这些"$A$ 不旋转的方向"就是 eigenvectors 的精确含义。
+      </p>
+
+      <p>
+        需要特别强调：这里的 $A$ 必须是 <strong>constant matrix</strong>（entries 都是数值常数，不依赖 $t$）。Eigenvalues/eigenvectors 是 matrix（线性映射）的固有性质，而不是随 $t$ 变化的性质。对 variable-coefficient system $\mathbf{x}' = A(t)\mathbf{x}$，eigenvalue 方法并不直接适用（Sec 7.4 的 theory 在更一般的 $A(t)$ 下成立，但 Sec 7.5/7.6 的具体算法假设 $A$ constant）。本课在 File 06 里处理的 constant-coefficient case 是最重要、最常考的情形。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 characteristic equation 的 roots 对应 solution 的增长率</p>
+        <p>
+          在 Ch 3 里，second-order ODE $ay'' + by' + cy = 0$ 的 characteristic equation $ar^2 + br + c = 0$ 的 roots $r_1, r_2$ 决定了 solutions $e^{r_1 t}$ 和 $e^{r_2 t}$。这背后的逻辑是：猜 $y = e^{rt}$，代入方程，$e^{rt}$ 消掉，剩下 $ar^2 + br + c = 0$，于是 $r$ 成了 characteristic equation 的 root。<br><br>
+          在 systems 里，类比地猜 $\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$（$\mathbf{v}$ 是待定的常数向量），代入 $\mathbf{x}' = A\mathbf{x}$：左边是 $\lambda e^{\lambda t}\mathbf{v}$，右边是 $Ae^{\lambda t}\mathbf{v} = e^{\lambda t}A\mathbf{v}$。消去 $e^{\lambda t}$（它永远非零），得到 $\lambda\mathbf{v} = A\mathbf{v}$，即 $A\mathbf{v} = \lambda\mathbf{v}$——这正是 eigenvalue equation！所以 eigenvalue $\lambda$ 扮演了 $r$（Ch 3 characteristic roots）的角色，eigenvector $\mathbf{v}$ 决定了 solution 的"空间方向"，$e^{\lambda t}$ 决定了 solution 的"时间演化"。<br><br>
+          这个类比是 Ch 7 方法论的核心：把 "scalar ODE 的 exponential ansatz" 推广成 "vector ODE 的 vector-exponential ansatz"。一旦认识到这个类比，Ch 7 就不再是一个全新的章节，而是 Ch 3 的自然延伸——只不过 polynomial roots 变成了 matrix eigenvalues，而后者需要 linear algebra 的工具（determinant、row reduction），这就是 Sec 7.2 线代回顾的用武之地。
+        </p>
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (eigenvalue and eigenvector).</span>
+        设 $A$ 是 $n \times n$ constant matrix。若存在 scalar $\lambda$（real 或 complex）和 <strong>nonzero</strong> vector $\mathbf{v} \neq \mathbf{0}$，使得
+        $$A\mathbf{v} = \lambda\mathbf{v}$$
+        则 $\lambda$ 称为 $A$ 的 <strong>eigenvalue</strong>，$\mathbf{v}$ 称为对应于 $\lambda$ 的 <strong>eigenvector</strong>。
+      </div>
+
+      <p>
+        注意 definition 里强调 $\mathbf{v} \neq \mathbf{0}$——零向量对所有 $\lambda$ 都满足 $A\mathbf{0} = \lambda\mathbf{0}$，没有任何信息，所以被排除。Eigenvalue 本身可以是 0（这意味着 $A$ 把 $\mathbf{v}$ 压缩到零向量，即 $\ker A \neq \{\mathbf{0}\}$，即 $A$ is singular）；但 eigenvector 必须非零。
+      </p>
+
+      <p>
+        另外，eigenvalue 可以是 complex 数——即使 $A$ 的 entries 都是 real numbers，其 eigenvalues 也可能是 complex（当 discriminant $< 0$ 时）。这与 Ch 3 里 characteristic equation 出现 complex roots 的情形完全类似：$r = \alpha \pm i\beta$，对应的 real-valued solutions 是 $e^{\alpha t}\cos\beta t$ 和 $e^{\alpha t}\sin\beta t$。在 systems 里，complex eigenvalue $\lambda = \alpha + i\beta$ 对应的 real-valued solutions 的构造方法类似，在 Sec 7.6（File 06）里展开。现在只需要知道：eigenvalue 可能 complex，这是正常的，不是问题。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Eigenvector 是 "matrix 只做 scaling 不做 rotation 的方向"</p>
+        <p>
+          想象矩阵 $A$ 是一台把输入向量"变形"的机器：给它一个向量 $\mathbf{x}$，它返回 $A\mathbf{x}$。大多数时候，$\mathbf{x}$ 和 $A\mathbf{x}$ 指向完全不同的方向——机器"旋转"了你的向量。<br><br>
+          但 eigenvectors 是例外：把 $\mathbf{v}$ 送进去，出来的 $A\mathbf{v} = \lambda\mathbf{v}$ 还在同一个方向（$\lambda > 0$ 时）或恰好反向（$\lambda < 0$ 时），只是长度被缩放了 $|\lambda|$ 倍。也就是说，eigenvector 指向一个 $A$ 只 scale、不 rotate 的方向——它是 matrix 在几何上最"对齐"的方向。<br><br>
+          在 $\mathbf{x}' = A\mathbf{x}$ 里，猜 $\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$ 并代入：$\lambda e^{\lambda t}\mathbf{v} = Ae^{\lambda t}\mathbf{v}$，消去 $e^{\lambda t}$ 得 $A\mathbf{v} = \lambda\mathbf{v}$。这正是 eigenvalue equation！所以：<em>eigenvalue $\lambda$ 决定 exponential 的增长/衰减速率，eigenvector $\mathbf{v}$ 决定 solution 在 phase space 中沿哪个方向运动</em>。每个 eigenvalue/eigenvector pair 贡献一个 solution $e^{\lambda t}\mathbf{v}$；把 $n$ 个这样的 solutions 叠加就得到 general solution——File 06 的全部算法都建立在这个 insight 上。
+        </p>
+      </div>
+
+      <h3 id="characteristic-equation">Characteristic equation and how to find eigenvalues</h3>
+
+      <p>
+        从定义 $A\mathbf{v} = \lambda\mathbf{v}$ 出发，整理：
+      </p>
+      $$A\mathbf{v} - \lambda\mathbf{v} = \mathbf{0} \implies (A - \lambda I)\mathbf{v} = \mathbf{0}$$
+
+      <p>
+        要让这个方程有 <strong>nontrivial solution</strong>（$\mathbf{v} \neq \mathbf{0}$），矩阵 $(A - \lambda I)$ 必须是 singular（因为 invertible matrix 只有唯一解 $\mathbf{v} = \mathbf{0}$），即：
+      </p>
+
+      $$\det(A - \lambda I) = 0$$
+
+      <div class="def">
+        <span class="def-label">Definition (characteristic polynomial and characteristic equation).</span>
+        $A$ 的 <strong>characteristic polynomial</strong> 定义为
+        $$p_n(\lambda) = \det(A - \lambda I)$$
+        这是关于 $\lambda$ 的 $n$ 次多项式。方程 $p_n(\lambda) = 0$ 称为 <strong>characteristic equation</strong>，其所有 roots（包括 complex roots，by the Fundamental Theorem of Algebra，共 $n$ 个，计重数）都是 $A$ 的 eigenvalues。
+      </div>
+
+      <p>
+        找到 eigenvalue $\lambda_k$ 后，求对应的 eigenvector：解 linear system $(A - \lambda_k I)\mathbf{v} = \mathbf{0}$，用 row reduction（Gaussian elimination）找 nontrivial solution。这个 system 一定有 nontrivial solution，因为 $\lambda_k$ 是 eigenvalue 意味着 $\det(A - \lambda_k I) = 0$，即 $(A - \lambda_k I)$ is singular，所以 null space 不止有零向量。Row reduction 的目标是找出所有 free variables（nullity = $n$ - rank），然后令 free variables = 1 得到 eigenvector representative。
+      </p>
+
+      <p>
+        求 eigenvector 的 row reduction 步骤：
+      </p>
+      <ul>
+        <li>把 $(A - \lambda_k I)$ 和 right-hand side $\mathbf{0}$ 组成 augmented matrix $[A - \lambda_k I \mid \mathbf{0}]$。</li>
+        <li>进行 row reduction（通常只需要 echelon form，不需要 reduced echelon form）。</li>
+        <li>由于 det = 0，最后一行（或多行）会变成全零——这正是存在 free variable 的信号。</li>
+        <li>令 free variable（s）= 1（或方便的值），反向代入解出其他变量，得到 eigenvector。</li>
+        <li>任何 nonzero scalar multiple 都是同样合法的 eigenvector，选最简单的即可。</li>
+      </ul>
+
+      <p>
+        这个过程在 MATH 18 里叫做"求 null space of $(A - \lambda I)$"——eigenvector 就是 $(A - \lambda I)$ 的 null space 里的任意 nonzero vector。Null space 的维数（geometric multiplicity）可能是 1（最常见情形），也可能大于 1（repeated eigenvalue 且 diagonalizable 时）。
+      </p>
+
+      <p>
+        对 $2\times 2$ matrix，characteristic equation 是 quadratic：$\lambda^2 - \text{tr}(A)\lambda + \det(A) = 0$，其中 $\text{tr}(A) = a_{11} + a_{22}$（trace，即对角元素之和）。Discriminant $\Delta = \text{tr}(A)^2 - 4\det(A)$：$\Delta > 0$ 给两个 distinct real eigenvalues，$\Delta = 0$ 给 repeated eigenvalue，$\Delta < 0$ 给 complex conjugate pair。这三种情形分别对应 File 06 里 Sec 7.5（distinct real）、重复情形（略）、Sec 7.6（complex）的处理方式。
+      </p>
+
+      <h3 id="multiplicity">Algebraic and geometric multiplicity</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (algebraic multiplicity).</span>
+        Eigenvalue $\lambda_k$ 的 <strong>algebraic multiplicity</strong> 是 $\lambda_k$ 作为 characteristic polynomial $p_n(\lambda)$ 的 root 的重数——即 $(\lambda - \lambda_k)^m$ 整除 $p_n$ 的最大 $m$。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (geometric multiplicity).</span>
+        Eigenvalue $\lambda_k$ 的 <strong>geometric multiplicity</strong> 是对应的 linearly independent eigenvectors 的数量，等于 $\dim\ker(A - \lambda_k I)$（null space 的维数，也叫 nullity）。
+      </div>
+
+      <p>
+        三条关键 facts（来自 prof notes，Sec 7.3）：
+      </p>
+      <ul>
+        <li>每个 distinct eigenvalue 至少有 1 个 eigenvector（geometric multiplicity $\geq 1$）。</li>
+        <li>Geometric multiplicity $\leq$ algebraic multiplicity（永远成立，来自线性代数的 rank-nullity theorem）。</li>
+        <li>Eigenvectors 只由 $(A - \lambda I)\mathbf{v} = \mathbf{0}$ 确定到一个 nonzero scalar multiple——具体取哪个 representative 无关紧要，在 Sec 7.5 的 solution 里都被 arbitrary constant $c_i$ 吸收。</li>
+      </ul>
+
+      <p>
+        这两种 multiplicity 的差别在 repeated eigenvalues 时很重要——若 algebraic multiplicity = 2 但 geometric multiplicity = 1（只有一个 linearly independent eigenvector），就无法直接用两个 eigenvectors 构成 fundamental set，需要引入 generalized eigenvectors（这是更高阶的话题，本课在 File 06 里可能涉及）。如果对每个 eigenvalue 都有 algebraic = geometric（即 $A$ is diagonalizable，每个 eigenvalue 的 null space 的维数等于它的重数），那么直接用 eigenvectors 就可以构成 fundamental set，是最简单的情形。
+      </p>
+
+      <p>
+        一个重要的实践提示：在实际计算 eigenvalues 时，<strong>多次检验自己的 characteristic polynomial</strong> 是好习惯。对 $2\times 2$ matrix $A = \begin{pmatrix}a & b \\ c & d\end{pmatrix}$，有
+        $$p_2(\lambda) = \lambda^2 - (a+d)\lambda + (ad-bc) = \lambda^2 - \text{tr}(A)\lambda + \det(A)$$
+        快速心算：$\text{tr}(A) = a + d$（对角线之和），$\det(A) = ad - bc$（交叉相减）。这比从头展开 $\det(A-\lambda I)$ 要快得多，考试时很有用。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Eigenvector 不唯一：定义到 nonzero scalar multiple</p>
+        <p>
+          如果 $\mathbf{v}$ 是 eigenvalue $\lambda$ 对应的 eigenvector，那么对任意 $c \neq 0$，$c\mathbf{v}$ 也是 eigenvector，因为 $A(c\mathbf{v}) = cA\mathbf{v} = c\lambda\mathbf{v} = \lambda(c\mathbf{v})$。<br><br>
+          实际计算时，我们通常取"最简"的非零解（比如令 free variable = 1，得到整数 entries），但任何标量倍都正确。不要把"eigenvector"理解成"the eigenvector"——它是一个 <em>方向</em>（过原点的一条射线/直线），不是唯一的向量。<br><br>
+          在 Sec 7.5 的 solution 公式 $\mathbf{x}(t) = c_k e^{\lambda_k t}\mathbf{v}_k$ 里，$c_k$ 是 arbitrary constant，会自动吸收 eigenvector 的标量 ambiguity。所以不必担心"选了不同的 eigenvector representative 会影响 general solution"——不会。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.3.1 — Eigenvalues and eigenvectors of a $2\times 2$ matrix</p>
+        <p>
+          求 $A = \begin{pmatrix}2 & -3\\ 1 & -2\end{pmatrix}$ 的所有 eigenvalues 和对应的 eigenvectors。
+        </p>
+        <p><strong>Step 1：求 characteristic polynomial。</strong></p>
+        $$p_2(\lambda) = \det(A - \lambda I) = \begin{vmatrix}2-\lambda & -3 \\ 1 & -2-\lambda\end{vmatrix}$$
+        $$= (2-\lambda)(-2-\lambda) - (-3)(1) = -(4-\lambda^2) + 3 = \lambda^2 - 1 = (\lambda-1)(\lambda+1)$$
+        <p>Characteristic equation：$\lambda^2 - 1 = 0 \Rightarrow \lambda_1 = 1,\; \lambda_2 = -1$（两个 distinct real eigenvalues，algebraic multiplicity 各为 1）。</p>
+
+        <p><strong>Step 2a：$\lambda_1 = 1$ 对应的 eigenvector——解 $(A - I)\mathbf{v} = \mathbf{0}$。</strong></p>
+        $$A - I = \begin{pmatrix}1 & -3\\ 1 & -3\end{pmatrix}$$
+        Row reduce（$R_2 \leftarrow R_2 - R_1$）：
+        $$\begin{pmatrix}1 & -3 & \mid & 0\\ 0 & 0 & \mid & 0\end{pmatrix}$$
+        <p>Only equation：$v_1 - 3v_2 = 0$，令 free variable $v_2 = 1$ 得 $v_1 = 3$。Eigenvector：$\mathbf{v}_1 = \begin{pmatrix}3\\1\end{pmatrix}$。</p>
+
+        <p><strong>Step 2b：$\lambda_2 = -1$ 对应的 eigenvector——解 $(A + I)\mathbf{v} = \mathbf{0}$。</strong></p>
+        $$A + I = \begin{pmatrix}3 & -3\\ 1 & -1\end{pmatrix}$$
+        Row reduce（$R_1 \leftarrow \frac{1}{3}R_1$，$R_2 \leftarrow R_2 - R_1$）：
+        $$\begin{pmatrix}1 & -1 & \mid & 0\\ 0 & 0 & \mid & 0\end{pmatrix}$$
+        <p>Equation：$v_1 - v_2 = 0$，令 $v_2 = 1$ 得 $v_1 = 1$。Eigenvector：$\mathbf{v}_2 = \begin{pmatrix}1\\1\end{pmatrix}$。</p>
+
+        <p><strong>结论：</strong></p>
+        <ul>
+          <li>$\lambda_1 = 1$，eigenvector $\mathbf{v}_1 = \begin{pmatrix}3\\1\end{pmatrix}$</li>
+          <li>$\lambda_2 = -1$，eigenvector $\mathbf{v}_2 = \begin{pmatrix}1\\1\end{pmatrix}$</li>
+        </ul>
+        <p class="note">
+          验证：$A\mathbf{v}_1 = \begin{pmatrix}2\cdot3-3\cdot1\\1\cdot3-2\cdot1\end{pmatrix} = \begin{pmatrix}3\\1\end{pmatrix} = 1\cdot\mathbf{v}_1$ ✓；$A\mathbf{v}_2 = \begin{pmatrix}2\cdot1-3\cdot1\\1\cdot1-2\cdot1\end{pmatrix} = \begin{pmatrix}-1\\-1\end{pmatrix} = (-1)\cdot\mathbf{v}_2$ ✓。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Eigenvalue 的符号预测 ODE solution 的长期行为</p>
+        <p>
+          在 $\mathbf{x}' = A\mathbf{x}$ 中（$A$ constant），每个 eigenvalue $\lambda$ 对应一个基本 solution $e^{\lambda t}\mathbf{v}$，而 $e^{\lambda t}$ 的行为完全由 $\lambda$ 决定。在解读一个物理系统（比如 coupled spring-mass 或 RLC 电路）时，eigenvalues 是最重要的 summary statistics：<br><br>
+          &bull; $\lambda < 0$（real, negative）：对应的 mode 指数衰减，趋向 0。这是 <strong>stable mode</strong>——系统自动消散这个分量。例如：阻尼弹簧振动中，耗散能量使振幅减小。<br>
+          &bull; $\lambda > 0$（real, positive）：对应的 mode 指数增长，趋向 $\infty$。这是 <strong>unstable mode</strong>——这个分量会爆炸式增长。任何包含正 eigenvalue 的系统在初始条件稍偏离时都会发散。<br>
+          &bull; $\lambda = 0$：$e^{0\cdot t} = 1$，这个 mode 是 constant——系统在 eigenvector 方向上既不增长也不衰减，对应某种"守恒量"方向。<br>
+          &bull; $\lambda = \alpha + i\beta$（complex，$\beta \neq 0$）：用 Euler formula，$e^{(\alpha+i\beta)t} = e^{\alpha t}(\cos\beta t + i\sin\beta t)$——这是振荡加上 envelope $e^{\alpha t}$。$\alpha < 0$ 则振荡衰减（stable spiral），$\alpha > 0$ 则振荡增长（unstable spiral），$\alpha = 0$ 则等幅振荡（center）。<br><br>
+          <strong>总结口诀</strong>：看所有 eigenvalues 的 real part——全 $< 0$ 则系统 globally stable（所有 solutions 趋向零）；有任何一个 $> 0$ 则系统 unstable。这就是 linear stability analysis 的核心，是 control theory 和 dynamics 的基础。File 06 的 phase portrait 分析会具体展示各种情形的几何图像。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="systems-theory">7.4 — Theory of Linear Systems</h2>
+
+      <p>
+        现在有了 matrix form $\mathbf{x}' = A(t)\mathbf{x}$ 和 linear algebra 工具，可以建立 systems of ODEs 的完整理论框架。这一节的四个核心内容——existence-uniqueness、Wronskian for systems、superposition、fundamental set——是整个 Ch 7 的理论基石。它们保证了：
+      </p>
+      <ul>
+        <li>solution 存在且唯一（给定 initial condition）；</li>
+        <li>找到 $n$ 个 linearly independent solutions 就<em>足够</em>了（general solution = 它们的 linear combination）；</li>
+        <li>有一个可计算的判据（Wronskian）来检验 linear independence；</li>
+        <li>Wronskian 对 ODE solutions 有"全有或全无"的 binary 性质（Abel's theorem），极大简化了验证工作。</li>
+      </ul>
+
+      <p>
+        在这一节，我们处理的 system 是：
+        $$(\star)\quad \mathbf{x}'(t) = A(t)\,\mathbf{x}(t)$$
+        其中 $A(t)$ 是 $n \times n$ matrix，entries 在区间 $(a,b)$ 上 continuous。这是 homogeneous system 的一般形式（允许 $A$ 依赖 $t$）。
+      </p>
+
+      <p>
+        注意：这里 $A(t)$ 可以依赖 $t$，理论结论（existence-uniqueness、superposition、Abel's theorem、fundamental set）在这种 generality 下完全成立。但在实际求解（File 06，Secs 7.5/7.6）时，我们会进一步限制 $A$ 为 constant matrix——这样才能用 eigenvalue 方法。Sec 7.4 的 theory 是 full-generality 的理论基础，而 Secs 7.5/7.6 是特殊（且实用）情形下的 algorithms。这种"先建立一般理论，再专注特殊 tractable case"的模式在数学里随处可见——好的理论让我们知道"这个 case 值得深入研究，并且 general solution 的结构是什么样子的"，之后再想"怎么具体计算"。
+      </p>
+
+      <p>
+        一个额外的提醒：Sec 7.4 里几乎所有 theorem 的成立都要求 <strong>$A(t)$ 的 entries 在 $(a,b)$ 上 continuous</strong>。这个 continuity 条件是 existence-uniqueness theorem 的 hypothesis，也是 Abel's theorem 的 hypothesis。在 constant-coefficient case（File 06）里，$A$ 的 entries 都是常数，trivially continuous on the entire real line，所以不需要额外检验。但如果题目给出的 $A(t)$ 有 discontinuity（比如 $a_{11}(t) = 1/t$ 在 $t=0$ 处无定义），则 theory 只适用于不含 discontinuity 的子区间（如 $(0, \infty)$ 或 $(-\infty, 0)$）——这时 general solution 在跨越 discontinuity 的区间上可能有不同的形式。
+      </p>
+
+      <p>
+        在本课的考试和 HW 中（Secs 7.1–7.4），大多数题目要求以下几种操作之一：(1) 把给定的高阶 ODE 或方程组转化成 matrix form；(2) 计算给定 matrix 的 eigenvalues 和 eigenvectors；(3) 验证给定的函数组是否是某个 system 的 fundamental set（用 Wronskian + Abel's theorem）；(4) 判断两组向量值函数是否 linearly independent（区分"在点"和"在区间"）。其中 (2) 是最重要的计算技能，整门课 Ch 7 的所有 solution methods 都建立在熟练计算 eigenvalues/eigenvectors 之上。
+      </p>
+
+      <h3 id="existence-uniqueness-systems">Existence-Uniqueness Theorem for systems</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence and Uniqueness for linear systems).</span>
+        设 $A(t)$ 的所有 entries 在 open interval $(a,b)$ 上 continuous，$t_0 \in (a,b)$，$\mathbf{x}_0 \in \mathbb{R}^n$ 任意给定。则 initial value problem
+        $$\mathbf{x}'(t) = A(t)\,\mathbf{x}(t), \qquad \mathbf{x}(t_0) = \mathbf{x}_0$$
+        在整个区间 $(a,b)$ 上有且仅有一个 solution。
+        <br><br>
+        <em>Remark.</em> 这是 Ch 2（File 02，Sec 2.4）里 scalar first-order IVP existence-uniqueness 的 vector 推广。Continuity 条件保证了解的存在性，linearity 保证了唯一性（两个 solutions 之差也是 solution，满足零 initial condition，由 uniqueness 只能是 trivial solution）。$\square$
+      </div>
+
+      <p>
+        这个定理最直接的用途是：一旦我们找到了满足某个 initial condition 的 solution，就知道它是唯一的——不会有"另一个 solution"隐藏在某处没被发现。同时，由于 continuity 条件在整个 $(a,b)$ 上成立，solution 也在整个 $(a,b)$ 上有效，没有 blowup（这与 nonlinear IVPs 形成对比，nonlinear 的解可能在有限时间内爆炸）。
+      </p>
+
+      <p>
+        Existence-Uniqueness Theorem 还有一个不那么明显但极为重要的推论：<strong>它决定了 solution space 的维数</strong>。因为对每个 initial condition $\mathbf{x}_0 \in \mathbb{R}^n$，恰好有一个 solution；而 $\mathbb{R}^n$ 是 $n$ 维的，所以 solution space 的维数 $= n$。这就是为什么我们只需要 $n$ 个 linearly independent solutions 来构成 fundamental set——多了冗余（任何 $n+1$ 个 solutions 必然 linearly dependent），少了不够（无法 span 整个 solution space）。Ch 2 的 first-order scalar ODE（$n=1$）需要 1 个 solution 构成 general solution（1-parameter family）；Ch 3 的 second-order（$n=2$）需要 2 个（2-parameter family $c_1y_1 + c_2y_2$）；Ch 7 的 $n\times n$ system 需要 $n$ 个（$n$-parameter family $\sum c_i\mathbf{x}_i$）。维数始终等于系统的"order"——这是 linear ODE theory 最基本的数数原则。
+      </p>
+
+      <h3 id="wronskian-systems">Wronskian for vector-valued solutions</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (Wronskian for systems).</span>
+        设 $\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)$ 是 $n$ 个 $n$ 维 vector-valued functions。把它们并排作为 columns 组成 $n\times n$ matrix，其 <strong>Wronskian</strong> 为：
+        $$W[\mathbf{x}_1, \ldots, \mathbf{x}_n](t) = \det\!\left[\mathbf{x}_1(t) \;\big|\; \mathbf{x}_2(t) \;\big|\; \cdots \;\big|\; \mathbf{x}_n(t)\right]$$
+        这是 $t$ 的 scalar function（随 $t$ 变化）。
+      </div>
+
+      <p>
+        注意 Wronskian for systems 和 Ch 3 里 scalar Wronskian 的联系：scalar second-order ODE 里，$W[y_1, y_2](t) = \det\begin{pmatrix}y_1 & y_2\\y_1' & y_2'\end{pmatrix}$——matrix 的 rows 是 $y$ 和 $y'$。在 systems 里，matrix 的 columns 是 vector-valued solutions $\mathbf{x}_i(t)$——形式不同，但精神相同：都是"把解组成 matrix，取 determinant"。
+      </p>
+
+      <p>
+        Wronskian 的用途是判断一组 solutions 是否 linearly independent，但对一般函数组（不是 ODE solutions），Wronskian = 0 不等价于 dependent（见 Example 7.2.2）。对 solutions of $(\star)$，Abel's theorem 修复了这个 gap。
+      </p>
+
+      <p>
+        实际计算时，选取 $t_0$ 最方便的时刻可以大大简化 Wronskian 的计算。比如 $t_0 = 0$ 时，所有 $e^{\lambda \cdot 0} = 1$，matrix entries 变成纯数字，determinant 用 cofactor expansion 或直接用 $2\times 2$ 公式很快算出。这在 Example 7.4.3 里可以看到：prof notes 没有作为 $t$ 的函数计算完整 Wronskian，而是直接展开得到常数 $-3$——这个常数成立，就足以（由 Abel's theorem）断言 Wronskian 在整个 $\mathbb{R}$ 上恒不为 0。
+      </p>
+
+      <p>
+        关于 Wronskian for systems 和 Ch 3 scalar Wronskian 的关系：表面上看形式不同——scalar case 是 $W[y_1,y_2] = y_1y_2' - y_1'y_2$（用函数和它们的导数），systems case 是 $W[\mathbf{x}_1,\ldots,\mathbf{x}_n] = \det[\mathbf{x}_1 \mid \cdots \mid \mathbf{x}_n]$（直接把解向量并排）。但实际上 scalar case 是 systems case 的特例：scalar second-order ODE $y''+py'+qy=0$ 等价于 $\mathbf{x}' = \begin{pmatrix}0&1\\-q&-p\end{pmatrix}\mathbf{x}$，solution $y_1$ 对应 $\mathbf{x}_1 = \begin{pmatrix}y_1\\y_1'\end{pmatrix}$，solution $y_2$ 对应 $\mathbf{x}_2 = \begin{pmatrix}y_2\\y_2'\end{pmatrix}$，于是 $W[\mathbf{x}_1,\mathbf{x}_2] = \det\begin{pmatrix}y_1 & y_2\\ y_1' & y_2'\end{pmatrix} = y_1y_2' - y_1'y_2$——完全一致！所以 systems 里的 Wronskian 是 Ch 3 Wronskian 的自然推广。
+      </p>
+
+      <h3 id="abels-theorem">Abel's Theorem for systems</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Abel's Theorem for systems).</span>
+        设 $\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)$ 是 $(\star)$ 在 $(a,b)$ 上的 $n$ 个 solutions，$A(t)$ entries continuous on $(a,b)$。则 Wronskian $W(t) = W[\mathbf{x}_1,\ldots,\mathbf{x}_n](t)$ 在 $(a,b)$ 上要么 <strong>everywhere zero</strong>，要么 <strong>never zero</strong>。
+        <br><br>
+        精确地说，以下等价：
+        $$W(t) = 0 \;\;\forall t\in(a,b) \;\Longleftrightarrow\; W(t_0) = 0 \text{ for some }t_0\in(a,b) \;\Longleftrightarrow\; \{\mathbf{x}_1,\ldots,\mathbf{x}_n\} \text{ linearly dependent on }(a,b)$$
+        $$W(t) \neq 0 \;\;\forall t\in(a,b) \;\Longleftrightarrow\; W(t_0) \neq 0 \text{ for some }t_0\in(a,b) \;\Longleftrightarrow\; \{\mathbf{x}_1,\ldots,\mathbf{x}_n\} \text{ linearly independent on }(a,b)$$
+        <br>
+        <em>Key consequence.</em> 对 $(\star)$ 的 solutions，只需在任意一个方便计算的点 $t_0$ 评估 $W(t_0)$，即可判断整个区间上的 linear independence，无需逐点验证。$\square$
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 Abel's theorem 成立：Uniqueness + Superposition 的联合作用</p>
+        <p>
+          Abel's theorem 的证明思路把 Uniqueness Theorem 和 Superposition 结合起来，非常漂亮，值得理解：<br><br>
+          <strong>方向：$W(t_0) = 0 \Rightarrow W(t) \equiv 0$（即"某点为零 $\Rightarrow$ 处处为零"）。</strong><br>
+          若 $W(t_0) = 0$，则在 $t_0$ 处 $n$ 个常数向量 $\mathbf{x}_1(t_0), \ldots, \mathbf{x}_n(t_0)$ linearly dependent（作为 $\mathbb{R}^n$ 中的常数向量，这与 Wronskian = det = 0 等价，来自 MATH 18）。于是存在不全为零的 constants $c_1, \ldots, c_n$，使得 $c_1\mathbf{x}_1(t_0) + \cdots + c_n\mathbf{x}_n(t_0) = \mathbf{0}$。<br><br>
+          定义 $\mathbf{y}(t) = c_1\mathbf{x}_1(t) + \cdots + c_n\mathbf{x}_n(t)$。由 Superposition，$\mathbf{y}$ 是 $(\star)$ 的 solution，且满足 $\mathbf{y}(t_0) = \mathbf{0}$。由 Uniqueness，initial condition $\mathbf{y}(t_0) = \mathbf{0}$ 唯一确定 solution：trivial solution $\mathbf{y}(t) \equiv \mathbf{0}$。所以 $c_1\mathbf{x}_1(t) + \cdots + c_n\mathbf{x}_n(t) = \mathbf{0}$ 对所有 $t$ 成立，即 $\mathbf{x}_1, \ldots, \mathbf{x}_n$ linearly dependent on $(a,b)$，$W \equiv 0$。<br><br>
+          反方向（$W(t_0) \neq 0 \Rightarrow W(t) \neq 0$ for all $t$）由上面的 contrapositive 得出。<br><br>
+          <strong>一句话总结：</strong>Abel's theorem 之所以成立，是因为 $(\star)$ 的 solution 由 initial condition 唯一确定；在某一时刻"对齐"（Wronskian = 0）的 solutions，其 Uniqueness 迫使它们在整个区间上都"对齐"。这是 ODE solutions 特有的性质，一般函数组不具备。
+        </p>
+      </div>
+
+      <h3 id="superposition">Superposition Principle for systems</h3>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Superposition Principle for linear systems).</span>
+        若 $\mathbf{x}_1(t), \mathbf{x}_2(t)$ 都是 $(\star)$ 的 solutions，则对任意 constants $c_1, c_2$，
+        $$c_1\mathbf{x}_1(t) + c_2\mathbf{x}_2(t)$$
+        也是 $(\star)$ 的 solution。更一般地，任意 $k$ 个 solutions 的任意 linear combination 仍是 solution。
+        <br><br>
+        <em>Proof.</em>
+        $$\frac{d}{dt}(c_1\mathbf{x}_1 + c_2\mathbf{x}_2) = c_1\mathbf{x}_1' + c_2\mathbf{x}_2' = c_1 A\mathbf{x}_1 + c_2 A\mathbf{x}_2 = A(c_1\mathbf{x}_1 + c_2\mathbf{x}_2)$$
+        所以 $c_1\mathbf{x}_1 + c_2\mathbf{x}_2$ 满足 $(\star)$。$\square$
+      </div>
+
+      <p>
+        这个结论告诉我们：$(\star)$ 的所有 solutions 构成一个 <strong>vector space</strong>（关于 linear combination 封闭，zero vector $\mathbf{0}$ 即 trivial solution 是 zero element）。这个 solution space 的 dimension 是 $n$（由 Existence-Uniqueness Theorem 和 $\mathbb{R}^n$ 的 dimension 决定）。要描述整个 solution space，只需找到 $n$ 个 linearly independent solutions——这就是 fundamental set 的意义。注意：zero vector $\mathbf{0}$（各 component 恒为 0 的 vector function）永远是 $(\star)$ 的 solution（trivial solution），所以 trivial solution 是 solution space 的 zero element，这符合 vector space 的公理。
+      </p>
+
+      <p>
+        有一点需要强调：superposition principle 只对 <strong>homogeneous</strong> linear systems 成立（即右边没有 $\mathbf{g}(t)$ 项）。对 nonhomogeneous system $\mathbf{x}' = A(t)\mathbf{x} + \mathbf{g}(t)$（$\mathbf{g}(t) \neq \mathbf{0}$），两个 solutions 的 linear combination 不再是 solution——加法后 $\mathbf{g}(t)$ 项无法消掉，验算时等号不成立。这与 Ch 3 完全平行：nonhomogeneous 情形需要 general solution = homogeneous general solution + particular solution，本文件只处理 homogeneous 的 solution space。
+      </p>
+
+      <p>
+        一个简单的检验方式：如果你对某组 solutions 应用 superposition，得到一个 linear combination $\mathbf{y} = c_1\mathbf{x}_1 + c_2\mathbf{x}_2$，然后代入方程验证，只需计算 $\mathbf{y}' - A\mathbf{y}$ 是否等于零向量。对 homogeneous system，这自然成立；对 nonhomogeneous system（$\mathbf{x}' = A\mathbf{x} + \mathbf{g}$），代入后会得到 $\mathbf{y}' - A\mathbf{y} = (c_1+c_2)\mathbf{g}(t) \neq \mathbf{0}$（除非 $c_1+c_2=0$），说明 superposition 在这里不成立。这个简单的代入 check 可以用来快速验证一个候选解是否真的是给定 system 的 solution。
+      </p>
+
+      <h3 id="fundamental-set">Fundamental set of solutions and general solution</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (fundamental set of solutions).</span>
+        设 $\{\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)\}$ 是 system $(\star)$ 的 $n$ 个 solutions，且在 $(a,b)$ 上 linearly independent（等价地，$W[\mathbf{x}_1,\ldots,\mathbf{x}_n](t_0) \neq 0$ for some $t_0 \in (a,b)$）。则称这个集合是 $(\star)$ 的一个 <strong>fundamental set of solutions</strong>（基本解组）。
+      </div>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (General solution of homogeneous linear system).</span>
+        设 $A(t)$ 的 entries 在 $(a,b)$ 上 continuous，$\{\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)\}$ 是 $(\star)$ 的一个 fundamental set。则 $(\star)$ 的 <strong>general solution</strong> 为
+        $$\mathbf{x}(t) = c_1\mathbf{x}_1(t) + c_2\mathbf{x}_2(t) + \cdots + c_n\mathbf{x}_n(t)$$
+        其中 $c_1, \ldots, c_n$ 是 arbitrary constants。即 $(\star)$ 的每个 solution 都可以唯一地写成这种 linear combination 的形式。
+        <br><br>
+        Three key facts（prof notes 列出）：<br>
+        (1) 任何 $n$ 个 linearly independent solutions of $(\star)$ 都构成一个 fundamental set。<br>
+        (2) 在 continuity 条件下，fundamental set 一定存在。<br>
+        (3) 每个 solution 都能唯一表示为任意 fundamental set 的 linear combination（$c_i$ 由 initial conditions 唯一确定）。$\square$
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Solution space 是 $n$ 维 vector space：完整的代数图景</p>
+        <p>
+          把这一节的结果放在一起，会看到一个极其整洁的代数结构。设 $V$ 是 $(\star)$ 在 $(a,b)$ 上所有 solutions 的集合。<br><br>
+          <strong>$V$ 是 vector space：</strong>Superposition theorem 说 $V$ 对 linear combination 封闭；trivial solution $\mathbf{0}$ 是 zero element；加法和标量乘法的所有公理都由 linearity 保证。<br><br>
+          <strong>$\dim V = n$：</strong>这个维数等于系统的 size（$n$ 个未知 scalar functions），由 Existence-Uniqueness Theorem 确定。给定任意 $\mathbf{x}_0 \in \mathbb{R}^n$（initial condition 的空间），存在唯一 solution $\mathbf{x}(t) \in V$。这给出了一个从 $\mathbb{R}^n$ 到 $V$ 的双射（bijection），所以 $\dim V = \dim \mathbb{R}^n = n$。<br><br>
+          <strong>Fundamental set = basis of $V$：</strong>$n$ 个 linearly independent solutions 张成整个 $n$ 维 space $V$——这正是"basis"的定义。General solution $\mathbf{x} = \sum c_i \mathbf{x}_i$ 是用 basis 展开 $V$ 中任意元素，$c_i$ 是 coordinates（由 initial conditions 唯一确定）。<br><br>
+          <strong>与 Ch 3 的联系：</strong>Second-order scalar ODE（$n=2$）的 solution space 是 2 维 vector space，fundamental set 是两个 linearly independent solutions。$n \times n$ system 的 solution space 是 $n$ 维 vector space，fundamental set 是 $n$ 个。这不是巧合——完全是同一个代数结构，只是维数不同。Linear algebra 提供了统一语言，让 Ch 3 和 Ch 7 的理论可以用同一套框架理解。
+        </p>
+      </div>
+
+      <h3 id="wronskian-vs-definition">When to use Wronskian vs. the definition</h3>
+
+      <p>
+        这是 prof notes Sec 7.4 专门强调的一个实操总结——"为什么 Wronskian 在 Ex 7.4.1 里能用，但对 Ex 7.2.2 里的 $\mathbf{x}_1, \mathbf{x}_2$ 不够"。
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>情形</th>
+          <th>正确的判断方法</th>
+          <th>备注</th>
+        </tr>
+        <tr>
+          <td>Constant vectors $\mathbf{v}_1, \ldots, \mathbf{v}_n \in \mathbb{R}^n$</td>
+          <td>$\det[\mathbf{v}_1 \mid \cdots \mid \mathbf{v}_n] \neq 0 \Leftrightarrow$ independent</td>
+          <td>来自 MATH 18，直接适用</td>
+        </tr>
+        <tr>
+          <td>Solutions of $\mathbf{x}' = A(t)\mathbf{x}$（continuous $A$）</td>
+          <td>$W(t_0) \neq 0$ for some $t_0 \Leftrightarrow$ independent on $(a,b)$（Abel's theorem）</td>
+          <td>最方便：只算一个点</td>
+        </tr>
+        <tr>
+          <td>General vector-valued functions（不是 ODE solutions）</td>
+          <td>必须用定义：解 $\sum c_i\mathbf{x}_i(t) = \mathbf{0}$，证明 all $c_i = 0$</td>
+          <td>Wronskian = 0 不能推出 dependent</td>
+        </tr>
+      </table>
+
+      <p>
+        一个重要的 observation（prof notes 明确指出）：对 solutions of $(\star)$，Wronskian 要么恒 0 要么恒非 0。如果遇到一组声称是 $(\star)$ 的 solutions 但 Wronskian 在某点为零而另一点不为零，那一定有矛盾——要么它们不是 $(\star)$ 的 solutions，要么 $(\star)$ 本身不满足 continuity 条件，要么计算有误。这个 observation 可以用作 sanity check：算出 Wronskian 作为 $t$ 的函数后，如果发现它在某些点为 0 而某些点不为 0（比如 $W(t) = \sin t$），那就说明这组"solutions"其实不是给定 system 的 solutions——因为任何 continuous system 的真正 solutions 的 Wronskian 必须是全零或全非零的。
+      </p>
+
+      <p>
+        在 prof notes 的 Example（$\mathbf{x}_1(t) = [t^2, 2t]^T$，$\mathbf{x}_2(t) = [t|t|, 2|t|]^T$，$W \equiv 0$，但 linearly independent on $\mathbb{R}$）中，正是通过"Wronskian 恒 0 且 linearly independent"这个矛盾，推断出它们不可能是任何 continuous system 的 solutions——Abel's theorem 告诉了我们一个不可能发生的 scenario，从而帮助排除了某些 candidate "solutions"。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.4.1 — Fundamental set verification, $2\times 2$ case</p>
+        <p>
+          设 $\mathbf{x}_1(t) = e^t\begin{pmatrix}-2\\6\end{pmatrix}$，$\mathbf{x}_2(t) = e^t\begin{pmatrix}1\\3\end{pmatrix}$，且 $\{\mathbf{x}_1, \mathbf{x}_2\}$ 是某 $2\times 2$ system $\mathbf{x}' = A\mathbf{x}$（$A$ continuous）的 solutions。判断它们是否构成 fundamental set，并写出 general solution。
+        </p>
+        <p><strong>Solution：</strong>由 Abel's theorem，只需在一个方便的点计算 Wronskian（因为 $\mathbf{x}_1, \mathbf{x}_2$ 是 $(\star)$ 的 solutions，Wronskian 要么恒零要么恒非零）。</p>
+        $$W[\mathbf{x}_1, \mathbf{x}_2](t) = \det\begin{pmatrix}-2e^t & e^t\\ 6e^t & 3e^t\end{pmatrix} = (-2e^t)(3e^t) - (e^t)(6e^t) = -6e^{2t} - 6e^{2t} = -12e^{2t}$$
+        <p>
+          由于 $-12e^{2t} \neq 0$ for all $t$，所以 $\{\mathbf{x}_1, \mathbf{x}_2\}$ are linearly independent on $\mathbb{R}$，构成 fundamental set。
+        </p>
+        <p><strong>General solution：</strong></p>
+        $$\mathbf{x}(t) = c_1 e^t\begin{pmatrix}-2\\6\end{pmatrix} + c_2 e^t\begin{pmatrix}1\\3\end{pmatrix}, \qquad c_1, c_2 \in \mathbb{R}$$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.4.2 — Wronskian $\equiv 0$, yet linearly independent (non-solutions)</p>
+        <p>
+          设 $\mathbf{x}_1(t) = \begin{pmatrix}t^2\\2t\end{pmatrix}$，$\mathbf{x}_2(t) = \begin{pmatrix}t|t|\\2|t|\end{pmatrix}$。<br>
+          (a) 证明 $W[\mathbf{x}_1, \mathbf{x}_2] = 0$ on $\mathbb{R}$，但 $\{\mathbf{x}_1, \mathbf{x}_2\}$ linearly independent on $\mathbb{R}$。<br>
+          (b) 说明 $\{\mathbf{x}_1, \mathbf{x}_2\}$ 不能是任何 $\mathbf{x}' = A\mathbf{x}$ 的 fundamental set。
+        </p>
+        <p><strong>Part (a)：</strong></p>
+        $$W = \det\begin{pmatrix}t^2 & t|t|\\ 2t & 2|t|\end{pmatrix} = 2t^2|t| - 2t^2|t| = 0$$
+        Wronskian 恒为 0。但用定义：设 $c_1\mathbf{x}_1(t) + c_2\mathbf{x}_2(t) = \mathbf{0}$ 对所有 $t \in \mathbb{R}$。
+        <ul>
+          <li>For $t > 0$：$\mathbf{x}_2 = [t^2, 2t]^T = \mathbf{x}_1$，所以 $(c_1+c_2)\mathbf{x}_1 = \mathbf{0} \Rightarrow c_1 = -c_2$。</li>
+          <li>For $t < 0$：$\mathbf{x}_2 = [-t^2, -2t]^T = -\mathbf{x}_1$，所以 $(c_1-c_2)\mathbf{x}_1 = \mathbf{0} \Rightarrow c_1 = c_2$。</li>
+        </ul>
+        <p>$c_1 = -c_2$ 且 $c_1 = c_2$ 同时成立 $\Rightarrow c_1 = c_2 = 0$。所以 $\{\mathbf{x}_1, \mathbf{x}_2\}$ are linearly independent on $\mathbb{R}$。</p>
+        <p><strong>Part (b)：</strong>由 Abel's theorem，如果 $\mathbf{x}_1, \mathbf{x}_2$ 是某 continuous system $(\star)$ 的 solutions，Wronskian 要么恒 0（$\Rightarrow$ linearly dependent）要么恒非 0（$\Rightarrow$ linearly independent）。这里 $W \equiv 0$ 应意味着 linearly dependent，但实际上 linearly independent——矛盾。所以 $\{\mathbf{x}_1, \mathbf{x}_2\}$ 不可能是任何满足 continuity 条件的 $\mathbf{x}' = A\mathbf{x}$ 的 solutions，更无法构成 fundamental set。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.4.3 — Fundamental set verification for a $3\times 3$ system</p>
+        <p>
+          设 $A = \begin{pmatrix}0&1&1\\1&0&1\\1&1&0\end{pmatrix}$，候选解组（prof notes 的例子）：
+          $$\mathbf{x}_1 = \begin{pmatrix}e^{2t}\\e^{2t}\\e^{2t}\end{pmatrix}, \quad \mathbf{x}_2 = \begin{pmatrix}-e^{-t}\\0\\e^{-t}\end{pmatrix}, \quad \mathbf{x}_3 = \begin{pmatrix}0\\e^{-t}\\-e^{-t}\end{pmatrix}$$
+          验证这是 $\mathbf{x}' = A\mathbf{x}$ 的 fundamental set，并写出 general solution。
+        </p>
+        <p class="note">
+          注：这三个 solutions 的形式——$e^{2t}\mathbf{v}_1$ 和 $e^{-t}\mathbf{v}_2$，$e^{-t}\mathbf{v}_3$——与 Sec 7.5 的 eigenvalue-based solution 完全吻合：$\lambda_1 = 2$ 对应 $\mathbf{v}_1 = [1,1,1]^T$，$\lambda_2 = \lambda_3 = -1$ 对应两个 linearly independent eigenvectors（因为 $-1$ 的 geometric multiplicity = 2，可以直接各取一个 eigenvector）。这个例子预演了 File 06 的算法：先算 eigenvalues，再算 eigenvectors，然后构成 fundamental set 写出 general solution。
+        </p>
+        <p><strong>Step 1：验证 $\mathbf{x}_1$ 是 solution。</strong>计算 $A\mathbf{x}_1$：</p>
+        $$A\mathbf{x}_1 = \begin{pmatrix}0&1&1\\1&0&1\\1&1&0\end{pmatrix}\begin{pmatrix}e^{2t}\\e^{2t}\\e^{2t}\end{pmatrix} = \begin{pmatrix}e^{2t}+e^{2t}\\e^{2t}+e^{2t}\\e^{2t}+e^{2t}\end{pmatrix} = \begin{pmatrix}2e^{2t}\\2e^{2t}\\2e^{2t}\end{pmatrix} = \mathbf{x}_1'(t) \checkmark$$
+        <p>（$\mathbf{x}_2, \mathbf{x}_3$ 类似验证——prof notes 说 "check similarly"。）</p>
+
+        <p><strong>Step 2：计算 Wronskian 判断 linear independence。</strong></p>
+        $$W[\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3] = \det\begin{pmatrix}e^{2t} & -e^{-t} & 0\\ e^{2t} & 0 & e^{-t}\\ e^{2t} & e^{-t} & -e^{-t}\end{pmatrix}$$
+        沿第一行展开（prof notes 给出计算结果为 $-3$，即 constant）：$W = -3 \neq 0$。
+
+        <p>Since $W \neq 0$，$\{\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3\}$ form a fundamental set。</p>
+        <p><strong>General solution：</strong></p>
+        $$\mathbf{x}(t) = c_1\begin{pmatrix}e^{2t}\\e^{2t}\\e^{2t}\end{pmatrix} + c_2\begin{pmatrix}-e^{-t}\\0\\e^{-t}\end{pmatrix} + c_3\begin{pmatrix}0\\e^{-t}\\-e^{-t}\end{pmatrix}$$
+        <p class="note">
+          注意 $\lambda_1 = 2$（eigenvalue，对应 $e^{2t}$）和 $\lambda_{2,3} = -1$（重复，对应 $e^{-t}$，但两个 eigenvectors 不同）。Eigenvalue 为 $2$ 时系统 unstable；eigenvalue 为 $-1$ 时 stable——这个 system 总体上 unstable（存在 $c_1 \neq 0$ 的 solutions 趋向无穷）。这正是通过 eigenvalues 预测长期行为的思路。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>
+        File 05 为 Ch 7 建立了完整的语言框架和理论基础，涵盖 Secs 7.1–7.4。这一章的理论和 Ch 3 惊人地平行——只需把"scalar function"换成"vector-valued function"、把"2"换成"$n$"，几乎所有结论都成立。下面是核心 takeaways，以及与 Ch 3 的对应关系（帮助理解为什么这些结论是"自然的"，而不是凭空出现的）：
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>概念</th>
+          <th>Ch 3（scalar second-order ODE）</th>
+          <th>Ch 7（$n\times n$ system）</th>
+        </tr>
+        <tr>
+          <td>方程形式</td>
+          <td>$ay'' + by' + cy = 0$</td>
+          <td>$\mathbf{x}' = A(t)\mathbf{x}$</td>
+        </tr>
+        <tr>
+          <td>Unknown</td>
+          <td>Scalar function $y(t)$</td>
+          <td>Vector function $\mathbf{x}(t) \in \mathbb{R}^n$</td>
+        </tr>
+        <tr>
+          <td>Solution space</td>
+          <td>2维 vector space</td>
+          <td>$n$维 vector space</td>
+        </tr>
+        <tr>
+          <td>Wronskian</td>
+          <td>$W[y_1,y_2] = y_1y_2'-y_1'y_2$</td>
+          <td>$W[\mathbf{x}_1,\ldots,\mathbf{x}_n] = \det[\mathbf{x}_1 \mid \cdots \mid \mathbf{x}_n]$</td>
+        </tr>
+        <tr>
+          <td>Fundamental set</td>
+          <td>2个 linearly independent scalar solutions</td>
+          <td>$n$个 linearly independent vector solutions</td>
+        </tr>
+        <tr>
+          <td>General solution</td>
+          <td>$c_1 y_1 + c_2 y_2$</td>
+          <td>$c_1\mathbf{x}_1 + \cdots + c_n\mathbf{x}_n$</td>
+        </tr>
+        <tr>
+          <td>Abel's theorem</td>
+          <td>Wronskian 恒 0 或恒非 0（scalar 版本）</td>
+          <td>Wronskian 恒 0 或恒非 0（vector 版本）</td>
+        </tr>
+        <tr>
+          <td>Solution method</td>
+          <td>Characteristic equation $ar^2+br+c=0$</td>
+          <td>Eigenvalue equation $\det(A-\lambda I)=0$（Secs 7.5/7.6）</td>
+        </tr>
+      </table>
+
+      <ul>
+        <li>
+          <strong>Matrix form（7.1）</strong>：$n$ 个 coupled first-order linear homogeneous ODEs 统一写成 $\mathbf{x}' = A(t)\mathbf{x}$。任何 $n$-th order scalar ODE 都可降阶成 first-order system（companion matrix pattern：super-diagonal 全是 1，最后一行是 ODE coefficients 取负）。降阶是对接数值求解器（Python scipy、MATLAB ode45）的标准接口。
+        </li>
+        <li>
+          <strong>Linear independence（7.2）</strong>：向量函数在区间上 linearly independent 的定义（constants $c_i$，对所有 $t$ 成立）。"在某点 dependent"$\neq$"在区间上 dependent"——这是这套理论里最微妙的细节。对一般函数组，必须用定义；对 ODE solutions，Abel's theorem 提供 Wronskian 判据。
+        </li>
+        <li>
+          <strong>Eigenvalues &amp; eigenvectors（7.3）</strong>：$A\mathbf{v} = \lambda\mathbf{v}$（$\mathbf{v} \neq \mathbf{0}$）。求法两步：第一步求解 $\det(A-\lambda I)=0$，得 eigenvalues $\lambda_k$；第二步对每个 $\lambda_k$ 做 row reduction 解 $(A-\lambda_k I)\mathbf{v}=\mathbf{0}$，得 eigenvectors $\mathbf{v}_k$。Eigenvector 只定义到 scalar multiple，algebraic multiplicity $\geq$ geometric multiplicity。Eigenvalue 的 real part 决定 stability（全负则 stable，有正则 unstable）。
+        </li>
+        <li>
+          <strong>Wronskian for systems（7.4）</strong>：$W[\mathbf{x}_1,\ldots,\mathbf{x}_n](t) = \det[\mathbf{x}_1 \mid \cdots \mid \mathbf{x}_n]$，是 $t$ 的 scalar function。
+        </li>
+        <li>
+          <strong>Abel's Theorem（7.4）</strong>：对 system $(\star)$ 的 solutions，Wronskian 要么恒 0（linearly dependent）要么恒非 0（linearly independent）。在任意单个点 $t_0$ 评估 $W(t_0)$，一次计算得出全区间结论。
+        </li>
+        <li>
+          <strong>Superposition（7.4）</strong>：homogeneous linear system 的 solutions 的任意 linear combination 仍是 solution。Solution space 是 $n$ 维 vector space（仅对 homogeneous 成立）。
+        </li>
+        <li>
+          <strong>Fundamental set + General solution（7.4）</strong>：$n$ 个 linearly independent solutions 构成 fundamental set（= solution space 的 basis）；general solution $= \sum c_i\mathbf{x}_i$（covers all solutions，$c_i$ 由 initial conditions 唯一确定）。Fundamental set 在 continuity 条件下一定存在。
+        </li>
+      </ul>
+
+      <h3 id="looking-ahead">Looking Ahead — Actual Solution Methods (File 06)</h3>
+
+      <p>
+        File 05 建立了 theory，但还没有真正 solve 过 $\mathbf{x}' = A\mathbf{x}$（除了 verification）。全部工作都在搭建保障体系：保证 solution 存在且唯一，保证 fundamental set 总是存在，保证 general solution 的结构。带着这些保障，File 06（Secs 7.5, 7.6）终于进入 algorithm 层面：
+      </p>
+
+      <ul>
+        <li>
+          <strong>Sec 7.5 — Distinct real eigenvalues</strong>：当 $A$ constant 且有 $n$ 个 distinct real eigenvalues $\lambda_1, \ldots, \lambda_n$ 时，每对 $(\lambda_k, \mathbf{v}_k)$ 贡献一个 solution $e^{\lambda_k t}\mathbf{v}_k$。这 $n$ 个 solutions 自动 linearly independent，构成 fundamental set，general solution 直接写出。这是最简洁的 case。计算流程：characteristic equation $\Rightarrow$ eigenvalues $\Rightarrow$ eigenvectors $\Rightarrow$ solutions $\Rightarrow$ verify Wronskian $\neq 0$ $\Rightarrow$ write general solution。
+        </li>
+        <li>
+          <strong>Sec 7.6 — Complex conjugate eigenvalues</strong>：当 real matrix $A$ 有 complex eigenvalue $\lambda = \alpha + i\beta$（$\beta \neq 0$）时，对应 complex eigenvector 给出一个 complex-valued solution；用 Euler formula $e^{(\alpha+i\beta)t} = e^{\alpha t}(\cos\beta t + i\sin\beta t)$ 取 real 和 imaginary parts，得到两个 real-valued solutions。Phase plane 里对应 spiral（$\alpha \neq 0$）或 center（$\alpha = 0$）形态。
+        </li>
+      </ul>
+
+      <p>
+        在 File 06 里，Sec 7.3 的 eigenvalue/eigenvector 计算（$\det(A-\lambda I)=0$，row reduction）将大量使用；Sec 7.4 的 Wronskian 和 fundamental set 语言将作为最终 verification 和 solution packaging 的框架。现在已经有了完整的理论保证——知道为什么 eigenvalue-based 方法是合法的（它给出的 $n$ 个 solutions 构成 fundamental set），知道 general solution 的结构（arbitrary constants $c_1,\ldots,c_n$ 由 initial conditions 确定）。带着这些理解进入 File 06，每一个计算步骤都有扎实的 theory 作为后盾，而不是盲目套公式。
+      </p>
+
+      <p>
+        从更宏观的课程视角来看：Ch 7 把单个高阶 ODE 的语言升级成了 systems，把"characteristic equation 的 roots"升级成了"eigenvalues"，把"scalar 解的线性组合"升级成了"vector 解的线性组合"。这种升级背后的深层逻辑是 linear algebra——因为 linear algebra 提供了适用于任意维度的统一语言，所以从 Ch 3 到 Ch 7 的跨越，本质上是从 1 维和 2 维的 linear algebra 跳到了 $n$ 维的 linear algebra。掌握 Ch 7 theory（File 05）后，之后复习时可以对比 Ch 3 的结构，会发现它们几乎是同一张地图在不同 scale 上的投影——这是数学学习中最令人愉快的 moment 之一。
+      </p>
+
+      <p>
+        关于考试策略：Sec 7.3（eigenvalues/eigenvectors）的计算是 Ch 7 里最频繁考查的技能，建议多加练习直到流程熟练。典型的 HW 题会给一个 $2\times2$ 或 $3\times3$ matrix，要求求 eigenvalues 和 eigenvectors——这是 Sec 7.5/7.6 一切 solution 方法的前提。Sec 7.4（Wronskian、fundamental set）的题目通常要求验证给定的函数组是否是某 system 的 fundamental set，标准流程是：① 验证每个 $\mathbf{x}_i$ 是 solution（算 $A\mathbf{x}_i$ 和 $\mathbf{x}_i'$，检查是否相等）；② 计算 Wronskian（通常在 $t_0 = 0$ 处）；③ 由 Abel's theorem，若 $W \neq 0$，则 linearly independent，构成 fundamental set；④ 写出 general solution。这四步是 Sec 7.4 类题型的完整解题框架。
+      </p>
+
+      <p>
+        常见的计算错误需要注意：(i) 在 Step ① 里，验证 $\mathbf{x}_i$ 是 solution 时，$A\mathbf{x}_i$ 要做完整的矩阵乘法，然后和 $\mathbf{x}_i'$（对 $t$ 求导的结果）逐 component 比较；(ii) 在 Step ② 里，Wronskian 是 $n\times n$ determinant，$3\times3$ 时要用 cofactor expansion，不要和 $2\times2$ 公式（$ad-bc$）混淆；(iii) 在 Step ③ 里，必须确认 $\mathbf{x}_i$ 确实是 $(\star)$ 的 solutions，才能用 Abel's theorem——对不是 solutions 的函数组，$W \neq 0$ 只说明在那个点 linearly independent，不保证整个区间的 linear independence（见 Sec 7.2 的讨论）。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

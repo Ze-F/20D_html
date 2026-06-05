@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>01. Foundations · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">01. Foundations</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>01. Foundations</h1>
+    <p class="note">Textbook sections 1.3 &amp; 1.1 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+      <p>
+        本文件使用以下 notation，与 prof notes 保持一致。
+      </p>
+      <ul>
+        <li>$\dfrac{d^i}{dx^i}$：第 $i$ 个 total derivative（对单个 independent variable）。</li>
+        <li>$\dfrac{\partial^i}{\partial x^i}$：第 $i$ 个 partial derivative（用于 PDEs）。</li>
+        <li>$y'$、$y''$、$y^{(n)}$：分别表示 $\dfrac{dy}{dt}$、$\dfrac{d^2y}{dt^2}$、$\dfrac{d^ny}{dt^n}$（prime notation）。</li>
+        <li>$\mathbb{R}$：real numbers；$\mathbb{C}$：complex numbers。</li>
+        <li>$A \subseteq B$：$A$ is a subset of $B$；$\in$：belongs to / is an element of。</li>
+        <li>$(a,b)$：open interval；$[a,b]$：closed interval。</li>
+        <li>Independent variable 主要用 $t$（时间），dependent variable 用 $y(t)$——这是 Ch 1–3 的默认约定。有些例子用 $x$ 作 independent variable，届时会明确说明。</li>
+      </ul>
+
+      <p>
+        在涉及 PDEs 的例子中，会同时出现多个 independent variables（比如 $x$ 和 $t$），到时 partial derivative notation $\partial$ 代替 $d$。
+      </p>
+
+      <p>
+        为什么默认用 $t$ 而不是 $x$？这是 Boyce/DiPrima 教材的惯例，也反映了 ODEs 最重要的物理应用背景：描述某个 quantity 随<em>时间</em>的演化。比如，$y(t)$ 可以是某个弹簧系统的位移，$R(t)$ 可以是放射性物质在时刻 $t$ 的残余量，$\theta(t)$ 可以是钟摆在时刻 $t$ 的偏转角。在这些情境下，independent variable 天然就是时间 $t$，dependent variable 是你关心的 quantity。
+      </p>
+
+      <p>
+        当然，"$t$ = 时间"并不是强制的。有些几何问题里 $x$ 更自然（比如描述一条曲线的形状），有些工程问题里会用 $r$（半径）或 $\xi$（某个物理量）。本课 Ch 1–3 几乎全用 $t$；等到 Ch 5（Series Solutions）可能会切换到 $x$；Ch 7（Systems of DEs）里会出现 $x_1(t), x_2(t)$ 等 vector-valued functions。每次切换，会在当时明确说明。
+      </p>
+
+      <p>
+        关于 prime notation：$y'$ 就是 $dy/dt$（当 independent variable 是 $t$），$y''$ 就是 $d^2y/dt^2$，以此类推。这在手写和打印中都比 Leibniz notation 紧凑很多，Ch 3 的 second-order ODEs 中会大量使用。需要区分是对哪个变量求导时，会显式写出 $dy/dx$ 或 $\partial u/\partial t$。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="what-is-de">什么是 differential equation</h2>
+
+      <p>
+        整门课的核心对象就是 differential equation (DE)。直观来说，它就是一个把某个 function 和它的 derivatives 联系在一起的方程。与普通的代数方程（比如 $x^2 - 5x + 6 = 0$，解是某些数）不同，differential equation 的"解"是一个 <em>function</em>——你要找到满足方程关系的 $y(t)$，而不是某个数值。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (differential equation).</span>
+        A <strong>differential equation</strong> 是一个 equation，它把某个 unknown function 和它的一个或多个 derivatives 联系起来。
+      </div>
+
+      <p>
+        比如 $y' = 3y$ 就是一个最简单的 differential equation：它说的是"某个 function 的 derivative 等于它自身的三倍"。解这个方程，就是找出满足这个关系的 function $y(t)$。答案是 $y(t) = Ce^{3t}$（$C$ 是任意 constant）——这里的"解"是一族 functions，而不是一个数。这也体现了 DEs 和代数方程的本质差别：DE 的解通常是一个 function family，含有任意 constants，具体值由 initial conditions 确定。
+      </p>
+
+      <p>
+        为什么要学 differential equations？因为自然界和工程中几乎所有的动态过程都用 DEs 建模：牛顿第二定律 $F = ma$ 实际上是 $m\,d^2x/dt^2 = F(x, \dot x, t)$，一个 second-order ODE；Maxwell 方程组描述电磁场演化，是 PDEs；种群动态、化学反应速率、电路的暂态响应——无一不是 DEs。能解 DEs，就是能从"变化率的规律"出发，预测系统未来的行为。
+      </p>
+
+      <h3 id="ode-vs-pde">ODE vs PDE</h3>
+
+      <p>
+        Differential equations 首先按 independent variables 的数量分成两大类：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (ODE).</span>
+        <strong>Ordinary Differential Equation (ODE)</strong>：只涉及对 <em>单个</em> independent variable 的 derivatives 的 DE。
+      </div>
+
+      <div class="def">
+        <span class="def-label">Definition (PDE).</span>
+        <strong>Partial Differential Equation (PDE)</strong>：涉及对 <em>两个或两个以上</em> independent variables 的 partial derivatives 的 DE。
+      </div>
+
+      <p>
+        这门课（MATH 20D）的主角是 ODEs。PDEs 出现在更高级的课程里（比如 MATH 110 或 MATH 175）。不过开头我们会见到几个经典 PDE 例子，用来做 classification 练习。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — ODE vs PDE 的本质区别</p>
+        <p>
+          ODE 里，unknown function 只依赖一个变量，比如 $y(t)$——时间 $t$ 变化，$y$ 跟着变化，这就够了。用普通 derivative $dy/dt$ 就能描述它的变化速率，方程是一个关于单变量函数的约束。<br><br>
+          PDE 里，unknown function 依赖多个变量，比如温度场 $u(x,t)$——它同时随空间位置 $x$ 和时间 $t$ 变化。要描述它的变化率，就必须用 partial derivatives $\partial u / \partial x$ 和 $\partial u / \partial t$，因为你需要分别追踪"固定时间、沿空间方向的变化"和"固定位置、随时间的变化"。这两个方向的变化一般互不相同，必须分开讨论。<br><br>
+          一个物理比喻：想象一根金属棒，每个位置 $x$ 在时刻 $t$ 的温度是 $u(x,t)$。如果你只关心棒的一端（固定 $x$），温度随时间的变化是 $\partial u / \partial t$——这描述的是"能量随时间如何流入或流出"。如果你只关心某一时刻（固定 $t$），温度沿棒的分布的空间变化是 $\partial u / \partial x$——这描述的是"热量因温度梯度产生的传导"。把这两个信息联系起来的方程就是 heat equation（Example 1.3.1），这是一个典型的 PDE。<br><br>
+          一句话口诀：<em>一个变量 → ODE；多个变量 → PDE。</em>
+        </p>
+      </div>
+
+      <h3 id="order">Order of a DE</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (order).</span>
+        The <strong>order</strong> of a differential equation 是方程中出现的 <em>highest derivative</em> 的阶数。
+      </div>
+
+      <p>
+        比如，如果方程里最高只出现 $y'$，那就是 first-order DE；出现 $y''$ 但没有更高的，就是 second-order DE；以此类推。本课大部分时间花在 first-order（Ch 2）和 second-order（Ch 3）ODEs 上，因为这两类在应用中最常见，也有最系统的解法。更高阶的 ODEs 通常通过引入新变量转化成 <strong>system of first-order ODEs</strong>（Ch 7 的主题），所以高阶并不代表更复杂，只是需要不同的 framework。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Order ≠ Degree</p>
+        <p>
+          <strong>Order</strong> 是最高 derivative 的阶数（exponent on the $d$，即求导几次）。<br>
+          <strong>Degree</strong> 是那个最高 derivative 的幂次（它自己被几次方）。<br>
+          例如：$(y'')^3 + y = 0$ 的 order = 2（最高是 second-order derivative），degree = 3（$y''$ 被三次方）。<br>
+          本课几乎只谈 order，degree 很少提及——但别把二者混淆。
+        </p>
+      </div>
+
+      <h3 id="linear-vs-nonlinear">Linear vs nonlinear ODE</h3>
+
+      <p>
+        在 ODEs 里，还有一个重要区分：linear 还是 nonlinear。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (linear ODE of order $n$).</span>
+        An $n$-th order ODE is called <strong>linear</strong> if it can be written in the form
+        $$a_n(t)\,y^{(n)} + a_{n-1}(t)\,y^{(n-1)} + \cdots + a_1(t)\,y' + a_0(t)\,y = F(t)$$
+        其中 $a_0(t),\,a_1(t),\ldots,a_n(t)$ 是关于 $t$ 的（已知）functions，称为 <strong>coefficients</strong>；$F(t)$ 称为 <strong>forcing function</strong>（也叫 nonhomogeneous term）。如果 $F(t) = 0$，则称这个 ODE 是 <strong>homogeneous</strong>；否则称为 <strong>nonhomogeneous</strong>。
+      </div>
+
+      <p>
+        关键点在于：linear ODE 对 $y$ 及其 derivatives of all orders 都是 <em>linear</em> 的——它们只能以一次方出现，不能相乘，不能套进 $\sin$、$\sqrt{\cdot}$ 等 nonlinear functions 里。Coefficients $a_i(t)$ 自己可以是 $t$ 的任意 functions，这没问题，因为 $t$ 是 independent variable，不是 unknown。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (nonlinear ODE).</span>
+        Any ODE that <em>cannot</em> be written in the linear form above is called <strong>nonlinear</strong>.
+      </div>
+
+      <p>
+        如何判断一个 ODE 是否 nonlinear？检查 $y$ 及其 derivatives：
+      </p>
+      <ul>
+        <li>出现 $y^2$、$y \cdot y'$、$(y')^2$ 等 —— nonlinear。</li>
+        <li>出现 $\sin(y)$、$e^y$、$\sqrt{y}$ 等 —— nonlinear（$y$ 被套进 nonlinear function）。</li>
+        <li>$y$ and its derivatives of all orders only appear to the first power, each alone — linear。</li>
+      </ul>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Superposition Principle).</span>
+        设 $L$ 是一个 $n$-th order linear differential operator，即 $Ly \equiv a_n(t)y^{(n)} + \cdots + a_1(t)y' + a_0(t)y$。如果 $y_1$ 和 $y_2$ 都是 homogeneous equation $Ly = 0$ 的 solutions，那么对任意 constants $\alpha, \beta \in \mathbb{R}$，$\alpha y_1 + \beta y_2$ 也是 $Ly = 0$ 的 solution。
+        <br><br>
+        <em>Proof.</em> 由 $L$ 的 linearity（即 $L(\alpha y_1 + \beta y_2) = \alpha Ly_1 + \beta Ly_2$），得
+        $$L(\alpha y_1 + \beta y_2) = \alpha \cdot 0 + \beta \cdot 0 = 0. \qquad \square$$
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 superposition 这么重要</p>
+        <p>
+          Superposition principle 的深意在于：linear homogeneous ODE 的 solution set 构成一个 <em>vector space</em>（线性空间）——你可以把 solutions 任意"叠加"、缩放，结果仍然是 solution。这和普通的代数方程（比如 $x^2 = 1$）完全不同：$x=1$ 和 $x=-1$ 都是解，但 $x = 2$ 就不是——nonlinear equation 的解集没有这种封闭的代数结构。<br><br>
+          正是因为有了这种结构，我们才能把"找所有 solutions"的问题分解为"找几个 basis solutions，然后用 superposition 组合"——这是 Ch 3（second-order linear ODEs）整章的核心策略。<br><br>
+          Nonlinear ODEs（比如摆方程 $\theta'' + (g/L)\sin\theta = 0$）不满足叠加原理，所以没有这套 machinery，分析起来要困难得多，通常只能做数值计算或定性分析。
+        </p>
+      </div>
+
+      <p>
+        另外还有一个 general form，用来统一描述任意阶 ODE（不论 linear 还是 nonlinear）：
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (general form of $n$-th order ODE).</span>
+        The <strong>general form</strong> of an $n$-th order ODE is
+        $$F\!\left(x,\,y,\,y',\,\ldots,\,y^{(n)}\right) = 0 \qquad \forall\,x \in (a,b)$$
+        其中 $F$ 是一个关于 $x, y, y', \ldots, y^{(n)}$ 的 function，$(a,b)$ 是解的 domain。
+      </div>
+
+      <p>
+        这个 general form 统一涵盖了 linear 和 nonlinear ODE。比如，linear ODE $a_n(t)y^{(n)} + \cdots + a_0(t)y = F(t)$ 可以改写成 $F(t, y, \ldots, y^{(n)}) \equiv a_n(t)y^{(n)} + \cdots + a_0(t)y - F(t) = 0$，完全符合 general form；nonlinear 的 pendulum equation $\theta'' + (g/L)\sin\theta = 0$ 也符合，只是这里 $F$ 是 nonlinear 的。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="classification-examples">Classification 例子</h2>
+
+      <p>
+        下面是 prof notes 里的四个经典例子，每个都要求判断：ODE 还是 PDE，order 是多少，linear 还是 nonlinear。这四道例题看似只是分类练习，但实际上每道题背后都有丰富的物理意义——分类是第一步，之后整门课里会用不同方法分别处理它们。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.1 — Diffusion (Heat) Equation</p>
+        $$a^2 \frac{\partial^2 u}{\partial x^2}(x,t) = \frac{\partial u}{\partial t}(x,t)$$
+        <p>
+          Unknown function $u$ 依赖两个 independent variables：$x$（空间位置）和 $t$（时间）。方程里出现了 partial derivatives $\partial/\partial x$ 和 $\partial/\partial t$，因此这是 <strong>PDE</strong>。最高 derivative 是 $\partial^2 u / \partial x^2$，所以 <strong>order = 2</strong>。
+        </p>
+        <p>
+          （对于 PDEs，linear/nonlinear 的概念同样存在，但这门课里我们不深究 PDE 的 linearity。）
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.2 — Kidder's Equation</p>
+        $$\sqrt{1-y}\;\frac{d^2y}{dx^2} + 2x\,\frac{dy}{dx} = 0$$
+        <p>
+          Unknown function $y$ 只依赖一个 independent variable $x$，所以这是 <strong>ODE</strong>，<strong>order = 2</strong>（最高 derivative 是 $d^2y/dx^2$）。<br>
+          是否 linear？注意 $\sqrt{1-y}$ 是 $y$ 的 nonlinear function，它乘在 $y''$ 前面——不符合 linear ODE 标准形式（coefficients 只能是 $t$ 的 functions，不能含 $y$）。因此这是 <strong>nonlinear</strong> ODE。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.3 — Exponential Decay</p>
+        $$\frac{dR(t)}{dt} = -k\,R(t)$$
+        <p>
+          Unknown function $R$ 只依赖 $t$，所以是 <strong>ODE</strong>，<strong>order = 1</strong>。<br>
+          改写为标准形式：$R' - (-k) \cdot R = 0$，即 $a_1(t) = 1$（constant），$a_0(t) = -k$（constant），$F(t) = 0$。这完全符合 linear homogeneous ODE 的形式，所以这是 <strong>linear</strong> ODE。
+        </p>
+        <p class="note">
+          注：$k$ 是 positive constant（衰减率），$R(t)$ 可以表示放射性物质的量、细菌数目等。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.4 — Oscillating Pendulum</p>
+        $$\frac{d^2\theta}{dt^2} + \frac{g}{L}\sin\theta = 0$$
+        <p>
+          Unknown function $\theta$ 只依赖 $t$，所以是 <strong>ODE</strong>，<strong>order = 2</strong>。<br>
+          是否 linear？注意 $\sin\theta$ 是 $\theta$ 的 nonlinear function——不能写成 $a_0(t)\,\theta$ 的形式（$\sin\theta \neq \theta$ 一般来说）。因此这是 <strong>nonlinear</strong> ODE。
+        </p>
+        <p class="note">
+          注：在小角近似下（$\theta$ 很小时），$\sin\theta \approx \theta$，方程变为 $\theta'' + (g/L)\theta = 0$，这就是 linear 的了。这就是 linearization 的思想——后面课程里会用到。
+        </p>
+      </div>
+
+      <p>
+        Cauchy-Euler equation 也是 prof notes 里的一个例子：
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.5 — Cauchy-Euler Equation</p>
+        $$t^2 y'' + t\,y' + 9y = -\tan(3\ln t) + t + \frac{1}{t} + \frac{3t}{\ln t}$$
+        <p>
+          Unknown function $y$ 只依赖 $t$，所以是 <strong>ODE</strong>，<strong>order = 2</strong>。<br>
+          来看 linearity：左边 $t^2 y''$，$ty'$，$9y$——$y$ 和各阶导都只以一次方出现，coefficients（$t^2$, $t$, $9$）只含 $t$，不含 $y$。右边是 $t$ 的 function（forcing function $F(t)$）。完全符合 linear ODE 标准形式，所以这是 <strong>linear</strong> ODE。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 为什么 coefficient 含 $t$ 没问题</p>
+        <p>
+          初学者有时会疑惑：$t^2 y''$ 里的 $t^2$ 不是 nonlinear 吗？其实不是。Linear/nonlinear 的判断标准是：方程关于 <em>unknown function $y$ 及其 derivatives</em> 是否 linear——至于 independent variable $t$ 怎么出现，完全自由。<br>
+          类比线性代数：$A\mathbf{x} = \mathbf{b}$ 是 linear system，因为它关于 unknown vector $\mathbf{x}$ is linear；matrix $A$ 的 entries 可以是任意数，这不影响 linearity。这里 $t$ 扮演的角色就类似 $A$ 的 entries，而 $y$ 才是 unknown。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="solutions">什么是 solution</h2>
+
+      <h3 id="explicit-solution">Explicit solution</h3>
+
+      <p>
+        知道了什么是 ODE，下一个问题自然是：什么叫"解"了这个 ODE？
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (explicit solution).</span>
+        给定 $n$-th order ODE 的 general form
+        $$F\!\left(x,\,y,\,y',\ldots,y^{(n)}\right) = 0 \qquad \forall\,x \in (a,b)$$
+        一个 function $\phi(x)$ 被称为这个方程在 $(a,b)$ 上的 <strong>explicit solution</strong>，如果：在 $(a,b)$ 上令 $y = \phi(x)$，代入方程后对所有 $x \in (a,b)$ 都成立（方程恒等于零）。
+      </div>
+
+      <p>
+        "Explicit"的意思是：$y$ 被明确地表示成 $x$ 的 function，即 $y = \phi(x)$，而不是以隐式（implicit）形式出现。与之对应的是 <strong>implicit solution</strong>：$y$ 和 $x$ 混在一个等式里（比如 $x^2 + y^2 = 1$），没有把 $y$ 单独解出来。Implicit solutions 在 Ch 2（separable equations）里会大量出现——有时候方程可以积分，但积分结果没有办法解出 $y$，只能保持隐式形式。
+      </p>
+
+      <p>
+        注意 definition 里还有"在 $(a,b)$ 上"的要求：solution 不一定要在所有 $x$ 上都有效，只需要在某个 interval $(a,b)$ 上满足方程。这个 interval 称为 solution 的 <strong>domain</strong>（或 interval of existence）。有些 ODE 的 solution 会在有限时间内"爆炸"（blowup，即趋向无穷），这时 domain 就是一个有限的 interval，而不是全实轴。
+      </p>
+
+      <h3 id="verify-solution">Verification 的方法</h3>
+
+      <p>
+        验证一个给定的 function 是否是某个 ODE 的 solution，方法很直接：<strong>代入，化简，看是否恒等于零</strong>。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.6 — Verification（$y'' + y = 0$）</p>
+        <p>
+          验证 $y = \cos t$ 是方程 $y'' + y = 0$ 的 explicit solution。
+        </p>
+        <p><strong>Solution：</strong></p>
+        <p>计算 derivatives：</p>
+        $$y = \cos t \implies y' = -\sin t \implies y'' = -\cos t$$
+        <p>代入方程：</p>
+        $$y'' + y = (-\cos t) + \cos t = 0 \checkmark$$
+        <p>
+          对所有 $t \in (-\infty, +\infty)$ 成立，因此 $y = \cos t$ 是 $y'' + y = 0$ 的 explicit solution。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.3.7 — Verification of $y=e^t$ for $y''-y=0$ (supplementary)</p>
+        <p>
+          验证 $y = e^t$ 是方程 $y'' - y = 0$ 的 explicit solution。
+        </p>
+        <p><strong>Solution：</strong></p>
+        $$y = e^t \implies y' = e^t \implies y'' = e^t$$
+        <p>代入方程：</p>
+        $$y'' - y = e^t - e^t = 0 \checkmark$$
+        <p>
+          因此 $y = e^t$ 是 $y'' - y = 0$ 的 explicit solution。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Verification vs Solving</p>
+        <p>
+          注意 verification（验证）和 solving（求解）是两件事，而且难度差异悬殊：<br><br>
+          &bull; <strong>Solving</strong>：从无到有，找出满足 ODE 的 function $y$。这通常需要技巧，比如 integrating factor、separation of variables、eigenvalue methods 等——是这门课的主要内容。<br>
+          &bull; <strong>Verification</strong>：给你一个 candidate function，只需要微分、代入方程、化简，看是否恒等于零。这就像"检查答案"，不需要知道当初怎么解出来的。<br><br>
+          这个区别在数学里很常见：验证一个猜测比从头找答案容易得多。在 Ch 3 里，我们会大量用到这种思路——先猜 solution 的形式（比如 $y = e^{rt}$，或 $y = t^r$），代入方程确定参数，通过 verification 确认。整个过程的哲学是：<em>聪明地猜测，然后验证</em>，而不是盲目地积分。<br><br>
+          另外，verification 还有一个用途：当你用数值方法得到近似解时，可以把它代回方程，看 residual（余量）是否足够小，从而判断精度——这是 numerical ODEs 的标准 quality check。
+        </p>
+      </div>
+
+      <h3 id="existence-uniqueness-preview">Existence &amp; Uniqueness（预告）</h3>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Existence &amp; uniqueness, briefly</p>
+        <p>有了 explicit solution 的定义之后，自然要问：对一个给定的 ODE，solution 一定存在吗？一定唯一吗？答案是"在合适的 hypotheses 下，是的"——这是一个 fundamental theorem，File 02（Sec 2.4）会给出 precise 的 statement 和 proof sketch，包括 initial value problem 的完整语言和 continuity conditions。现在只需要知道：本课程考虑的所有 ODE 都满足这些 hypotheses，所以我们可以放心地讨论"the solution"而不用担心它不存在或者有歧义。</p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="direction-fields">Direction fields</h2>
+
+      <p>
+        进入 Sec 1.1。到目前为止我们讨论的都是代数层面的分类。现在来看一种 <em>几何工具</em>——direction field，它让我们在不求出 closed-form solution 的情况下，直接"看见"解的行为。
+      </p>
+
+      <h3 id="slope-field-idea">Slope 的几何意义</h3>
+
+      <p>
+        考虑一个 first-order ODE：
+        $$\frac{dy}{dx} = f(x, y)$$
+        这个方程在说什么？对于平面上每一个点 $(x, y)$，它告诉我们：如果 solution curve 经过这个点，那么它在这里的 <strong>slope</strong>（切线斜率）等于 $f(x,y)$。换句话说，ODE 本身就是一张"斜率地图"——在你知道 solution 是什么之前，ODE 已经在每个点告诉你 solution 的"运动方向"了。这是一个非常强大的 insight：你不需要 solve 方程，就已经拥有了 solution 的局部信息。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (direction field).</span>
+        Given a first-order ODE $dy/dx = f(x,y)$，在 $xy$-plane 上各个点 $(x,y)$ 处画上 slope 等于 $f(x,y)$ 的 short line segments，所得到的图形称为这个 ODE 的 <strong>direction field</strong>（也叫 slope field）。
+      </div>
+
+      <p>
+        Direction field 的每一小段都是"solution curve 在该点的切线方向"的示意。Solution curve 在每一点都与对应的 line segment 相切——它就像在"顺着水流游动"，而 direction field 就是那片水流的流向图。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Direction field 是"流场"</p>
+        <p>
+          想象把很多根小箭头插在 $xy$-plane 上，每根箭头指示"如果 solution 经过此处，它会往哪个方向走"。Solution curve 就是"顺着箭头走"的路径——就像一片落叶漂浮在水面上，被水流带着走，而那片水流的流向图就是 direction field。<br><br>
+          这个几何工具的真正价值在于：大多数 nonlinear ODE（比如摆方程、Kidder's equation）根本没有 closed-form solution，你永远写不出 $y = \phi(t)$ 这样整洁的表达式。但即便如此，画出 direction field，你就能直观看到：随着 $t$ 增大，solution 是趋向某个 equilibrium，还是无限发散；初始条件稍微不同，长期行为会差异多大（这关系到 sensitivity 和 chaos）。这种不依赖 exact formula 的分析方式，叫做 <strong>qualitative analysis</strong>，是现代 dynamics 的核心工具之一。<br><br>
+          从计算角度来说，direction field 还是数值方法（比如 Euler's method）的基础：你从某个初始点 $(t_0, y_0)$ 出发，按照 direction field 给出的 slope 走一小步，再按新点的 slope 走下一小步，如此循环。这就是用直线段近似 solution curve 的思路，在 Ch 2 末尾的数值方法里会看到。
+        </p>
+      </div>
+
+      <p style="text-align:center;color:var(--fg-muted)">[Direction field figure — TODO]</p>
+
+      <h3 id="reading-direction-fields">Reading a direction field</h3>
+
+      <p>
+        如何从 direction field 中读取信息？关键是看"随着 $t \to \infty$，solution $y(t)$ 趋向何处"。两种典型行为：
+      </p>
+      <ul>
+        <li><strong>Convergence（收敛）</strong>：solution curves 从上下两侧都向某个 constant level 靠拢，说明这个 constant 是 stable equilibrium。</li>
+        <li><strong>Divergence（发散）</strong>：solution curves 远离某个 constant level，说明这个 constant 是 unstable equilibrium。</li>
+      </ul>
+
+      <p>
+        在实践中，读 direction field 的步骤如下。首先，找到所有 <strong>equilibrium solutions</strong>——它们是 direction field 里 slope = 0（即小线段水平）的 level。这些水平线把 $y$-axis 分成若干区间。在每个区间里，选一个代表点，计算 $f(x,y)$ 的符号（正还是负）：正表示 solution 在该区间内是单调递增的，负表示单调递减。由此可以判断：一个 equilibrium 的两侧，若 solutions 都朝它靠近（一侧递增、另一侧递减，且两者方向都指向 equilibrium），则它是 <strong>stable</strong>；若两侧 solutions 都远离（方向都指离 equilibrium），则它是 <strong>unstable</strong>。
+      </p>
+
+      <p>
+        对 <strong>autonomous ODEs</strong>（即 $y' = f(y)$，右边不含 $t$），还有一个特别的性质：在 direction field 里，同一水平高度 $y = c$ 上所有点的 slope 完全相同——因为 $f(y)$ 只取决于 $y$，与 $t$ 无关。这意味着 direction field 是"水平平移不变的"（horizontally translation-invariant）：整张图从左平移到右，看起来完全一样。这个性质让 autonomous ODEs 的 direction field 特别规则，也让我们可以把二维的 direction field 压缩成一维的 <strong>phase line</strong>（仅用 $y$-axis 就能描述所有定性信息）。
+      </p>
+
+      <p>
+        对 <strong>non-autonomous ODEs</strong>（右边含 $t$），direction field 的形状随 $t$ 变化，分析起来更复杂。但如果某些 terms 在 $t \to \infty$ 时消失（比如 $1/t^2 \to 0$），就可以用"大 $t$ 时的近似方程"来判断长期行为——这正是 Example 1.1.2 的做法。
+      </p>
+
+      <p>
+        一个常见的陷阱：不要把 direction field 里单根线段的"看起来水平"误认为 equilibrium。真正判断 equilibrium 要精确计算 $f(x,y) = 0$ 的解，不能靠视觉估计。另外，direction field 只告诉你 slope 的信息，不直接告诉你 solution 的 concavity（凹凸性）——后者需要计算 $y''$，涉及 $f$ 对 $x$ 和 $y$ 的偏导。
+      </p>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="equilibrium">Equilibrium solutions</h2>
+
+      <p>
+        看 direction field 的时候，我们最容易注意到的是那些"静止不动"的 solution——它们就是 equilibrium solutions。一旦系统到达 equilibrium，它就永远停在那里：没有外力，没有扰动，系统不会自发改变状态。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (equilibrium solution).</span>
+        An <strong>equilibrium solution</strong> of a differential equation is a <em>constant</em> solution, i.e., $y = c$ for some constant $c$, such that $y' = 0$.
+      </div>
+
+      <p>
+        关键点：constant function 的 derivative 恒为 0。所以对于 ODE $y' = f(t, y)$，要找 equilibrium solutions，只需令 $f(t, y) = 0$ 并解出 constant $y$（也就是不依赖 $t$ 的解）。注意，这只对 autonomous ODE（$f$ 不显式含 $t$）总是有效；对 non-autonomous ODE，方程 $f(t,y) = 0$ 的解可能依赖 $t$，那就不是 constant solution，也不是 equilibrium。
+      </p>
+
+      <p>
+        为什么 equilibrium solutions 重要？在物理和工程中，equilibrium 往往对应系统的"稳态"（steady state）：温度最终均匀分布的状态、弹簧停止振动时的静止位置、种群动态中食肉动物和猎物数量的长期平衡点。理解系统有哪些 equilibria、每个是 stable 还是 unstable，就基本上理解了这个系统的长期行为——即使你完全不知道 closed-form solution。
+      </p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Equilibrium 是 solution，不是一个"点"</p>
+        <p>
+          Equilibrium solution $y = c$ 是一条 <em>horizontal line</em>（水平线），贯穿整个 $t$-axis——它是一条完整的 solution curve，不是一个点。<br>
+          常见错误：把 "equilibrium at $y=3$" 理解成坐标系里的某个点。正确理解是：$y(t) = 3$ 对所有 $t$ 成立，即 solution 始终保持在高度 3 的那条水平线上。<br>
+          在 direction field 里，equilibrium solution 对应的那一行 line segments 全都是水平的（slope = 0）。
+        </p>
+      </div>
+
+      <p>
+        Equilibrium solutions 还可以按 stability（稳定性）分类：
+      </p>
+      <ul>
+        <li><strong>Stable equilibrium</strong>：附近的 solution curves 都 converge to it as $t \to \infty$（被它"吸引"）。即使初始条件稍偏离 equilibrium，系统也会自动"修正"，最终回到 equilibrium。</li>
+        <li><strong>Unstable equilibrium</strong>：附近的 solution curves 都 diverge from it as $t \to \infty$（被它"排斥"）。哪怕初始条件只是微小偏离，系统也会越跑越远，永远不回来。</li>
+      </ul>
+
+      <p>
+        经典的物理比喻：把一个小球放在一个碗的底部（stable）vs 把它放在一个倒扣碗的顶部（unstable）。前者：稍微推一下，球会晃动几下，最终还是回到碗底。后者：稍微一推，球就滚下去了，再也不会回来。Stable equilibrium 就是"碗底"；unstable equilibrium 就是"山顶"——理论上球可以平衡在山顶，但任何一点扰动都会导致它滚落。
+      </p>
+
+      <p>
+        摆方程给了一个同时有 stable 和 unstable equilibria 的例子：$\theta = 0$（摆竖直向下）是 stable equilibrium——推一下会摆动，但最终（有阻尼的情况下）回到 $\theta = 0$。$\theta = \pi$（摆竖直向上）是 unstable equilibrium——理论上可以倒立，但任何扰动都会导致它倒下。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.1.1 — Direction field and equilibrium: $y' = \dfrac{3-y}{2}$</p>
+        <p>
+          分析 first-order ODE $y' = \dfrac{3-y}{2}$ 的 direction field 和 long-time behavior。
+        </p>
+        <p><strong>Step 1：找 equilibrium solution。</strong></p>
+        <p>
+          令 $y' = 0$：$\dfrac{3-y}{2} = 0 \implies y = 3$。所以 $y = 3$ 是 equilibrium solution。
+        </p>
+        <p><strong>Step 2：分析 slopes。</strong></p>
+        <p>
+          注意到 $y'$ 只依赖 $y$，不依赖 $t$（即 $x$）——这意味着在同一水平高度 $y$ 处，所有 line segments 的 slope 相同。
+        </p>
+        <table class="data-table">
+          <tr>
+            <th>$(t, y)$</th>
+            <th>$y'$</th>
+          </tr>
+          <tr><td>$(0, 2)$</td><td>$1/2$（正，向上）</td></tr>
+          <tr><td>$(0, 4)$</td><td>$-1/2$（负，向下）</td></tr>
+          <tr><td>$(0, 3)$</td><td>$0$（水平）</td></tr>
+          <tr><td>$(0, 1)$</td><td>$1$（正，向上）</td></tr>
+        </table>
+        <p><strong>Step 3：分析 long-time behavior。</strong></p>
+        <ul>
+          <li>For $y > 3$：$y' < 0$，solution 递减，向 $y = 3$ 靠近。</li>
+          <li>For $y < 3$：$y' > 0$，solution 递增，向 $y = 3$ 靠近。</li>
+          <li>For $y = 3$：$y' = 0$，solution 保持不变。</li>
+        </ul>
+        <p style="margin-top:0.5em;">
+          <strong>结论：</strong>As $t \to \infty$，$y(t)$ converges to the equilibrium solution $y = 3$。这是一个 <strong>stable equilibrium</strong>。
+        </p>
+        <p style="text-align:center;color:var(--fg-muted)">[Direction field figure — TODO]</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 1.1.2 — Direction field and equilibrium: $\dfrac{dy}{dt} = y - 2 + \dfrac{1}{t^2}$</p>
+        <p>
+          分析 first-order ODE $\dfrac{dy}{dt} = y - 2 + \dfrac{1}{t^2}$ 的 direction field 和 long-time behavior。
+        </p>
+        <p><strong>关键观察：</strong></p>
+        <p>
+          注意到 $\lim_{t \to \infty} \dfrac{1}{t^2} = 0$，所以对 large $t$，方程近似为 $y' \approx y - 2$。
+        </p>
+        <p><strong>Large-$t$ 行为分析（用近似方程 $y' \approx y - 2$）：</strong></p>
+        <table class="data-table">
+          <tr>
+            <th>$y$（large $t$）</th>
+            <th>$y'$ 近似</th>
+          </tr>
+          <tr><td>$y = 2$</td><td>$0$（水平）</td></tr>
+          <tr><td>$y = 0$</td><td>$-2$（负，向下）</td></tr>
+          <tr><td>$y = 4$</td><td>$2$（正，向上）</td></tr>
+          <tr><td>$y = 6$</td><td>$4$（正，向上）</td></tr>
+        </table>
+        <p><strong>Long-time behavior：</strong></p>
+        <ul>
+          <li>For $y > 2$ as $t \to \infty$：$y' > 0$，solution 递增，$y \to +\infty$（发散）。</li>
+          <li>For $y = 2$ as $t \to \infty$：$y' \to 0$，$y \to 2$（保持不变）。</li>
+          <li>For $y < 2$ as $t \to \infty$：$y' < 0$，solution 递减，$y \to -\infty$（发散）。</li>
+        </ul>
+        <p style="margin-top:0.5em;">
+          <strong>结论：</strong>As $t \to \infty$，$y(t)$ diverges from the equilibrium solution $y = 2$。这是一个 <strong>unstable equilibrium</strong>。
+        </p>
+        <p style="text-align:center;color:var(--fg-muted)">[Direction field figure — TODO]</p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Autonomous ODEs 和 Phase Line</p>
+        <p>
+          在 Example 1.1.1 中，$y' = (3-y)/2$ 的右边只含 $y$，不含 $t$（independent variable）——这类 ODE 被称为 <strong>autonomous ODE</strong>。<br><br>
+          Autonomous ODEs 有一个很好的性质：$y'$ 只取决于当前 $y$ 值，与"现在是什么时刻"无关。这意味着 direction field 是"时间平移不变的"——在不同时刻 $t$，同一高度 $y$ 处的 slope 完全相同。这允许我们用 <strong>phase line</strong>（相线）来分析稳定性：把二维的 direction field 压缩成一维——只在 $y$-axis 上标出所有 equilibria，在各区间上用箭头标出 $y'$ 的符号（正则箭头向上，负则向下），就能立刻看出解的走向和每个 equilibrium 的稳定性，完全不需要画完整的 direction field。<br><br>
+          具体做法：找出所有满足 $f(y) = 0$ 的 $y$ 值（equilibria），将 $y$-axis 分成若干区间。在每个区间取一个代表点，计算 $f(y)$ 的符号：若正，则该区间内 solutions 递增（朝上走）；若负，则递减（朝下走）。一个 equilibrium $y^*$ 是 stable 当且仅当其两侧的箭头都指向它（上方向下、下方向上）；是 unstable 当且仅当两侧箭头都背离它。<br><br>
+          Example 1.1.2 则是 <strong>non-autonomous</strong> 的（含 $1/t^2$），所以 direction field 的形状随 $t$ 变化，分析起来稍复杂——但 $t \to \infty$ 时 $1/t^2 \to 0$，近似回到了 autonomous 的情况。Phase line 的完整方法在 Sec 2.5 中会系统展开。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary &amp; 下一步</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>本文件涵盖了 MATH 20D 最基础的语言和工具：</p>
+      <ul>
+        <li><strong>DE → ODE/PDE</strong>：按 independent variables 数量区分；本课专注 ODEs。</li>
+        <li><strong>Order</strong>：方程中最高 derivative 的阶数（≠ degree）。</li>
+        <li><strong>Linear ODE</strong>：$y$ and its derivatives of all orders appear only to the first power；satisfies superposition principle。
+          $$a_n(t)y^{(n)} + \cdots + a_1(t)y' + a_0(t)y = F(t)$$
+        </li>
+        <li><strong>General form</strong> of $n$-th order ODE：$F(x,y,y',\ldots,y^{(n)}) = 0$，$\forall x \in (a,b)$。</li>
+        <li><strong>Explicit solution</strong>：代入方程后恒等于零的 function $\phi(x)$；verification 方法：直接微分代入。</li>
+        <li><strong>Direction field</strong>：在 $xy$-plane 上画出每点的 slope $f(x,y)$ 对应的 line segment；solution curves 沿它"流动"。</li>
+        <li><strong>Equilibrium solution</strong>：constant solution $y = c$；stable 则周围解向它收敛，unstable 则周围解发散。</li>
+      </ul>
+
+      <h3 id="looking-ahead">Looking Ahead</h3>
+
+      <p>
+        下一个文件（<a href="02-first-order.html">02. First-Order ODEs</a>）覆盖 Sections 2.1, 2.2, 2.4, 2.5, 2.6，进入实际的求解方法：
+      </p>
+      <ul>
+        <li><strong>Sec 2.1</strong>：linear first-order ODEs 的 integrating factor 方法，解 IVPs。</li>
+        <li><strong>Sec 2.2</strong>：separable equations 的求解。</li>
+        <li><strong>Sec 2.4</strong>：Existence-Uniqueness Theorem 的完整陈述（linear 和 nonlinear 版本）。</li>
+        <li><strong>Sec 2.5</strong>：autonomous equations 的 phase line 分析（从这里的 direction field 自然延伸）。</li>
+        <li><strong>Sec 2.6</strong>：exact equations。</li>
+      </ul>
+      <p>
+        这里铺垫好的 linearity、order、solution 等概念，将在 File 02 里大量用到。特别是：linear ODE 的 standard form、forcing function 的概念、verification 的方法——这些都是 File 02 里 integrating factor 方法的直接基础。Direction field 和 equilibrium analysis 的语言，将在 Sec 2.5（autonomous equations and phase line）里得到系统化的延伸。
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

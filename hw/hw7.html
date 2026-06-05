@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW7 · Sec 6.3, 6.4 · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW7 · §6.3 + §6.4 — Step Functions, Discontinuous Forcing</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW7 索引 — §6.3 (Step functions) + §6.4 (Discontinuous forcing)</h1>
+    <p class="note">Section 6.3 Problems 2, 5, 7, 10, 14, 15 · Section 6.4 Problems 1, 3, 6, 9, 13 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../08-laplace-discontinuous.html">File 08 §6.3–6.4</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <div class="box warning">
+        <p class="box-title">📌 关于本页 — 索引页</p>
+        <p>
+          HW7 的全部 11 道题在 <strong><a href="../mt2-03-laplace.html">MT2 Part 3 (Laplace)</a></strong> 文件里已有完整逐题展开（每题约 25–40 行 detailed solution）——本页只列出题目摘要 + 一句策略 + 跳转链接，避免内容重复。如果你想看每道题的完整推导，点最右边的 "→ 完整解" 链接直接跳转到 mt2-03 的对应锚点。
+        </p>
+      </div>
+
+      <p>HW7 的两节内容是 Laplace transform 应用范围的第一次扩展：</p>
+      <ul>
+        <li><strong>§6.3 Step functions and translation theorem</strong>（6 题）：把<em>piecewise continuous</em> functions 用 Heaviside step function $u_c(t) = u(t-c)$ 组合表达，然后用 <em>translation theorem</em> $\mathcal{L}\{u_c(t) f(t-c)\} = e^{-cs} F(s)$ 在 $s$ 域处理。重点是<strong>"增量法"</strong>写 piecewise functions：在每个 breakpoint 处加上"净变化量"乘 $u(t-c)$。</li>
+        <li><strong>§6.4 IVPs with discontinuous forcing</strong>（5 题）：把 §6.3 的工具用于解 IVPs。流程：用 step function 重写 forcing → 取 Laplace → 解 $Y(s)$ → 拆 partial fractions（注意 $e^{-cs}$ 因子要剥离）→ 用 translation theorem 反变换。</li>
+      </ul>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) Translation theorem 方向：</strong>$\mathcal{L}\{u_c(t) f(t-c)\} = e^{-cs} F(s)$ —— 把 $f$ 写成 $f(t-c)$ 不是 $f(t)$。反变换时 $\mathcal{L}^{-1}\{e^{-cs} F(s)\} = u_c(t) f(t-c)$，必须把 $f(t)$ 里所有 $t$ 都替换成 $t-c$，再乘 $u_c(t)$。<br><br>
+          <strong>(2) 增量法 vs 绝对值法：</strong>把 piecewise function 写成 step function 组合时，每个 $u_c(t)$ 前的系数是"在 $t = c$ 处的<em>跳跃量</em>"（新值减旧值），不是该段的绝对值。例：$f(t) = 0, 2, 5$ 在 $0 \le t < 1$, $1 \le t < 2$, $t \ge 2$ 上的值，写成 $f(t) = 2 u_1(t) + 3 u_2(t)$（跳跃 $0 \to 2$ 是 $+2$，再 $2 \to 5$ 是 $+3$），不是 $2 u_1(t) + 5 u_2(t)$.<br><br>
+          <strong>(3) Completing the square 必备：</strong>分母 $s^2 + ps + q$ 判别式 $< 0$ 时不能用 quadratic formula 硬展开复数 partial fractions——必须先 completing the square 写成 $(s + p/2)^2 + (q - p^2/4)$，再用 $s$-shifting $\mathcal{L}^{-1}\{F(s-a)\} = e^{at} f(t)$ 还原。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-6-3">§6.3 Problems — Step functions and translation theorem</h2>
+
+      <p>本节 6 题。前 3 题（#2, 5, 7）练"把 piecewise functions 用 $u_c$ 表达"；中间 1 题（#10）练对 $u_c$ 函数求 Laplace transform；后 2 题（#14, 15）练 inverse Laplace 时识别 $e^{-cs}$ 因子。所有题目的完整推导在 mt2-03。</p>
+
+      <h3 id="p6-3-2">§6.3 #2 — Sketch $g(t) = f(t-\pi) u_\pi(t)$, $f(t) = t^2$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-2">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$u_\pi(t)$ 把整条曲线在 $t < \pi$ 处砍掉为零；$f(t-\pi)$ 把 $f$ 整体右移 $\pi$ 个单位。最终图像是"$y = (t-\pi)^2$ 在 $t \ge \pi$，否则为 0"。这是<em>把 translation theorem 视觉化</em>的题——理解 $u_c(t) f(t-c)$ 这个组合"长什么样"。</p>
+
+      <h3 id="p6-3-5">§6.3 #5 — Piecewise function in $u_c$ form &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-5">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$f(t)$ 在 $[0, 3), [3, 5), [5, 7), [7, \infty)$ 上分别取值 $0, -2, 2, 1$.</p>
+      <p><strong>策略：</strong>增量法。每个 breakpoint 处的<em>跳跃量</em>（新 - 旧）乘上 $u_c(t)$：$0 \to -2$ 跳 $-2$, $-2 \to 2$ 跳 $+4$, $2 \to 1$ 跳 $-1$. 得 $f(t) = -2 u_3(t) + 4 u_5(t) - u_7(t)$.</p>
+
+      <h3 id="p6-3-7">§6.3 #7 — Piecewise with exponential tail &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-7">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$f(t) = 1$ 在 $[0, 2)$，$f(t) = e^{-(t-2)}$ 在 $t \ge 2$.</p>
+      <p><strong>策略：</strong>把 $f$ 写成 $1 + [e^{-(t-2)} - 1] u_2(t)$. 即"基础值 $1$，从 $t=2$ 起加上一个增量 $e^{-(t-2)} - 1$"。这是<em>增量法</em>遇到非常数段时的标准用法。</p>
+
+      <h3 id="p6-3-10">§6.3 #10 — $\mathcal{L}\{f\}$ for triangular pulse &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-10">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$f(t) = 0$ 在 $t < \pi$, $f(t) = t - \pi$ 在 $\pi \le t < 2\pi$, $f(t) = 0$ 在 $t \ge 2\pi$.</p>
+      <p><strong>策略：</strong>先用增量法写：$f(t) = (t - \pi) u_\pi(t) - (t - \pi) u_{2\pi}(t)$. 注意第二段要写成 $-(t - \pi)$（不是 $-(t - 2\pi)$），让 $u_{2\pi}$ 的系数恰好等于 $\pi - (t-\pi)$ 实际的跳跃。然后整理用 translation theorem 求 Laplace：$\mathcal{L}\{f\} = \dfrac{e^{-\pi s}}{s^2} - \dfrac{e^{-2\pi s}}{s^2} - \dfrac{\pi e^{-2\pi s}}{s}$.</p>
+
+      <h3 id="p6-3-14">§6.3 #14 — $\mathcal{L}^{-1}\{e^{-2s}/(s^2 + s - 2)\}$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-14">→ 完整解</a></h3>
+      <p><strong>策略：</strong>分母 $s^2 + s - 2 = (s+2)(s-1)$，partial fractions $\dfrac{1}{(s+2)(s-1)} = \dfrac{1}{3}\left(\dfrac{1}{s-1} - \dfrac{1}{s+2}\right)$，对应 $\dfrac{1}{3}(e^t - e^{-2t})$. 再乘上 $e^{-2s}$ 用 translation theorem：每个 $t$ 换成 $t-2$，最后乘 $u_2(t)$.</p>
+
+      <h3 id="p6-3-15">§6.3 #15 — $\mathcal{L}^{-1}\{2(s-1)e^{-2s}/(s^2 - 2s + 2)\}$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-3-15">→ 完整解</a></h3>
+      <p><strong>策略：</strong>分母 $s^2 - 2s + 2 = (s-1)^2 + 1$（completing the square）。$\dfrac{2(s-1)}{(s-1)^2 + 1}$ 用 $s$-shifting 反变换得 $2 e^t \cos t$. 再用 translation theorem 处理 $e^{-2s}$：换 $t \to t-2$，乘 $u_2(t)$，得 $2 u_2(t) e^{t-2} \cos(t-2)$.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-6-4">§6.4 Problems — IVPs with discontinuous forcing</h2>
+
+      <p>本节 5 题。把 §6.3 的工具用于解 IVPs $y'' + py' + qy = g(t)$，其中 $g(t)$ piecewise continuous。流程几乎一致：step function 重写 → Laplace → 解 $Y(s)$ → 拆 + reverse。</p>
+
+      <h3 id="p6-4-1">§6.4 #1 — $y'' + y = $ rectangular pulse &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-4-1">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$y'' + y = 1 - u_{3\pi}(t)$, $y(0) = 0, y'(0) = 1$.</p>
+      <p><strong>策略：</strong>Forcing 是 rectangular pulse（值 $1$ 在 $[0, 3\pi)$，否则 $0$）。Laplace → $Y(s) = \dfrac{1 - e^{-3\pi s}}{s(s^2+1)} + \dfrac{1}{s^2+1}$. Partial fractions $\dfrac{1}{s(s^2+1)} = \dfrac{1}{s} - \dfrac{s}{s^2+1}$ → 反变换 $1 - \cos t$. 加上 $\sin t$（来自 IC）和 translation 处理 $e^{-3\pi s}$.</p>
+
+      <h3 id="p6-4-3">§6.4 #3 — $y'' + 4y = \sin t - u_{2\pi}(t)\sin(t - 2\pi)$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-4-3">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$y(0) = 0, y'(0) = 0$. Forcing 是一段周期为 $2\pi$ 的 sine 突然停止。</p>
+      <p><strong>策略：</strong>关键观察 $\sin(t - 2\pi) = \sin t$，所以可以等价写成 $\sin t [1 - u_{2\pi}(t)]$. Laplace 后 partial fractions 涉及 $\dfrac{1}{(s^2+1)(s^2+4)}$（不同 quadratic factors），用 $\dfrac{1}{3}\left(\dfrac{1}{s^2+1} - \dfrac{1}{s^2+4}\right)$ 拆开。</p>
+
+      <h3 id="p6-4-6">§6.4 #6 — $y'' + y' + (5/4) y = $ piecewise sine &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-4-6">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$y(0) = 0, y'(0) = 0$, $g(t) = \sin t$ 在 $[0, \pi)$，否则 $0$.</p>
+      <p><strong>策略：</strong>$g(t) = \sin t [1 - u_\pi(t)] = \sin t - u_\pi(t) \sin t$. 第二项要重写成 $u_\pi(t) f(t-\pi)$ 形式：$\sin t = \sin((t-\pi) + \pi) = -\sin(t-\pi)$. 所以 forcing $= \sin t + u_\pi(t)\sin(t-\pi)$. 分母 $s^2 + s + 5/4 = (s + 1/2)^2 + 1$（completing square），所有项都是 $e^{-t/2}\sin t / e^{-t/2}\cos t$ 形式。</p>
+
+      <h3 id="p6-4-9">§6.4 #9 — Express ramp-up function in $u_c$ form &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-4-9">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>构造一个 ramps from 0 at $t = t_0$ to value $h$ at $t = t_0 + k$ 的 function。</p>
+      <p><strong>策略：</strong>$f(t) = \dfrac{h}{k}\bigl[(t - t_0) u_{t_0}(t) - (t - t_0 - k) u_{t_0 + k}(t)\bigr]$. 第一项 $\dfrac{h}{k}(t-t_0)u_{t_0}$ 是从 $t_0$ 开始斜率 $h/k$ 的直线；第二项把斜率"切回零"。这是 ramp / saturation 模型的标准 building block，应用在控制系统、信号生成。</p>
+
+      <h3 id="p6-4-13">§6.4 #13 — Infinite sum of step pulses &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-4-13">→ 完整解</a></h3>
+      <p><strong>策略：</strong>这是 6.4 最复杂的题——forcing 是无穷多个 step pulse 的和（periodic forcing）。利用 geometric series $\sum_{k=0}^\infty x^k = \dfrac{1}{1-x}$ 来求和 $\sum_k e^{-k a s} = \dfrac{1}{1 - e^{-as}}$. Periodic Laplace transform 的雏形——formula 不会在本课直接考，但思路（"$\sum_k$"对应 "$1/(1-r)$"）是 Sec 6.4 的概念高点。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="pipeline">通用解题 pipeline（§6.3 + §6.4）</h3>
+      <ol>
+        <li><strong>识别 forcing 类型：</strong>是 piecewise constants? Piecewise polynomials? Piecewise sines? 不同形态对应不同的 $u_c$ 重写方法。</li>
+        <li><strong>用增量法把 forcing 写成 $u_c$ 组合：</strong>每个 breakpoint 处的<em>跳跃量</em>乘 $u_c$. 若该段是非常数（如 $t - \pi$ 或 $e^{-(t-2)}$），要把整段"差值"作为系数。</li>
+        <li><strong>对 ODE 两边取 Laplace transform：</strong>左边用 derivative property $\mathcal{L}\{y''\} = s^2 Y - s y(0) - y'(0)$；右边用 translation theorem 把 $u_c(t) f(t-c)$ 换成 $e^{-cs} F(s)$.</li>
+        <li><strong>解出 $Y(s)$：</strong>一般形如 "<em>多项式分式</em> $\times (1 + e^{-c_1 s} + e^{-c_2 s} + \cdots)$"。</li>
+        <li><strong>处理分母：</strong>判别式 $\ge 0$ → partial fractions；判别式 $< 0$ → completing the square + $s$-shifting。</li>
+        <li><strong>反变换：</strong>无 $e^{-cs}$ 因子的项直接查表；有 $e^{-cs}$ 因子的项用 translation theorem 反向：把 $f(t)$ 里所有 $t$ 换成 $t-c$，乘 $u_c(t)$.</li>
+        <li><strong>合并写成 $u_c$ 表达或分段函数：</strong>两种都可接受，看题目要求。</li>
+      </ol>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Step function Laplace</strong>: $\mathcal{L}\{u_c(t)\} = \dfrac{e^{-cs}}{s}$, $c \ge 0$. → <a href="../08-laplace-discontinuous.html#laplace-of-step">File 08 §laplace-of-step</a></li>
+        <li><strong>Translation theorem (t-shifting)</strong>: $\mathcal{L}\{u_c(t) f(t-c)\} = e^{-cs} F(s)$, 反向 $\mathcal{L}^{-1}\{e^{-cs} F(s)\} = u_c(t) f(t-c)$. → <a href="../08-laplace-discontinuous.html#translation-theorem">File 08 §translation-theorem</a></li>
+        <li><strong>$s$-shifting</strong>: $\mathcal{L}^{-1}\{F(s-a)\} = e^{at} f(t)$. → <a href="../07-laplace-basics.html#table">File 07 §table</a></li>
+        <li><strong>Completing the square</strong>: $s^2 + ps + q = (s + p/2)^2 + (q - p^2/4)$. Underdamped case 必备。</li>
+        <li><strong>增量法</strong>: 把 piecewise $f$ 写成 $\sum_k \Delta_k\, u_{c_k}(t)$ 或 $\sum_k \Delta_k(t)\, u_{c_k}(t)$，其中 $\Delta_k$ 是 $t = c_k$ 处的跳跃量。</li>
+      </ul>
+
+      <h3 id="why-redirect">为什么这页是 redirect</h3>
+      <p>
+        HW7 的 11 道题恰好等于 <a href="../mt2-03-laplace.html">mt2-03</a> 文件的 §6.3 和 §6.4 全部展开。mt2-03 是为 Midterm 2（范围 §3.5–§6.4）设计的应试导向 review，深度和广度都比本页"per-HW 索引"更高——它包含 cheat sheet、决策树、common pitfalls 等附加内容。所以本页只起<strong>索引</strong>作用，避免把同样内容写两遍。
+      </p>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW7 之后是 <a href="hw8.html">HW8 (§6.5 — Dirac delta)</a>，HW8 是<em>有</em>完整 per-HW walkthrough 的（不是 redirect），因为 §6.5 不在 MT2 范围内。然后 <a href="hw9.html">HW9 (§6.6 + Ch 5)</a> 同样有完整 walkthrough。整个 HW7 → HW8 → HW9 系列对应 Laplace transform 完整工具箱 + series methods 的最终扩展。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

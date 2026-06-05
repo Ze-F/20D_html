@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MT2 Review · Part 5 — Targeted Drills · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+
+  <style>
+    /* Drill-specific styling for collapsible solutions */
+    details {
+      margin: 1em 0;
+      padding: 0.6em 1em;
+      border-left: 3px solid var(--accent, #4a9eff);
+      background: var(--bg-subtle, rgba(74, 158, 255, 0.06));
+      border-radius: 4px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0.4em 0;
+      user-select: none;
+    }
+    details summary:hover {
+      color: var(--accent, #4a9eff);
+    }
+    details[open] summary {
+      margin-bottom: 0.6em;
+      border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+    }
+    .drill-hint {
+      font-style: italic;
+      color: var(--fg-muted);
+      font-size: 0.92em;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">MT2 Review · Part 5 — Targeted Drills</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>MT2 Review · Part 5 — Targeted Drills</h1>
+    <p class="note">UCSD MATH 20D Spring 2026 · 针对三个薄弱点的专项突破：§3.6 Variation of Parameters · Laplace derivative rule signs · Complex eigenvalue formula</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="how-to-use">How to use this page</h2>
+      <p>
+        每个 drill 格式：<strong>Problem → 自己试（~X 分钟）→ 点击展开 full solution 对答案</strong>。下方 <code>👆 Click to reveal solution</code> 是可点击的折叠块（HTML <code>&lt;details&gt;</code> 元素，纯前端，不需要 JavaScript）。
+      </p>
+      <p>
+        强烈建议<strong>先自己动手做</strong>再展开。看完 solution 后，如果有错，再做一遍直到 cleanly。
+      </p>
+      <p>
+        三个 section 顺序：
+      </p>
+      <ol>
+        <li><a href="#sec-vop">§3.6 Variation of Parameters</a>（你完全没掌握的）</li>
+        <li><a href="#sec-laplace">Laplace derivative rule signs</a>（你符号错的）</li>
+        <li><a href="#sec-complex">Complex eigenvalue formula</a>（你 $\mathbf{u}, \mathbf{v}$ 公式记错的）</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-vop">1. §3.6 Variation of Parameters</h2>
+
+      <h3 id="vop-reminder">公式 reminder</h3>
+      <div class="def">
+        <span class="def-label">Variation of parameters.</span>
+        给定 second-order linear ODE in <strong>standard form</strong>:
+        $$y'' + p(t)\, y' + q(t)\, y = g(t)$$
+        （leading coefficient 必须是 1！如果原方程是 $a y'' + b y' + c y = f$，先除以 $a$）.
+        设 $y_H = c_1 y_1 + c_2 y_2$ 是对应 homogeneous 方程的 general solution。则 particular solution 是
+        $$y_P = u_1(t) y_1(t) + u_2(t) y_2(t)$$
+        其中
+        $$u_1' = -\dfrac{y_2 \, g}{W}, \qquad u_2' = \dfrac{y_1 \, g}{W}, \qquad W = W(y_1, y_2) = y_1 y_2' - y_2 y_1'.$$
+        积分 $u_1', u_2'$ 得 $u_1, u_2$（<strong>不加 $+C$</strong>）.
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Top 3 pitfalls</p>
+        <ol>
+          <li><strong>不化 standard form</strong>：$4 y'' + \ldots = 16 e^{t/2}$ 一定要先除以 4 得 $g = 4 e^{t/2}$.</li>
+          <li><strong>$W$ 符号写错</strong>：是 $y_1 y_2' - y_2 y_1'$（按 $\det$ 第一列、第二列），不是 $y_1' y_2 - y_2' y_1$.</li>
+          <li><strong>$u_1, u_2$ 加积分常数</strong>：不要加 $+C$，那部分会被 $y_H$ 吸收.</li>
+        </ol>
+      </div>
+
+      <h3 id="vop-drill-1">🎯 Drill 1 — Constant coeff, $\tan$ forcing</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Find the general solution of $y'' + 4y = \tan(2t)$ on $-\pi/4 &lt; t &lt; \pi/4$.</p>
+        <p class="drill-hint">这是经典 §3.6 题型。$\tan$ 不在 §3.5 ansatz 表里，必须 variation of parameters. 大约 8-10 分钟. 关键积分：$\int \sec(2t)\, dt = \dfrac{1}{2}\ln|\sec(2t) + \tan(2t)|$.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（standard form check）：</strong> 方程已经是 standard form（$y''$ 前系数 = 1）. $g(t) = \tan(2t)$.</p>
+
+          <p><strong>Step 2（homogeneous）：</strong> $r^2 + 4 = 0 \Rightarrow r = \pm 2i$. $y_1 = \cos(2t), y_2 = \sin(2t)$. $y_H = c_1 \cos(2t) + c_2 \sin(2t)$.</p>
+
+          <p><strong>Step 3（Wronskian）：</strong>
+          $$W = \cos(2t) \cdot 2\cos(2t) - \sin(2t) \cdot (-2\sin(2t)) = 2\cos^2(2t) + 2\sin^2(2t) = 2.$$
+          </p>
+
+          <p><strong>Step 4（$u_1', u_2'$）：</strong>
+          $$u_1' = -\dfrac{y_2 g}{W} = -\dfrac{\sin(2t) \tan(2t)}{2} = -\dfrac{\sin^2(2t)}{2\cos(2t)} = -\dfrac{1 - \cos^2(2t)}{2\cos(2t)} = -\dfrac{1}{2}\sec(2t) + \dfrac{1}{2}\cos(2t).$$
+          $$u_2' = \dfrac{y_1 g}{W} = \dfrac{\cos(2t) \tan(2t)}{2} = \dfrac{\sin(2t)}{2}.$$
+          </p>
+
+          <p><strong>Step 5（积分）：</strong>
+          $$u_1 = -\dfrac{1}{4}\ln|\sec(2t) + \tan(2t)| + \dfrac{1}{4}\sin(2t).$$
+          （这里用 $\int \sec(2t)\, dt = \dfrac{1}{2}\ln|\sec(2t) + \tan(2t)|$，所以 $\int -\dfrac{1}{2}\sec(2t)\, dt = -\dfrac{1}{4}\ln|\sec(2t) + \tan(2t)|$. 类似 $\int \dfrac{1}{2}\cos(2t)\, dt = \dfrac{1}{4}\sin(2t)$.）
+          $$u_2 = -\dfrac{1}{4}\cos(2t).$$
+          在 $(-\pi/4, \pi/4)$ 上 $\sec(2t) + \tan(2t) > 0$，去掉绝对值.</p>
+
+          <p><strong>Step 6（$y_P$）：</strong>
+          $$\begin{aligned}
+          y_P &= u_1 y_1 + u_2 y_2 \\
+              &= \left[-\dfrac{1}{4}\ln(\sec(2t) + \tan(2t)) + \dfrac{1}{4}\sin(2t)\right]\cos(2t) + \left[-\dfrac{1}{4}\cos(2t)\right]\sin(2t) \\
+              &= -\dfrac{1}{4}\cos(2t)\ln(\sec(2t) + \tan(2t)) + \dfrac{1}{4}\sin(2t)\cos(2t) - \dfrac{1}{4}\sin(2t)\cos(2t) \\
+              &= -\dfrac{1}{4}\cos(2t)\ln(\sec(2t) + \tan(2t)).
+          \end{aligned}$$
+          </p>
+
+          <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 \cos(2t) + c_2 \sin(2t) - \dfrac{1}{4}\cos(2t)\ln(\sec(2t) + \tan(2t))\,}$$
+          </p>
+
+          <p class="note">💡 Self-check：$y_P$ 应该只含<strong>非 trivial</strong> 的项（即不能被 $c_1 y_1 + c_2 y_2$ 吸收的）。这里 $-(1/4)\cos(2t)\ln(\sec(2t) + \tan(2t))$ 不是 $\cos(2t)$ 或 $\sin(2t)$ 的纯倍数 — 好.</p>
+        </details>
+      </div>
+
+      <h3 id="vop-drill-2">🎯 Drill 2 — Variable coefficient (given $y_1, y_2$)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Find the general solution of $t^2 y'' - 2t y' + 2 y = t^3 \sin t$ on $t > 0$, given that $y_1 = t$ and $y_2 = t^2$ are solutions of the corresponding homogeneous equation.</p>
+        <p class="drill-hint">Variable coefficient. Must 化 standard form 先. 大约 8 分钟. 用 integration by parts.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Verify $y_1, y_2$（可选）：</strong></p>
+          <ul>
+            <li>$y_1 = t$: $y_1' = 1, y_1'' = 0$. $t^2 \cdot 0 - 2t \cdot 1 + 2t = 0$ ✓.</li>
+            <li>$y_2 = t^2$: $y_2' = 2t, y_2'' = 2$. $t^2 \cdot 2 - 2t \cdot 2t + 2t^2 = 2t^2 - 4t^2 + 2t^2 = 0$ ✓.</li>
+          </ul>
+
+          <p><strong>Step 1（standard form）：</strong> 除以 $t^2$:
+          $$y'' - \dfrac{2}{t} y' + \dfrac{2}{t^2} y = t \sin t.$$
+          所以 $g(t) = t \sin t$（<strong>不是</strong> $t^3 \sin t$！）.
+          </p>
+
+          <p><strong>Step 2（Wronskian）：</strong>
+          $$W = y_1 y_2' - y_2 y_1' = t \cdot 2t - t^2 \cdot 1 = 2t^2 - t^2 = t^2.$$
+          </p>
+
+          <p><strong>Step 3（$u_1', u_2'$）：</strong>
+          $$u_1' = -\dfrac{y_2 g}{W} = -\dfrac{t^2 \cdot t \sin t}{t^2} = -t \sin t.$$
+          $$u_2' = \dfrac{y_1 g}{W} = \dfrac{t \cdot t \sin t}{t^2} = \sin t.$$
+          </p>
+
+          <p><strong>Step 4（积分）：</strong></p>
+
+          <p>$u_2 = \int \sin t\, dt = -\cos t$.</p>
+
+          <p>$u_1 = -\int t \sin t\, dt$. 用 integration by parts: $u = t, dv = \sin t\, dt$，$du = dt, v = -\cos t$.
+          $\int t \sin t\, dt = -t \cos t + \int \cos t\, dt = -t \cos t + \sin t$.
+          所以 $u_1 = -(-t \cos t + \sin t) = t \cos t - \sin t$.
+          </p>
+
+          <p><strong>Step 5（$y_P$）：</strong>
+          $$\begin{aligned}
+          y_P &= u_1 y_1 + u_2 y_2 \\
+              &= (t \cos t - \sin t) \cdot t + (-\cos t) \cdot t^2 \\
+              &= t^2 \cos t - t \sin t - t^2 \cos t \\
+              &= -t \sin t.
+          \end{aligned}$$
+          </p>
+
+          <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 t + c_2 t^2 - t \sin t\,}$$
+          </p>
+
+          <p class="note">⚠️ 最常见错：忘记除以 $t^2$，用 $g = t^3 \sin t$ 直接代公式。那样会差 $t^2$ 倍。<strong>变系数题第一步永远是化 standard form</strong>.</p>
+        </details>
+      </div>
+
+      <h3 id="vop-recap">§3.6 recap — 你现在应该会的</h3>
+      <ul>
+        <li>看到 $\tan, \sec, \dfrac{e^t}{1+t^2}, \ln t$ 等"奇怪 forcing" → 立刻识别为 §3.6 题</li>
+        <li>看到 variable coefficient（$t y''$, $t^2 y''$, $e^t y''$ 等）→ §3.6（题目会给 $y_1, y_2$）</li>
+        <li>workflow：standard form → 算 $W$ → 算 $u_1', u_2'$ → 积分（不加 $+C$）→ $y_P = u_1 y_1 + u_2 y_2$</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-laplace">2. Laplace derivative rule signs</h2>
+
+      <h3 id="laplace-reminder">公式 reminder（背诵）</h3>
+      <div class="def">
+        <span class="def-label">Laplace derivative rule.</span>
+        $$\mathcal{L}\{y'\} = sY(s) - y(0)$$
+        $$\mathcal{L}\{y''\} = s^2 Y(s) - s\, y(0) - y'(0)$$
+        $$\mathcal{L}\{y'''\} = s^3 Y(s) - s^2 y(0) - s\, y'(0) - y''(0)$$
+        <strong>所有 IC 项前面都是减号！</strong>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 记忆 trick</p>
+        <p>
+          公式的 pattern：$\mathcal{L}\{y^{(n)}\} = s^n Y - s^{n-1} y(0) - s^{n-2} y'(0) - \cdots - y^{(n-1)}(0)$.
+        </p>
+        <p>
+          直观：$s$ 是 derivative operator 在 Laplace 域的对应物。每"提一阶"derivative 就乘一个 $s$，但要"扣掉"那一阶的 IC（前面带负号）。<strong>所有 IC 项都带负号</strong>这点要刻在脑子里.
+        </p>
+      </div>
+
+      <h3 id="laplace-drill-0">🎯 Drill 0 — Just get the signs right（warmup）</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>给定 $y'' - 4y' + 5y = 0$, $y(0) = 2$, $y'(0) = -1$. 取 Laplace transform，把 $Y(s)$ 的<strong>代数方程</strong>写出来（不需要解 $Y$）.</p>
+        <p class="drill-hint">这是符号 sanity check，2 分钟. 重点是 $s\, y(0) = 2s$（IC 是 2），$y'(0) = -1$（注意符号），全部前面带负号.</p>
+
+        <details>
+          <summary>👆 Click to reveal solution</summary>
+
+          <p>$\mathcal{L}\{y''\} = s^2 Y - s\, y(0) - y'(0) = s^2 Y - 2s - (-1) = s^2 Y - 2s + 1$.</p>
+          <p>$\mathcal{L}\{y'\} = sY - y(0) = sY - 2$.</p>
+          <p>代入：
+          $$(s^2 Y - 2s + 1) - 4(sY - 2) + 5Y = 0.$$
+          展开：
+          $$s^2 Y - 2s + 1 - 4sY + 8 + 5Y = 0.$$
+          收集 $Y$ 项：
+          $$\boxed{\,(s^2 - 4s + 5) Y = 2s - 9\,}$$
+          </p>
+          <p class="note">⚠️ 特别注意 $y'(0) = -1$ 这种 negative IC：$-y'(0) = -(-1) = +1$，得正号。容易写错.</p>
+        </details>
+      </div>
+
+      <h3 id="laplace-drill-1">🎯 Drill 1 — Full IVP with constant forcing</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Solve $y'' - 3y' + 2y = 4$, $y(0) = 1$, $y'(0) = 0$.</p>
+        <p class="drill-hint">~6 分钟. Partial fractions + linear factors. 检验答案：代回原方程看是否平衡.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（Laplace）：</strong></p>
+          <p>$\mathcal{L}\{y''\} = s^2 Y - s \cdot 1 - 0 = s^2 Y - s$.</p>
+          <p>$\mathcal{L}\{y'\} = sY - 1$.</p>
+          <p>$\mathcal{L}\{4\} = 4/s$.</p>
+          <p>代入：$(s^2 Y - s) - 3(sY - 1) + 2Y = 4/s$.</p>
+          <p>$s^2 Y - s - 3sY + 3 + 2Y = 4/s$.</p>
+          <p>$(s^2 - 3s + 2) Y = s - 3 + \dfrac{4}{s} = \dfrac{s^2 - 3s + 4}{s}$.</p>
+
+          <p><strong>Step 2（解 $Y$）：</strong></p>
+          <p>$s^2 - 3s + 2 = (s - 1)(s - 2)$.
+          $$Y(s) = \dfrac{s^2 - 3s + 4}{s(s-1)(s-2)}.$$
+          </p>
+
+          <p><strong>Step 3（partial fractions）：</strong>
+          $$\dfrac{s^2 - 3s + 4}{s(s-1)(s-2)} = \dfrac{A}{s} + \dfrac{B}{s - 1} + \dfrac{C}{s - 2}.$$
+          通分：$s^2 - 3s + 4 = A(s-1)(s-2) + Bs(s-2) + Cs(s-1)$.
+          <ul>
+            <li>$s = 0$: $4 = A \cdot (-1)(-2) = 2A \Rightarrow A = 2$.</li>
+            <li>$s = 1$: $1 - 3 + 4 = 2 = B \cdot 1 \cdot (-1) = -B \Rightarrow B = -2$.</li>
+            <li>$s = 2$: $4 - 6 + 4 = 2 = C \cdot 2 \cdot 1 = 2C \Rightarrow C = 1$.</li>
+          </ul>
+          所以 $Y(s) = \dfrac{2}{s} - \dfrac{2}{s - 1} + \dfrac{1}{s - 2}$.
+          </p>
+
+          <p><strong>Step 4（inverse）：</strong>
+          $$\boxed{\,y(t) = 2 - 2 e^t + e^{2t}\,}$$
+          </p>
+
+          <p><strong>Verify：</strong> $y(0) = 2 - 2 + 1 = 1$ ✓. $y'(t) = -2 e^t + 2 e^{2t}$, $y'(0) = -2 + 2 = 0$ ✓. $y'' = -2 e^t + 4 e^{2t}$. $y'' - 3y' + 2y = (-2 + 6 - 4)e^t + (4 - 6 + 2) e^{2t} + 4 = 0 + 0 + 4 = 4$ ✓.</p>
+        </details>
+      </div>
+
+      <h3 id="laplace-drill-2">🎯 Drill 2 — Complete the square + s-shift</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Solve $y'' + 4y' + 5y = e^{-t}$, $y(0) = 0$, $y'(0) = 1$.</p>
+        <p class="drill-hint">~10 分钟. 关键：complete the square 后用 s-shift; 分子要拆出 $(s+2)$. 验证 $y(0)$ 和 $y'(0)$.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（Laplace）：</strong></p>
+          <p>$\mathcal{L}\{y''\} = s^2 Y - s \cdot 0 - 1 = s^2 Y - 1$.</p>
+          <p>$\mathcal{L}\{y'\} = sY - 0 = sY$.</p>
+          <p>$\mathcal{L}\{e^{-t}\} = \dfrac{1}{s+1}$.</p>
+          <p>代入：$(s^2 Y - 1) + 4sY + 5Y = \dfrac{1}{s+1}$.</p>
+          <p>$(s^2 + 4s + 5) Y = 1 + \dfrac{1}{s+1} = \dfrac{s+2}{s+1}$.</p>
+          <p>$$Y(s) = \dfrac{s+2}{(s+1)(s^2 + 4s + 5)}.$$</p>
+
+          <p><strong>Step 2（complete the square）：</strong> $s^2 + 4s + 5 = (s+2)^2 + 1$（irreducible — discriminant $16-20 &lt; 0$）.</p>
+
+          <p><strong>Step 3（partial fractions）：</strong>
+          $$\dfrac{s+2}{(s+1)((s+2)^2 + 1)} = \dfrac{A}{s+1} + \dfrac{Bs + C}{(s+2)^2 + 1}.$$
+          <ul>
+            <li>$s = -1$: $1 = A((-1+2)^2 + 1) = A \cdot 2 \Rightarrow A = \dfrac{1}{2}$.</li>
+            <li>展开 RHS 匹配 coefficients。$s+2 = A((s+2)^2 + 1) + (Bs+C)(s+1)$.<br>
+              $A(s+2)^2 + A + (Bs+C)(s+1) = A(s^2 + 4s + 4) + A + Bs^2 + (B+C)s + C = (A+B)s^2 + (4A + B + C)s + (5A + C)$.<br>
+              $s^2$: $A + B = 0 \Rightarrow B = -\dfrac{1}{2}$.<br>
+              $s$: $4A + B + C = 1 \Rightarrow 2 - \dfrac{1}{2} + C = 1 \Rightarrow C = -\dfrac{1}{2}$.<br>
+              常数：$5A + C = 5/2 - 1/2 = 2$ ✓.
+            </li>
+          </ul>
+          所以 $Y = \dfrac{1/2}{s+1} + \dfrac{-(1/2)s - 1/2}{(s+2)^2 + 1}$.
+          </p>
+
+          <p><strong>Step 4（拆分子使 $(s+2)$ 出现）：</strong>
+          $-\dfrac{1}{2} s - \dfrac{1}{2} = -\dfrac{1}{2}(s+2) + 1 - \dfrac{1}{2} = -\dfrac{1}{2}(s+2) + \dfrac{1}{2}$.
+          所以
+          $$Y = \dfrac{1/2}{s+1} - \dfrac{1}{2}\cdot\dfrac{s+2}{(s+2)^2 + 1} + \dfrac{1}{2}\cdot\dfrac{1}{(s+2)^2 + 1}.$$
+          </p>
+
+          <p><strong>Step 5（inverse, s-shift on the latter two）：</strong>
+          <ul>
+            <li>$\mathcal{L}^{-1}\{\dfrac{1/2}{s+1}\} = \dfrac{1}{2} e^{-t}$.</li>
+            <li>$\mathcal{L}^{-1}\{\dfrac{s+2}{(s+2)^2 + 1}\} = e^{-2t} \cos t$（用 entry $\mathcal{L}\{e^{at}\cos(bt)\} = \dfrac{s-a}{(s-a)^2 + b^2}$，这里 $a = -2, b = 1$）.</li>
+            <li>$\mathcal{L}^{-1}\{\dfrac{1}{(s+2)^2 + 1}\} = e^{-2t} \sin t$.</li>
+          </ul>
+          $$\boxed{\,y(t) = \dfrac{1}{2} e^{-t} - \dfrac{1}{2} e^{-2t}\cos t + \dfrac{1}{2} e^{-2t}\sin t\,}$$
+          </p>
+
+          <p><strong>Verify：</strong> $y(0) = 1/2 - 1/2 + 0 = 0$ ✓.<br>
+          $y'(t) = -\dfrac{1}{2} e^{-t} + e^{-2t}\cos t + \dfrac{1}{2} e^{-2t}\sin t - e^{-2t}\sin t + \dfrac{1}{2} e^{-2t}\cos t$.<br>
+          (Differentiating $e^{-2t}\cos t$: $-2 e^{-2t}\cos t - e^{-2t}\sin t$, times $-1/2$ gives $e^{-2t}\cos t + \tfrac{1}{2} e^{-2t}\sin t$.)<br>
+          $y'(0) = -\dfrac{1}{2} + 1 + 0 - 0 + \dfrac{1}{2} = 1$ ✓.</p>
+        </details>
+      </div>
+
+      <h3 id="laplace-drill-3">🎯 Drill 3 — t-shift with step function</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Solve $y' + y = u_2(t)$, $y(0) = 0$.</p>
+        <p class="drill-hint">~4 分钟. First-order linear, with step function forcing. 看 $e^{-2s}$ → t-shift.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（Laplace）：</strong></p>
+          <p>$\mathcal{L}\{y'\} = sY - 0 = sY$. $\mathcal{L}\{u_2(t)\} = \dfrac{e^{-2s}}{s}$.</p>
+          <p>$sY + Y = \dfrac{e^{-2s}}{s} \Rightarrow (s+1) Y = \dfrac{e^{-2s}}{s}$.</p>
+          <p>$Y(s) = \dfrac{e^{-2s}}{s(s+1)}$.</p>
+
+          <p><strong>Step 2（partial fractions of $\dfrac{1}{s(s+1)}$）：</strong>
+          $\dfrac{1}{s(s+1)} = \dfrac{1}{s} - \dfrac{1}{s+1}$.
+          所以 $Y = e^{-2s}\left[\dfrac{1}{s} - \dfrac{1}{s+1}\right]$.
+          </p>
+
+          <p><strong>Step 3（inverse without $e^{-2s}$ first）：</strong>
+          $\mathcal{L}^{-1}\!\left\{\dfrac{1}{s} - \dfrac{1}{s+1}\right\} = 1 - e^{-t} \equiv h(t)$.</p>
+
+          <p><strong>Step 4（apply t-shift）：</strong>
+          $\mathcal{L}^{-1}\{e^{-2s} F(s)\} = u_2(t) f(t - 2)$, where $f = \mathcal{L}^{-1}\{F\}$.
+          所以
+          $$\boxed{\,y(t) = u_2(t)\big[1 - e^{-(t - 2)}\big]\,}$$
+          </p>
+
+          <p><strong>Verify：</strong> For $t < 2$: $u_2(t) = 0$, so $y = 0$, $y' = 0$, $y' + y = 0 = u_2(t)$ ✓. For $t \geq 2$: $y = 1 - e^{-(t-2)}$, $y' = e^{-(t-2)}$, $y' + y = e^{-(t-2)} + 1 - e^{-(t-2)} = 1 = u_2(t)$ ✓.</p>
+
+          <p class="note">💡 t-shift workflow：<br>
+            1. 先 ignore $e^{-cs}$，对剩下部分做 inverse → 得 $f(t)$.<br>
+            2. 把 $t$ 全部替换成 $t - c$ → 得 $f(t - c)$.<br>
+            3. 乘 $u_c(t)$.<br>
+            <strong>顺序不能乱</strong>，最后乘 $u_c$.
+          </p>
+        </details>
+      </div>
+
+      <h3 id="laplace-shifts-table">s-shift vs t-shift — 速查表</h3>
+      <table class="data-table">
+        <thead><tr><th></th><th>s-shift（Theorem 6.3.2）</th><th>t-shift（Theorem 6.3.1）</th></tr></thead>
+        <tbody>
+          <tr><td>$s$ 域 trigger</td><td>$F(s - c)$ — 即 $s$ 被替换成 $s - c$（分母含 $(s-c)^2$ 等）</td><td>$e^{-cs} \cdot F(s)$ — 即有 $e^{-cs}$ 因子</td></tr>
+          <tr><td>$t$ 域 result</td><td>$e^{ct} f(t)$ — 乘 $e^{ct}$</td><td>$u_c(t) f(t - c)$ — 乘 $u_c$ + 所有 $t$ 替换成 $t - c$</td></tr>
+          <tr><td>触发情景</td><td>分母 irreducible quadratic（complete the square 之后）</td><td>RHS 含 $u_c(t)$ 或 piecewise / step function forcing</td></tr>
+          <tr><td>用哪条 entry</td><td>#9（$e^{at}\sin bt$）, #10（$e^{at}\cos bt$）, #11（$t^n e^{at}$）</td><td>#13（$u_c(t) f(t-c) \leftrightarrow e^{-cs} F(s)$）</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <p class="box-title">💡 决策口诀</p>
+        <ol>
+          <li>看到 $F(s)$ 分母里有 $(s - c)$ 形式（或 complete-the-square 后变成 $(s-c)^2 + k^2$）→ <strong>s-shift</strong>，inverse 得 $e^{ct} \cdot (\text{对应 } f(t))$.</li>
+          <li>看到 $F(s)$ 含 $e^{-cs}$ 因子（指数前面是负的 $cs$）→ <strong>t-shift</strong>，inverse 得 $u_c(t) \cdot f(t - c)$.</li>
+          <li>两者<strong>可以同时出现</strong>：先做 t-shift 处理 $e^{-cs}$，剩余部分如果有 $(s - c)$ 形式再做 s-shift.</li>
+        </ol>
+      </div>
+
+      <h3 id="laplace-drill-shifts">🎯 Drill 4 — Recognition: which shift, then compute inverse</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>For each $F(s)$ below, identify the shift type (<em>s-shift / t-shift / both / neither</em>) and compute $\mathcal{L}^{-1}\{F(s)\}$.</p>
+        <ol type="a">
+          <li>$F(s) = \dfrac{1}{(s+3)^2 + 4}$</li>
+          <li>$F(s) = \dfrac{e^{-2s}}{s^2 + 9}$</li>
+          <li>$F(s) = \dfrac{s + 1}{(s+1)^2 + 16}$</li>
+          <li>$F(s) = \dfrac{e^{-\pi s} \cdot s}{s^2 + 4}$</li>
+          <li>$F(s) = \dfrac{1}{s^2 + 2s + 5}$</li>
+          <li>$F(s) = \dfrac{e^{-3s}}{(s+2)^2 + 1}$</li>
+        </ol>
+        <p class="drill-hint">~5-6 分钟 for all 6. 快速识别 → 立刻 inverse. 这是 MT2 最高频的 sub-task.</p>
+
+        <details>
+          <summary>👆 Click to reveal all 6 answers</summary>
+
+          <table class="data-table">
+            <thead><tr><th>题</th><th>Shift type</th><th>关键 step</th><th>$\mathcal{L}^{-1}\{F\}$</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>(a)</td>
+                <td>s-shift only</td>
+                <td>分母 $(s - (-3))^2 + 2^2$ — entry #9 with $a = -3, b = 2$</td>
+                <td>$\dfrac{1}{2} e^{-3t} \sin(2t)$</td>
+              </tr>
+              <tr>
+                <td>(b)</td>
+                <td>t-shift only</td>
+                <td>$e^{-2s}$ 因子 → 先算 $\mathcal{L}^{-1}\{\dfrac{1}{s^2 + 9}\} = \dfrac{1}{3}\sin(3t)$，再 shift</td>
+                <td>$u_2(t) \cdot \dfrac{1}{3} \sin(3(t - 2))$</td>
+              </tr>
+              <tr>
+                <td>(c)</td>
+                <td>s-shift only</td>
+                <td>分子分母都是 $(s + 1)$ 形式 — entry #10 with $a = -1, b = 4$</td>
+                <td>$e^{-t} \cos(4t)$</td>
+              </tr>
+              <tr>
+                <td>(d)</td>
+                <td>t-shift only</td>
+                <td>$e^{-\pi s}$ 因子 → 先算 $\mathcal{L}^{-1}\{\dfrac{s}{s^2 + 4}\} = \cos(2t)$，再 shift。简化：$\cos(2(t - \pi)) = \cos(2t - 2\pi) = \cos(2t)$（$\cos$ 周期 $2\pi$）</td>
+                <td>$u_\pi(t) \cos(2t)$</td>
+              </tr>
+              <tr>
+                <td>(e)</td>
+                <td>complete square + s-shift</td>
+                <td>$s^2 + 2s + 5 = (s+1)^2 + 4$ — entry #9 with $a = -1, b = 2$</td>
+                <td>$\dfrac{1}{2} e^{-t} \sin(2t)$</td>
+              </tr>
+              <tr>
+                <td>(f)</td>
+                <td><strong>BOTH</strong> (t-shift first, then s-shift)</td>
+                <td>$e^{-3s}$ → t-shift。剩余 $\dfrac{1}{(s+2)^2 + 1}$ 用 s-shift（$a = -2, b = 1$）得 $e^{-2t}\sin t$，再 t-shift</td>
+                <td>$u_3(t) \cdot e^{-2(t - 3)} \sin(t - 3)$</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="note">💡 (d) 题的简化是个 trick — 当 $\mu(t - c)$ 的 shift 量是周期的整数倍，$\cos/\sin$ 可以化简。<br>
+          (f) 是双 shift 的 prototype — t-shift 处理外层 $e^{-cs}$，s-shift 处理内层 complete-square. <strong>顺序：先 t-shift，再 s-shift</strong>.</p>
+        </details>
+      </div>
+
+      <h3 id="laplace-recap">Laplace recap — 你现在应该会的</h3>
+      <ul>
+        <li>$\mathcal{L}\{y'\} = sY - y(0)$，<strong>负号</strong>.</li>
+        <li>$\mathcal{L}\{y''\} = s^2 Y - s\, y(0) - y'(0)$，<strong>两个负号</strong>.</li>
+        <li>Partial fractions：分母 factor 后按形式拆分子.</li>
+        <li>Complete the square：irreducible quadratic 一定要做，然后用 entries #9, #10.</li>
+        <li>s-shift：$F(s - c) \leftrightarrow e^{ct} f(t)$. 看分母 $(s - c)$ 形式.</li>
+        <li>t-shift：$e^{-cs} F(s) \leftrightarrow u_c(t) f(t - c)$. 看 $e^{-cs}$ 因子. 所有 $t$ 都要 shift.</li>
+        <li>双 shift（t + s 都有）：先 t-shift，再 s-shift.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-complex">3. Complex eigenvalue formula</h2>
+
+      <h3 id="complex-derivation">公式来源（推一遍就记住了）</h3>
+      <div class="box deeper">
+        <p class="box-title">📖 从 $\xi e^{rt}$ 展开推 $\mathbf{u}, \mathbf{v}$ 公式</p>
+        <p>
+          设 $r = \lambda + i\mu$（$\mu \neq 0$），eigenvector $\boldsymbol{\xi}^{(1)} = \mathbf{a} + i\mathbf{b}$（$\mathbf{a}, \mathbf{b}$ 是 real vectors）。展开 $\boldsymbol{\xi}^{(1)} e^{rt}$：
+        </p>
+        <p>
+          $$\begin{aligned}
+          \boldsymbol{\xi}^{(1)} e^{rt} &= (\mathbf{a} + i\mathbf{b}) \cdot e^{(\lambda + i\mu)t} \\
+          &= (\mathbf{a} + i\mathbf{b}) \cdot e^{\lambda t}(\cos\mu t + i\sin\mu t) \\
+          &= e^{\lambda t}\big[\mathbf{a}\cos\mu t + i\mathbf{a}\sin\mu t + i\mathbf{b}\cos\mu t + i^2 \mathbf{b}\sin\mu t\big] \\
+          &= e^{\lambda t}\big[\underbrace{(\mathbf{a}\cos\mu t - \mathbf{b}\sin\mu t)}_{\text{real part } = \mathbf{u}(t)} + i\underbrace{(\mathbf{a}\sin\mu t + \mathbf{b}\cos\mu t)}_{\text{imag part } = \mathbf{v}(t)}\big].
+          \end{aligned}$$
+        </p>
+        <p>
+          所以 real-valued solutions:
+          $$\boxed{\,\mathbf{u}(t) = e^{\lambda t}(\mathbf{a}\cos\mu t - \mathbf{b}\sin\mu t)\,}$$
+          $$\boxed{\,\mathbf{v}(t) = e^{\lambda t}(\mathbf{a}\sin\mu t + \mathbf{b}\cos\mu t)\,}$$
+          General solution: $\mathbf{x}(t) = c_1 \mathbf{u}(t) + c_2 \mathbf{v}(t)$.
+        </p>
+        <p>
+          <strong>记忆要点</strong>：
+          <ul>
+            <li>$\mathbf{u}$ 是 real part：$\mathbf{a}$ 配 $\cos$，$\mathbf{b}$ 配 $-\sin$（因为 $i^2 = -1$ 那项）.</li>
+            <li>$\mathbf{v}$ 是 imag part：$\mathbf{a}$ 配 $\sin$，$\mathbf{b}$ 配 $+\cos$（前面那个 $i$ 配 $\mathbf{a}\sin\mu t$ 和 $\mathbf{b}\cos\mu t$）.</li>
+            <li>trig 函数<strong>互换</strong>（$\mathbf{u}$ 用 cos/sin，$\mathbf{v}$ 用 sin/cos），<strong>不是简单"翻 + 为 −"</strong>.</li>
+          </ul>
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 你之前写错的地方</p>
+        <p>
+          你写的："c1 e^(re λ) (a cos(im λ) <strong>+</strong> b sin(im λ))"<br>
+          正确的：$\mathbf{u} = e^{\lambda t}(\mathbf{a}\cos\mu t \mathbf{-} \mathbf{b}\sin\mu t)$ — 中间是<strong>减号</strong>.
+        </p>
+        <p>
+          而且第二个 solution $\mathbf{v}$ 不是把 $\mathbf{u}$ 的"+ 换成 −"，而是<strong>把 cos 换成 sin、sin 换成 cos，且 $\mathbf{a}$ 和 $\mathbf{b}$ 的位置不交换</strong>.
+        </p>
+      </div>
+
+      <h3 id="complex-drill-1">🎯 Drill 1 — $\mathbf{x}' = \begin{pmatrix} 3 & -2 \\ 4 & -1 \end{pmatrix}\mathbf{x}$ (unstable spiral)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Find the general (real-valued) solution. Classify the equilibrium at the origin.</p>
+        <p class="drill-hint">~10 分钟. Eigenvalues $1 \pm 2i$. 记得：先算<strong>一个</strong> complex eigenvector，拆 $\mathbf{a} + i\mathbf{b}$，套公式.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（eigenvalues）：</strong>
+          $$\det\!\begin{pmatrix} 3-r & -2 \\ 4 & -1-r \end{pmatrix} = (3-r)(-1-r) - (-2)(4) = -(3-r)(1+r) + 8.$$
+          展开 $(3-r)(1+r) = 3 + 3r - r - r^2 = 3 + 2r - r^2$. 所以 $-(3 + 2r - r^2) + 8 = r^2 - 2r + 5$.
+          Char eq: $r^2 - 2r + 5 = 0 \Rightarrow r = \dfrac{2 \pm \sqrt{4 - 20}}{2} = 1 \pm 2i$.<br>
+          $\lambda = 1, \mu = 2$.
+          </p>
+
+          <p><strong>Step 2（complex eigenvector for $r_1 = 1 + 2i$）：</strong>
+          $$A - r_1 I = \begin{pmatrix} 2 - 2i & -2 \\ 4 & -2 - 2i \end{pmatrix}.$$
+          First row: $(2 - 2i)\xi_1 - 2\xi_2 = 0 \Rightarrow \xi_2 = (1 - i)\xi_1$. 取 $\xi_1 = 1$:
+          $$\boldsymbol{\xi}^{(1)} = \begin{pmatrix} 1 \\ 1 - i \end{pmatrix} = \begin{pmatrix} 1 \\ 1 \end{pmatrix} + i \begin{pmatrix} 0 \\ -1 \end{pmatrix}.$$
+          所以 $\mathbf{a} = (1, 1)^T$, $\mathbf{b} = (0, -1)^T$.
+          </p>
+
+          <p><strong>Step 3（套公式）：</strong>
+          $$\begin{aligned}
+          \mathbf{u}(t) &= e^t\!\left[\begin{pmatrix} 1 \\ 1 \end{pmatrix}\cos 2t - \begin{pmatrix} 0 \\ -1 \end{pmatrix}\sin 2t\right] \\
+          &= e^t\!\left[\begin{pmatrix} \cos 2t \\ \cos 2t \end{pmatrix} - \begin{pmatrix} 0 \\ -\sin 2t \end{pmatrix}\right] \\
+          &= e^t\!\begin{pmatrix} \cos 2t \\ \cos 2t + \sin 2t \end{pmatrix}.
+          \end{aligned}$$
+          $$\begin{aligned}
+          \mathbf{v}(t) &= e^t\!\left[\begin{pmatrix} 1 \\ 1 \end{pmatrix}\sin 2t + \begin{pmatrix} 0 \\ -1 \end{pmatrix}\cos 2t\right] \\
+          &= e^t\!\begin{pmatrix} \sin 2t \\ \sin 2t - \cos 2t \end{pmatrix}.
+          \end{aligned}$$
+          </p>
+
+          <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 e^t \begin{pmatrix} \cos 2t \\ \cos 2t + \sin 2t \end{pmatrix} + c_2 e^t \begin{pmatrix} \sin 2t \\ \sin 2t - \cos 2t \end{pmatrix}\,}$$
+          </p>
+
+          <p><strong>Classification：</strong> $\lambda = 1 > 0$, $\mu = 2 \neq 0$ ⟹ <strong>unstable spiral</strong>.</p>
+
+          <p class="note">💡 Self-check：把 $\mathbf{u}(0) = (1, 1)^T = \mathbf{a}$ ✓（应该等于 $\mathbf{a}$，因为 $\cos 0 = 1, \sin 0 = 0$）. $\mathbf{v}(0) = (0, -1)^T = \mathbf{b}$ ✓. 如果 $\mathbf{u}(0) \neq \mathbf{a}$ 或 $\mathbf{v}(0) \neq \mathbf{b}$，公式记错了.</p>
+        </details>
+      </div>
+
+      <h3 id="complex-drill-2">🎯 Drill 2 — $\mathbf{x}' = \begin{pmatrix} -1 & 2 \\ -2 & -1 \end{pmatrix}\mathbf{x}$ (stable spiral)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Find the general (real-valued) solution. Classify the equilibrium and determine rotation direction (顺/逆时针).</p>
+        <p class="drill-hint">~8 分钟. Eigenvalues $-1 \pm 2i$. 旋转方向用 $A(1, 0)^T$ 算 tangent vector.</p>
+
+        <details>
+          <summary>👆 Click to reveal full solution</summary>
+
+          <p><strong>Step 1（eigenvalues）：</strong>
+          $$\det\!\begin{pmatrix} -1-r & 2 \\ -2 & -1-r \end{pmatrix} = (1+r)^2 + 4 = 0 \Rightarrow 1 + r = \pm 2i \Rightarrow r = -1 \pm 2i.$$
+          $\lambda = -1, \mu = 2$.
+          </p>
+
+          <p><strong>Step 2（complex eigenvector for $r_1 = -1 + 2i$）：</strong>
+          $$A - r_1 I = \begin{pmatrix} -2i & 2 \\ -2 & -2i \end{pmatrix}.$$
+          First row: $-2i \xi_1 + 2 \xi_2 = 0 \Rightarrow \xi_2 = i \xi_1$. 取 $\xi_1 = 1$:
+          $$\boldsymbol{\xi}^{(1)} = \begin{pmatrix} 1 \\ i \end{pmatrix} = \begin{pmatrix} 1 \\ 0 \end{pmatrix} + i \begin{pmatrix} 0 \\ 1 \end{pmatrix}.$$
+          $\mathbf{a} = (1, 0)^T$, $\mathbf{b} = (0, 1)^T$.
+          </p>
+
+          <p><strong>Step 3（套公式）：</strong>
+          $$\mathbf{u}(t) = e^{-t}\!\left[\begin{pmatrix} 1 \\ 0 \end{pmatrix}\cos 2t - \begin{pmatrix} 0 \\ 1 \end{pmatrix}\sin 2t\right] = e^{-t}\!\begin{pmatrix} \cos 2t \\ -\sin 2t \end{pmatrix}.$$
+          $$\mathbf{v}(t) = e^{-t}\!\left[\begin{pmatrix} 1 \\ 0 \end{pmatrix}\sin 2t + \begin{pmatrix} 0 \\ 1 \end{pmatrix}\cos 2t\right] = e^{-t}\!\begin{pmatrix} \sin 2t \\ \cos 2t \end{pmatrix}.$$
+          </p>
+
+          <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 e^{-t}\!\begin{pmatrix} \cos 2t \\ -\sin 2t \end{pmatrix} + c_2 e^{-t}\!\begin{pmatrix} \sin 2t \\ \cos 2t \end{pmatrix}\,}$$
+          </p>
+
+          <p><strong>Classification：</strong> $\lambda = -1 < 0$, $\mu = 2 \neq 0$ ⟹ <strong>asymptotically stable spiral</strong>.</p>
+
+          <p><strong>旋转方向：</strong> 在 $(1, 0)$ 处算 tangent vector $A \begin{pmatrix} 1 \\ 0 \end{pmatrix} = \begin{pmatrix} -1 \\ -2 \end{pmatrix}$. $x_2$ 分量 $= -2 < 0$ ⟹ 从 $(1, 0)$ 出发向下 ⟹ <strong>顺时针</strong>螺旋趋于原点.</p>
+
+          <p class="note">💡 Self-check：$\mathbf{u}(0) = (1, 0)^T = \mathbf{a}$ ✓. $\mathbf{v}(0) = (0, 1)^T = \mathbf{b}$ ✓. 公式应用正确.</p>
+        </details>
+      </div>
+
+      <h3 id="complex-recap">Complex eigenvalue recap — 你现在应该会的</h3>
+      <ul>
+        <li>Eigenvalue $r = \lambda + i\mu$，eigenvector $\boldsymbol{\xi} = \mathbf{a} + i\mathbf{b}$.</li>
+        <li>$\mathbf{u}(t) = e^{\lambda t}(\mathbf{a}\cos\mu t - \mathbf{b}\sin\mu t)$ — real part.</li>
+        <li>$\mathbf{v}(t) = e^{\lambda t}(\mathbf{a}\sin\mu t + \mathbf{b}\cos\mu t)$ — imag part.</li>
+        <li>$\mathbf{x}(t) = c_1 \mathbf{u}(t) + c_2 \mathbf{v}(t)$.</li>
+        <li>Stability：$\lambda < 0$ stable, $\lambda > 0$ unstable, $\lambda = 0$ center.</li>
+        <li>Self-check：$\mathbf{u}(0) = \mathbf{a}$, $\mathbf{v}(0) = \mathbf{b}$（验证公式应用对没对）.</li>
+        <li>旋转方向：在 $(1, 0)$ 算 $A(1, 0)^T$ 第二分量，正 = 逆时针，负 = 顺时针.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-stability">4. Stability classification &amp; phase portrait sketching</h2>
+
+      <h3 id="stability-reminder">Classification reminder（by eigenvalues）</h3>
+      <table class="data-table">
+        <thead><tr><th>Eigenvalues</th><th>类型</th><th>稳定性</th></tr></thead>
+        <tbody>
+          <tr><td>Real distinct, opposite signs</td><td>Saddle point</td><td>Unstable</td></tr>
+          <tr><td>Real distinct, both negative</td><td>Stable node</td><td>Asymptotically stable</td></tr>
+          <tr><td>Real distinct, both positive</td><td>Unstable node</td><td>Unstable</td></tr>
+          <tr><td>Complex $\lambda \pm i\mu$, $\lambda < 0$</td><td>Stable spiral</td><td>Asymptotically stable</td></tr>
+          <tr><td>Complex, $\lambda > 0$</td><td>Unstable spiral</td><td>Unstable</td></tr>
+          <tr><td>Complex, $\lambda = 0$（pure imaginary）</td><td>Center</td><td>Stable, NOT asymptotic</td></tr>
+          <tr><td>One zero eigenvalue（$\det A = 0$）</td><td>Line of equilibria</td><td>—</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <p class="box-title">💡 trace/det trick — 不算 eigenvalues 也能分类</p>
+        <p>
+          Char eq for $2\times 2$: $r^2 - (\operatorname{tr} A) r + \det A = 0$. Discriminant $\Delta = (\operatorname{tr} A)^2 - 4 \det A$.
+        </p>
+        <ul>
+          <li>$\det A < 0$ → eigenvalues 反号 ⟹ <strong>saddle</strong> (永远 unstable)</li>
+          <li>$\det A > 0$ + $\Delta > 0$ → real same sign ⟹ <strong>node</strong>. $\operatorname{tr} A > 0$ unstable, $< 0$ stable.</li>
+          <li>$\det A > 0$ + $\Delta < 0$ → complex ⟹ <strong>spiral 或 center</strong>. $\operatorname{tr} A > 0$ unstable spiral, $< 0$ stable spiral, $= 0$ center.</li>
+          <li>$\det A = 0$ → $r = 0$ 是 root ⟹ <strong>line of equilibria</strong>.</li>
+        </ul>
+        <p>
+          原理：$r_{1,2} = \dfrac{\operatorname{tr} \pm \sqrt{\Delta}}{2}$。$\Delta$ 决定实复，$\det = r_1 r_2$ 决定同异号（when real），$\operatorname{tr} = r_1 + r_2$ 决定 stable/unstable.
+        </p>
+      </div>
+
+      <h3 id="stability-drill-1">🎯 Drill 1 — Classify equilibrium for each matrix</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>For each matrix, classify the equilibrium at origin <strong>using trace/det trick</strong> (不要算 eigenvalues, 直接用 $\operatorname{tr}$ 和 $\det$):</p>
+        <ol type="a">
+          <li>$A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}$</li>
+          <li>$A = \begin{pmatrix} -2 & 1 \\ 1 & -2 \end{pmatrix}$</li>
+          <li>$A = \begin{pmatrix} 0 & 1 \\ -2 & -2 \end{pmatrix}$</li>
+          <li>$A = \begin{pmatrix} 1 & -2 \\ 2 & 1 \end{pmatrix}$</li>
+          <li>$A = \begin{pmatrix} 0 & 3 \\ -3 & 0 \end{pmatrix}$</li>
+        </ol>
+        <p class="drill-hint">~5 分钟 for all 5. 算 $\operatorname{tr}, \det, \Delta$，三个数直接定类型.</p>
+
+        <details>
+          <summary>👆 Click to reveal all 5 answers</summary>
+
+          <table class="data-table">
+            <thead><tr><th>题</th><th>$\operatorname{tr} A$</th><th>$\det A$</th><th>$\Delta$</th><th>类型</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>(a)</td>
+                <td>$5$</td>
+                <td>$1 \cdot 4 - 2 \cdot 3 = -2$</td>
+                <td>—</td>
+                <td>$\det < 0$ ⟹ <strong>saddle</strong>（unstable）</td>
+              </tr>
+              <tr>
+                <td>(b)</td>
+                <td>$-4$</td>
+                <td>$4 - 1 = 3$</td>
+                <td>$16 - 12 = 4 > 0$</td>
+                <td>real distinct + $\operatorname{tr} < 0$ ⟹ <strong>stable node</strong></td>
+              </tr>
+              <tr>
+                <td>(c)</td>
+                <td>$-2$</td>
+                <td>$0 - (-2) = 2$</td>
+                <td>$4 - 8 = -4 < 0$</td>
+                <td>complex + $\operatorname{tr} < 0$ ⟹ <strong>stable spiral</strong></td>
+              </tr>
+              <tr>
+                <td>(d)</td>
+                <td>$2$</td>
+                <td>$1 - (-4) = 5$</td>
+                <td>$4 - 20 = -16 < 0$</td>
+                <td>complex + $\operatorname{tr} > 0$ ⟹ <strong>unstable spiral</strong></td>
+              </tr>
+              <tr>
+                <td>(e)</td>
+                <td>$0$</td>
+                <td>$0 - (-9) = 9$</td>
+                <td>$0 - 36 = -36 < 0$</td>
+                <td>complex + $\operatorname{tr} = 0$ ⟹ <strong>center</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="note">💡 用 trace/det 不算 eigenvalues 可以省一半时间。考试如果只问 "classify"，这个 trick 最快.</p>
+        </details>
+      </div>
+
+      <h3 id="phase-portrait-saddle">🎯 Drill 2 — Sketch saddle point</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Sketch the phase portrait for $\mathbf{x}' = \begin{pmatrix} 1 & 1 \\ 4 & -2 \end{pmatrix}\mathbf{x}$.</p>
+        <p class="drill-hint">~8 分钟. Find eigenvalues/eigenvectors, draw two lines + arrows, add trajectories. 用笔在纸上画.</p>
+
+        <details>
+          <summary>👆 Click to reveal sketch checklist</summary>
+
+          <p><strong>Step 1（eigenvalues + eigenvectors）：</strong></p>
+          <p>$\operatorname{tr} A = -1, \det A = -2 - 4 = -6$. $\det < 0$ ⟹ saddle. Char eq $r^2 + r - 6 = 0 \Rightarrow r = 2, -3$.</p>
+          <ul>
+            <li>$r = 2$: $(A - 2I)\boldsymbol{\xi} = 0$，$\begin{pmatrix} -1 & 1 \\ 4 & -4 \end{pmatrix}\boldsymbol{\xi} = 0$，得 $\xi_2 = \xi_1$. $\boldsymbol{\xi}^{(1)} = (1, 1)^T$.</li>
+            <li>$r = -3$: $(A + 3I)\boldsymbol{\xi} = 0$，$\begin{pmatrix} 4 & 1 \\ 4 & 1 \end{pmatrix}\boldsymbol{\xi} = 0$，得 $\xi_2 = -4\xi_1$. $\boldsymbol{\xi}^{(2)} = (1, -4)^T$.</li>
+          </ul>
+
+          <p><strong>Step 2（画 eigenvector lines）：</strong></p>
+          <ul>
+            <li>Line $\ell_1$: 过 $(0, 0)$ 和 $(1, 1)$，slope 1（45°）. 箭头 <strong>远离原点</strong>（$r_1 = 2 > 0$）.</li>
+            <li>Line $\ell_2$: 过 $(0, 0)$ 和 $(1, -4)$，slope $-4$（陡峭向下）. 箭头 <strong>指向原点</strong>（$r_2 = -3 < 0$）.</li>
+          </ul>
+
+          <p><strong>Step 3（画 trajectories — 双曲线状）：</strong></p>
+          <p>两条 eigenvector lines 把平面分成 4 个 "wedge"（楔形区域）。每个 wedge 里画 1-2 条 trajectory：</p>
+          <ul>
+            <li>Trajectories 从 $\ell_2$（$\boldsymbol{\xi}^{(2)}$ 方向）近原点处出发</li>
+            <li>中途拐弯</li>
+            <li>沿 $\ell_1$（$\boldsymbol{\xi}^{(1)}$ 方向）远离</li>
+            <li>Trajectories <strong>永远不穿过</strong> $\ell_1$ 或 $\ell_2$</li>
+          </ul>
+
+          <p><strong>Sketch checklist:</strong></p>
+          <ul>
+            <li>☐ 坐标轴标 $x_1, x_2$</li>
+            <li>☐ 两条 eigenvector lines（slope 1 和 slope $-4$）</li>
+            <li>☐ $\ell_1$ 上箭头 <strong>outward</strong>，$\ell_2$ 上箭头 <strong>inward</strong></li>
+            <li>☐ 4 条 hyperbola-like trajectories（每个 wedge 一条）</li>
+            <li>☐ 每条 trajectory 上有箭头表示 $t$ 增大方向</li>
+            <li>☐ Labels: "$\boldsymbol{\xi}^{(1)}, r = 2$" 和 "$\boldsymbol{\xi}^{(2)}, r = -3$"</li>
+            <li>☐ 原点标 "saddle (unstable)"</li>
+          </ul>
+        </details>
+      </div>
+
+      <h3 id="phase-portrait-node">🎯 Drill 3 — Sketch stable node (tangent to slower eigenvector)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Sketch the phase portrait for $\mathbf{x}' = \begin{pmatrix} -1 & 1 \\ 0 & -3 \end{pmatrix}\mathbf{x}$.</p>
+        <p class="drill-hint">~6 分钟. 关键：trajectories tangent to <strong>slower</strong> eigenvector. Triangular matrix 的 eigenvalues 在对角线上.</p>
+
+        <details>
+          <summary>👆 Click to reveal sketch checklist</summary>
+
+          <p><strong>Step 1（eigenvalues + eigenvectors）：</strong></p>
+          <p>Triangular matrix → eigenvalues 直接是对角线：$r_1 = -1, r_2 = -3$. Both negative ⟹ <strong>stable node</strong>.</p>
+          <ul>
+            <li>$r_1 = -1$（slower, $|r_1| = 1 < 3$）: $(A + I)\boldsymbol{\xi} = 0$，$\begin{pmatrix} 0 & 1 \\ 0 & -2 \end{pmatrix}\boldsymbol{\xi} = 0$，得 $\xi_2 = 0$. $\boldsymbol{\xi}^{(1)} = (1, 0)^T$（$x_1$-axis）.</li>
+            <li>$r_2 = -3$（faster）: $(A + 3I)\boldsymbol{\xi} = 0$，$\begin{pmatrix} 2 & 1 \\ 0 & 0 \end{pmatrix}\boldsymbol{\xi} = 0$，得 $\xi_2 = -2\xi_1$. $\boldsymbol{\xi}^{(2)} = (1, -2)^T$.</li>
+          </ul>
+
+          <p><strong>Step 2（画 eigenvector lines）：</strong></p>
+          <ul>
+            <li>$\ell_1$: $x_1$-axis（slope 0）. 箭头 <strong>inward</strong>.</li>
+            <li>$\ell_2$: slope $-2$. 箭头 <strong>inward</strong>.</li>
+          </ul>
+
+          <p><strong>Step 3（画 trajectories — 注意 tangent）：</strong></p>
+          <p>所有 trajectories 趋于原点。<strong>关键</strong>：near origin, trajectories 切向于 <strong>slower</strong> eigenvector $\boldsymbol{\xi}^{(1)} = (1, 0)$（即 $x_1$-axis）。Far from origin, trajectories 大致平行于 $\boldsymbol{\xi}^{(2)}$.</p>
+          <p>Intuition：$t \to \infty$ 时 $e^{-t}$ decays slower than $e^{-3t}$，所以 $\boldsymbol{\xi}^{(1)}$ component 在 near-origin region 主导.</p>
+
+          <p><strong>Sketch checklist:</strong></p>
+          <ul>
+            <li>☐ 坐标轴 $x_1, x_2$</li>
+            <li>☐ 两条 lines: $x_1$-axis 和 slope $-2$ 的直线</li>
+            <li>☐ 两条 lines 上箭头都 <strong>inward</strong></li>
+            <li>☐ 4-6 条 trajectories curving into origin</li>
+            <li>☐ Trajectories <strong>tangent to $x_1$-axis</strong>（slower eigenvector） near origin — 这是 node 的 signature</li>
+            <li>☐ Trajectories 远离原点时大致沿 $\boldsymbol{\xi}^{(2)} = (1, -2)$ 方向</li>
+            <li>☐ Labels: "$\boldsymbol{\xi}^{(1)}, r = -1$ (slow)" 和 "$\boldsymbol{\xi}^{(2)}, r = -3$ (fast)"</li>
+            <li>☐ 原点标 "stable node"</li>
+          </ul>
+          <p class="note">⚠️ Pitfall：把 trajectories 画成切向于 fast eigenvector $\boldsymbol{\xi}^{(2)}$ — 反了！<strong>Slower eigenvector dominates near origin</strong>.</p>
+        </details>
+      </div>
+
+      <h3 id="phase-portrait-spiral">🎯 Drill 4 — Sketch stable spiral (with rotation direction)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>Sketch the phase portrait for $\mathbf{x}' = \begin{pmatrix} -1 & 4 \\ -1 & -1 \end{pmatrix}\mathbf{x}$. Determine rotation direction (顺/逆时针).</p>
+        <p class="drill-hint">~6 分钟. 用 $A \begin{pmatrix} 1 \\ 0 \end{pmatrix}$ 决定 rotation direction.</p>
+
+        <details>
+          <summary>👆 Click to reveal sketch checklist</summary>
+
+          <p><strong>Step 1（eigenvalues）：</strong></p>
+          <p>$\operatorname{tr} A = -2, \det A = 1 - (-4) = 5$. $\Delta = 4 - 20 = -16 < 0$ ⟹ complex. $r = \dfrac{-2 \pm 4i}{2} = -1 \pm 2i$. $\lambda = -1 < 0$ ⟹ <strong>stable spiral</strong>.</p>
+
+          <p><strong>Step 2（rotation direction）：</strong></p>
+          <p>在 $(1, 0)$ 处算 tangent vector：$A \begin{pmatrix} 1 \\ 0 \end{pmatrix} = $ 第一列 $= \begin{pmatrix} -1 \\ -1 \end{pmatrix}$.</p>
+          <p>$x_2$-component $= -1 < 0$ → tangent vector 从 $(1, 0)$ 向<strong>下</strong> ⟹ <strong>clockwise（顺时针）</strong>.</p>
+
+          <p><strong>Step 3（画 spiral）：</strong></p>
+          <ul>
+            <li>Complex case <strong>不画 eigenvector lines</strong>（complex eigenvectors 在实平面上没意义）</li>
+            <li>画 2-3 条 spiral curves，每条从某 starting radius 出发，绕原点 clockwise rotating，半径以 $e^{-t}$ 速率收缩</li>
+          </ul>
+
+          <p><strong>Sketch checklist:</strong></p>
+          <ul>
+            <li>☐ 坐标轴 $x_1, x_2$</li>
+            <li>☐ <strong>没有</strong> eigenvector lines（complex case）</li>
+            <li>☐ 2-3 条 spiral curves 绕原点</li>
+            <li>☐ Spiral 方向：clockwise（顺时针）</li>
+            <li>☐ Spiral 收缩 toward origin（$\lambda < 0$）</li>
+            <li>☐ 每条 spiral 上有箭头表示方向</li>
+            <li>☐ Label: "stable spiral, clockwise, $r = -1 \pm 2i$"</li>
+          </ul>
+          <p class="note">💡 Self-check：spiral 半径每经过 period $T = 2\pi/\mu = \pi$ 衰减一个 $e^{-\pi}$ 因子（≈ 0.043 倍，即每周期缩小到 4.3%）.</p>
+        </details>
+      </div>
+
+      <h3 id="stability-recap">Stability &amp; phase portrait recap</h3>
+      <ul>
+        <li><strong>trace/det 快速分类</strong>：$\det < 0$ saddle，$\det > 0 + \Delta > 0$ node，$\det > 0 + \Delta < 0$ spiral，$\det = 0$ line of equilibria.</li>
+        <li><strong>Stability</strong>：$\operatorname{tr} < 0$ stable，$> 0$ unstable，$= 0$ center（仅复数 case）.</li>
+        <li><strong>Saddle 画法</strong>：两条 eigenvector lines + 双曲线 trajectories，不穿过 lines.</li>
+        <li><strong>Node 画法</strong>：两条 eigenvector lines + trajectories <strong>切向于 slower</strong> eigenvector near origin.</li>
+        <li><strong>Spiral 画法</strong>：不画 lines + spiral curves. 旋转方向用 $A(1, 0)^T$ 第二分量符号决定.</li>
+        <li><strong>Center 画法</strong>：闭合椭圆绕原点，无衰减.</li>
+        <li>所有 trajectories 都要画箭头表示 $t$ 增大方向 — 否则信息不全.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="final-checklist">Final pre-exam checklist (1 hour before MT2)</h2>
+
+      <div class="box example">
+        <p class="box-title">📝 5-minute brain dump — 写在 scratch paper 上</p>
+        <ol>
+          <li><strong>Char eq for second-order ODE</strong>: $a r^2 + br + c = 0$. 三种 case (real distinct/repeated/complex).</li>
+          <li><strong>Undetermined coefficients ansatz</strong>: polynomial, exponential, sin/cos × polynomial × exponential. 检查 duplication → 乘 $t^s$.</li>
+          <li><strong>Variation of parameters</strong>: standard form! $u_1' = -y_2 g/W$, $u_2' = y_1 g/W$.</li>
+          <li><strong>Laplace derivative rule</strong>: $\mathcal{L}\{y''\} = s^2 Y - s y(0) - y'(0)$. 全部减号！</li>
+          <li><strong>Complex eigenvalue formula</strong>: $\mathbf{u} = e^{\lambda t}(\mathbf{a}\cos\mu t - \mathbf{b}\sin\mu t)$, $\mathbf{v} = e^{\lambda t}(\mathbf{a}\sin\mu t + \mathbf{b}\cos\mu t)$.</li>
+          <li><strong>Phase portrait types</strong>: saddle (反号), node (同号), spiral (复数), center (纯虚).</li>
+          <li><strong>Partial fractions</strong>: linear → $A/(s-a)$; irreducible quadratic → $(Bs+C)/(\ldots)$; repeated → 多项 like $A/(s-a) + B/(s-a)^2$.</li>
+          <li><strong>t-shift</strong>: $e^{-cs} F(s) \to u_c(t) f(t-c)$. 所有 $t$ 都要 shift.</li>
+          <li><strong>s-shift</strong>: $F(s - c) \to e^{ct} f(t)$. Complete the square 后用.</li>
+        </ol>
+        <p>
+          把这 9 条用 1-2 句话写在草稿纸最上面，每次拿不准就回去看.
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 考试技巧</p>
+        <ul>
+          <li><strong>开始前 2 分钟通读所有题</strong>，按难度估排序，先做有把握的.</li>
+          <li><strong>每题做完<strong>立刻 verify</strong></strong>（代回原方程或 IC 看是否成立）.</li>
+          <li><strong>卡 > 3 分钟就跳题</strong>，回头再做.</li>
+          <li><strong>清晰书写</strong>: 用 "Step 1, Step 2..."，最终 boxed 答案。Partial credit 是真的，但只给清晰的工作.</li>
+          <li><strong>不要瞎猜符号</strong>：每个 minus 都要 deliberate（especially Laplace 的 IC，Partial fractions 的 cross-multiplication）.</li>
+        </ul>
+      </div>
+
+      <h3 id="emergency">Emergency cards — 考试卡住时跳到这</h3>
+      <table class="data-table">
+        <thead><tr><th>看到题目类型</th><th>跳到</th></tr></thead>
+        <tbody>
+          <tr><td>$ay'' + by' + cy = $ poly/exp/sin/cos</td><td><a href="mt2-01-secondorder.html#ansatz-table">Part 1 — Ansatz table</a></td></tr>
+          <tr><td>$ay'' + by' + cy = \tan, \sec, 1/(1+t^2)$ 等</td><td><a href="#sec-vop">Part 5 — §3.6 drills (this file)</a> 或 <a href="mt2-01-secondorder.html#varparams-formula">Part 1 — Variation of parameters</a></td></tr>
+          <tr><td>$\mathbf{x}' = A\mathbf{x}$（2×2 or 3×3）</td><td><a href="mt2-02-systems.html#eigenvalue-method">Part 2 — Eigenvalue method</a></td></tr>
+          <tr><td>Classify equilibrium (saddle/node/spiral/center)</td><td><a href="#sec-stability">Part 5 — Stability section (this file)</a> 或 <a href="mt2-02-systems.html#three-cases">Part 2 — Three cases</a></td></tr>
+          <tr><td>Phase portrait / sketch</td><td><a href="#phase-portrait-saddle">Part 5 — Drills 2-4 (this file)</a> 或 <a href="mt2-02-systems.html#phase-portrait">Part 2 — Phase portrait guide</a></td></tr>
+          <tr><td>Complex eigenvalues — $\mathbf{u}, \mathbf{v}$ 公式</td><td><a href="#sec-complex">Part 5 — Complex eigenvalue (this file)</a></td></tr>
+          <tr><td>IVP via Laplace</td><td><a href="mt2-03-laplace.html#ivp-workflow">Part 3 — IVP workflow</a></td></tr>
+          <tr><td>Piecewise / step function forcing</td><td><a href="mt2-03-laplace.html#step-function">Part 3 — Step function</a></td></tr>
+          <tr><td>不分 s-shift 还是 t-shift — 速查</td><td><a href="#laplace-shifts-table">Part 5 — shifts 速查表 + Drill 4 (this file)</a></td></tr>
+          <tr><td>Complete the square + s-shift</td><td><a href="mt2-03-laplace.html#completing-square">Part 3 — Completing square</a></td></tr>
+          <tr><td>不会的 step function piecewise 拆解</td><td><a href="mt2-04-practice.html#practice-ch6-3">Part 4 — Ch6 #3 example</a></td></tr>
+          <tr><td>Laplace derivative rule 符号</td><td><a href="#sec-laplace">Part 5 — Laplace drills (this file)</a></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="goodnight">Final note</h2>
+      <p>
+        你已经完成了大量 review：
+      </p>
+      <ul>
+        <li><a href="mt2-01-secondorder.html">Part 1</a>: 13 道 §3.5, §3.6 HW</li>
+        <li><a href="mt2-02-systems.html">Part 2</a>: 25 道 §7.x HW + Graphing Guide</li>
+        <li><a href="mt2-03-laplace.html">Part 3</a>: 24 道 §6.x HW</li>
+        <li><a href="mt2-04-practice.html">Part 4</a>: 15 道 prof's practice 完整展开</li>
+        <li><strong>Part 5（本文件）</strong>: 7 道针对薄弱点的 drills</li>
+      </ul>
+      <p>
+        <strong>剩余时间最 ROI 的事</strong>：
+      </p>
+      <ol>
+        <li>把本页面的 7 道 drills 做完，确保三个薄弱点都打通.</li>
+        <li>过一遍 Parts 1-3 的 cheat sheets（不超过 30 分钟）.</li>
+        <li><strong>睡觉</strong>。不要熬夜刷题。Rested brain catches mistakes 比 tired brain 多做 2 题更值.</li>
+      </ol>
+      <p>
+        明天 12pm 加油！💪
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

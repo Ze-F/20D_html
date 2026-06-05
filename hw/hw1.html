@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW1 · Sec 1.1, 1.3, 2.1, 1.2, 2.2, 2.4 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW1 · §1.1 + §1.3 + §2.1 + §1.2 + §2.2 + §2.4 — Classification, Linear, Separable, Existence</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW1 讲解 — 第一次作业，全章基础</h1>
+    <p class="note">§1.1 #2, 3, 5, 6, 15 · §1.3 #1, 4, 9, 11 · §2.1 #3c, 7c, 11, 13bc, 21, 22, 25 · §1.2 #2a, 3, 7ab · §2.2 #3, 4, 9ac, 13ac, 14ac · §2.4 #1, 2, 5, 11, 18 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../01-foundations.html">File 01</a> 和 <a href="../02-first-order.html">File 02</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <p>HW1 是开学第一次作业，<strong>跨度大但每节深度浅</strong>. 主要目的是建立 differential equations 的语言：怎么分类、怎么解最简单的 first-order linear/separable、怎么判断解什么时候存在.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>节</th><th>核心问题</th><th>HW 题数</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>§1.1 Mathematical models, direction fields</td><td>看 slope field 推断长期行为；构造满足给定渐近行为的方程</td><td>5</td></tr>
+          <tr><td>§1.3 Classification of DEs</td><td>判 order、linear/nonlinear；验证解；找 $r$ 使 $e^{rt}$ 是解</td><td>4</td></tr>
+          <tr><td>§2.1 Linear ODE, integrating factor</td><td>$y' + p(t)y = g(t)$ 用 $\mu = e^{\int p\, dt}$ 解</td><td>7</td></tr>
+          <tr><td>§1.2 Solutions of $dy/dt = ay + b$</td><td>简单线性 IVP 直接套公式</td><td>3</td></tr>
+          <tr><td>§2.2 Separable</td><td>$M(x) + N(y)y' = 0$ 直接分离变量积分</td><td>5</td></tr>
+          <tr><td>§2.4 Existence & uniqueness</td><td>线性 Theorem 2.4.1 / 非线性 Theorem 2.4.2 找解的存在区域</td><td>5</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个开学常见误区</p>
+        <p>
+          <strong>(1) "Linear" 不是说 "$y$ 是 $t$ 的线性函数"：</strong>linear ODE 的定义是<em>方程</em>对未知函数 $y$ 及其各阶导数线性. $y'' + (\sin t) y = e^t$ 是 linear（$y$, $y'$, $y''$ 系数只含 $t$）；$y'' + y^2 = 0$ 是 nonlinear（出现 $y^2$）.<br><br>
+          <strong>(2) 解 first-order linear 必须先化标准形：</strong>$ty' + 2y = \sin t$ <em>不能</em>直接用 $\mu = e^{\int 2\, dt}$，必须先除以 $t$ 化为 $y' + (2/t) y = \sin t / t$，然后 $\mu = e^{\int (2/t) dt} = t^2$.<br><br>
+          <strong>(3) Separable 答案常常是 implicit：</strong>分离变量后两边积分，<em>最终式</em> 经常解不出 $y(x)$ 的 closed form. 写成 implicit equation $F(x, y) = C$ 是 acceptable 的（除非题目要求 explicit form）.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 1.1 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-1-1">§1.1 Problems — Direction fields & qualitative behavior</h2>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Direction field 给你"小地图"</p>
+        <p>$dy/dt = f(t, y)$ 不告诉你 $y(t)$ 是什么，但<em>给</em>了你<strong>每个点 $(t, y)$ 上解曲线的斜率</strong>. 把网格上每个点画一根斜率为 $f(t, y)$ 的小线段 → direction field. 解就是处处与小线段相切的曲线. Equilibrium 是 $f(t, y) = 0$ 的水平段，水平方向走.</p>
+      </div>
+
+      <h3 id="p1-1-2">§1.1 #2 — $y' = 2y - 3$, behavior as $t \to \infty$</h3>
+      <p><strong>方法.</strong> 这是 autonomous（右边没 $t$），equilibrium $2y - 3 = 0 \Rightarrow y^* = 3/2$. Sign chart：$y > 3/2 \Rightarrow y' > 0$（↑），$y < 3/2 \Rightarrow y' < 0$（↓）. 两侧远离 → $y^* = 3/2$ <strong>unstable</strong>.</p>
+      <p><strong>行为分类：</strong></p>
+      <ul>
+        <li>$y(0) > 3/2$：$y \to \infty$.</li>
+        <li>$y(0) = 3/2$：$y \equiv 3/2$.</li>
+        <li>$y(0) < 3/2$：$y \to -\infty$.</li>
+      </ul>
+      <p>所以<strong>行为依赖初值 $y(0)$</strong>，分界点是 $y_0 = 3/2$.</p>
+
+      <h3 id="p1-1-3">§1.1 #3 — $y' = 1 - 2y$, behavior as $t \to \infty$</h3>
+      <p>Equilibrium $1 - 2y = 0 \Rightarrow y^* = 1/2$. $y > 1/2 \Rightarrow y' < 0$（↓）, $y < 1/2 \Rightarrow y' > 0$（↑）. 两侧靠近 → <strong>asymptotically stable</strong>.</p>
+      <p><strong>所有解 $\to y^* = 1/2$ 不依赖初值.</strong></p>
+
+      <h3 id="p1-1-5">§1.1 #5 — Write $dy/dt = ay + b$ such that all solutions approach $y = 2/3$</h3>
+      <p>$y = 2/3$ 必须是 stable equilibrium. 方程 $y' = ay + b$ 的 equilibrium 是 $y^* = -b/a$. 稳定性需要 $a < 0$（这样 $y - y^*$ 项是 $e^{at}$，$a < 0$ 才衰减）.</p>
+      <p>令 $a = -1$（最简单），$-b/a = 2/3 \Rightarrow b = -a \cdot 2/3 = 2/3$.</p>
+      <p>$\boxed{\;y' = -y + 2/3.\;}$（或任意 $a < 0$ 与对应 $b$.）</p>
+
+      <h3 id="p1-1-6">§1.1 #6 — Write $dy/dt = ay + b$ such that all solutions diverge from $y = 2$</h3>
+      <p>$y = 2$ 必须是 unstable equilibrium → $a > 0$. $-b/a = 2 \Rightarrow b = -2a$.</p>
+      <p>令 $a = 1$：$\boxed{\;y' = y - 2.\;}$</p>
+
+      <h3 id="p1-1-15">§1.1 #15 — Match direction field of Fig 1.1.9 to one of a–j</h3>
+      <p><strong>方法.</strong> 列表 (a)–(j) 都是 $y' = f(y)$ 的 autonomous 方程. 比对 direction field 的特征：</p>
+      <ul>
+        <li><strong>水平段位置</strong>（equilibria $f(y) = 0$ 的 $y$ 值）.</li>
+        <li><strong>箭头方向</strong>（$f(y)$ 符号）.</li>
+        <li><strong>斜率大小变化</strong>（$|f(y)|$ 在远离 equilibria 时增长还是有界）.</li>
+      </ul>
+      <p>典型策略：先数水平线条数和位置，定可能的方程；再看箭头方向定符号；最后用斜率剧烈程度排除剩余选项. 没有特定参考图，按你拿到的图照上述步骤匹配即可.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 1.3 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-1-3">§1.3 Problems — Classification & verification</h2>
+
+      <h3 id="p1-3-1">§1.3 #1 — Determine order, state linear/nonlinear: $t^2 y'' + t y' + 2y = \sin t$</h3>
+      <p><strong>Order:</strong> 最高阶导数是 $y''$ → order $\boxed{2}$.</p>
+      <p><strong>Linear?</strong> 系数 $t^2, t, 2$ 都是 $t$ 的函数（不含 $y$），右边 $\sin t$ 不含 $y$. 方程对 $y, y', y''$ 线性 → <strong>linear</strong>.</p>
+
+      <h3 id="p1-3-4">§1.3 #4 — Order & linearity: $y'' + \sin(t + y) = \sin t$</h3>
+      <p><strong>Order:</strong> $y''$ → $\boxed{2}$.</p>
+      <p><strong>Linear?</strong> 项 $\sin(t + y)$ 把 $y$ 套在三角函数里——不是 $y$ 的线性组合（Taylor 展开后含 $y^3, y^5, \ldots$）→ <strong>nonlinear</strong>.</p>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 与 §1.3 #4 类似的非线性陷阱</p>
+        <p>nonlinear 的常见来源：$y^2, y^3$；$y \cdot y'$；$\sin y, e^y, \ln y$；$\sqrt{y}$. 反过来，$\sin t \cdot y$ 是 linear（系数 $\sin t$ 只含 $t$，作用在 $y$ 上是线性的）.</p>
+      </div>
+
+      <h3 id="p1-3-9">§1.3 #9 — Verify $y_1(t) = t^{1/2}$ and $y_2(t) = t^{-1}$ solve $2 t^2 y'' + 3 t y' - y = 0$ for $t > 0$</h3>
+      <p><strong>$y_1 = t^{1/2}$.</strong> $y_1' = \tfrac{1}{2} t^{-1/2}$, $y_1'' = -\tfrac{1}{4} t^{-3/2}$.</p>
+      $$2 t^2 \cdot \left(-\tfrac{1}{4} t^{-3/2}\right) + 3t \cdot \tfrac{1}{2} t^{-1/2} - t^{1/2} = -\tfrac{1}{2} t^{1/2} + \tfrac{3}{2} t^{1/2} - t^{1/2} = 0. ✓$$
+      <p><strong>$y_2 = t^{-1}$.</strong> $y_2' = -t^{-2}$, $y_2'' = 2 t^{-3}$.</p>
+      $$2 t^2 \cdot 2 t^{-3} + 3t \cdot (-t^{-2}) - t^{-1} = 4 t^{-1} - 3 t^{-1} - t^{-1} = 0. ✓$$
+
+      <h3 id="p1-3-11">§1.3 #11 — Find values of $r$ so $y = e^{rt}$ solves $y' + 2y = 0$</h3>
+      <p>$y = e^{rt} \Rightarrow y' = r e^{rt}$. 代入：$r e^{rt} + 2 e^{rt} = (r + 2) e^{rt} = 0$. 因 $e^{rt} \ne 0$，必须 $r + 2 = 0$.</p>
+      <p>$\boxed{\;r = -2.\;}$</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 2.1 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-2-1">§2.1 Problems — Linear first-order via integrating factor</h2>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Integrating factor 把左边凑成乘积导数</p>
+        <p>方程 $y' + p(t) y = g(t)$ 左边像 product rule 的"半个"：希望乘上某个 $\mu(t)$ 使 $\mu y' + \mu p y = (\mu y)'$. Product rule 给 $(\mu y)' = \mu y' + \mu' y$. 对照得 $\mu' = \mu p$，即 $\mu(t) = e^{\int p\, dt}$. 然后两边积分 $\int (\mu y)'\, dt = \int \mu g\, dt$ 就能解出 $y$.</p>
+      </div>
+
+      <h3 id="p2-1-3c">§2.1 #3c — General solution and behavior of $y' + y = t e^{-t} + 1$</h3>
+      <p><strong>Integrating factor.</strong> $p = 1 \Rightarrow \mu = e^t$.</p>
+      <p>$(e^t y)' = e^t (t e^{-t} + 1) = t + e^t$. 积分 $e^t y = \tfrac{t^2}{2} + e^t + C$.</p>
+      <p><strong>General solution.</strong> $\boxed{\;y(t) = \tfrac{t^2}{2} e^{-t} + 1 + C e^{-t}.\;}$</p>
+      <p><strong>As $t \to \infty$.</strong> $\tfrac{t^2}{2} e^{-t} \to 0$（指数压多项式）, $C e^{-t} \to 0$. 所以 $y \to 1$.</p>
+
+      <h3 id="p2-1-7c">§2.1 #7c — General solution of $y' + 2t y = 2t e^{-t^2}$</h3>
+      <p><strong>Integrating factor.</strong> $p = 2t \Rightarrow \mu = e^{t^2}$.</p>
+      <p>$(e^{t^2} y)' = e^{t^2} \cdot 2t e^{-t^2} = 2t$. 积分 $e^{t^2} y = t^2 + C$.</p>
+      <p><strong>General solution.</strong> $\boxed{\;y(t) = (t^2 + C) e^{-t^2}.\;}$</p>
+      <p><strong>As $t \to \infty$.</strong> $t^2 e^{-t^2} \to 0$，$C e^{-t^2} \to 0$. 所有解 $\to 0$，与 $C$ 无关.</p>
+
+      <h3 id="p2-1-11">§2.1 #11 — IVP $y' + \tfrac{2}{t} y = \dfrac{\cos t}{t^2}, \quad y(\pi) = 0, \quad t > 0$</h3>
+      <p><strong>Integrating factor.</strong> $p = 2/t \Rightarrow \mu = e^{\int (2/t) dt} = e^{2 \ln t} = t^2$.</p>
+      <p>$(t^2 y)' = t^2 \cdot \dfrac{\cos t}{t^2} = \cos t$. 积分 $t^2 y = \sin t + C$.</p>
+      <p><strong>IVP.</strong> $y(\pi) = 0 \Rightarrow \pi^2 \cdot 0 = \sin \pi + C \Rightarrow C = 0$.</p>
+      <p>$\boxed{\;y(t) = \dfrac{\sin t}{t^2}.\;}$</p>
+
+      <h3 id="p2-1-13bc">§2.1 #13bc — IVP $y' + \tfrac{1}{4} y = 3 + 2 \cos(2t), \quad y(0) = 0$. Behavior for large $t$</h3>
+      <p><strong>Integrating factor.</strong> $p = 1/4 \Rightarrow \mu = e^{t/4}$.</p>
+      <p>$(e^{t/4} y)' = e^{t/4}(3 + 2 \cos 2t)$. 两部分积分：</p>
+      <ul>
+        <li>$\int 3 e^{t/4} dt = 12 e^{t/4}$.</li>
+        <li>$\int e^{t/4} \cos 2t\, dt$：用公式 $\int e^{at} \cos bt\, dt = \dfrac{e^{at}(a \cos bt + b \sin bt)}{a^2 + b^2}$，$a = 1/4, b = 2$：
+        $$= \dfrac{e^{t/4} \left(\tfrac{1}{4} \cos 2t + 2 \sin 2t\right)}{\tfrac{1}{16} + 4} = \dfrac{16 e^{t/4} \left(\tfrac{1}{4} \cos 2t + 2 \sin 2t\right)}{65} = \dfrac{e^{t/4}(4 \cos 2t + 32 \sin 2t)}{65}.$$
+        乘 $2$：$\dfrac{e^{t/4}(8 \cos 2t + 64 \sin 2t)}{65}$.</li>
+      </ul>
+      <p>$e^{t/4} y = 12 e^{t/4} + \dfrac{e^{t/4}(8 \cos 2t + 64 \sin 2t)}{65} + C$.</p>
+      <p>$y = 12 + \dfrac{8 \cos 2t + 64 \sin 2t}{65} + C e^{-t/4}$.</p>
+      <p><strong>IVP.</strong> $y(0) = 12 + 8/65 + C = 0 \Rightarrow C = -12 - 8/65 = -\dfrac{788}{65}$.</p>
+      <p><strong>Behavior as $t \to \infty$.</strong> $e^{-t/4} \to 0$ 衰减 → $y$ 趋向"稳态" $12 + \dfrac{8 \cos 2t + 64 \sin 2t}{65}$，是<em>振幅有界的振荡</em>，平均值 $12$，振幅 $\dfrac{\sqrt{8^2 + 64^2}}{65} = \dfrac{\sqrt{64 + 4096}}{65} = \dfrac{\sqrt{4160}}{65} \approx 0.99$.</p>
+
+      <h3 id="p2-1-21">§2.1 #21 — IVP $y' - \tfrac{3}{2} y = 3t + 2 e^t$, $y(0) = y_0$. Find $y_0$ separating "grows positively" from "grows negatively"</h3>
+      <p><strong>Integrating factor.</strong> $\mu = e^{-3t/2}$.</p>
+      <p>$(e^{-3t/2} y)' = e^{-3t/2}(3t + 2 e^t) = 3t e^{-3t/2} + 2 e^{-t/2}$.</p>
+      <ul>
+        <li>$\int 3t e^{-3t/2}\, dt$: 分部积分 $u = 3t, dv = e^{-3t/2} dt \Rightarrow du = 3 dt, v = -\tfrac{2}{3} e^{-3t/2}$. 得 $-2t e^{-3t/2} + 2 \int e^{-3t/2} dt = -2t e^{-3t/2} - \tfrac{4}{3} e^{-3t/2}$.</li>
+        <li>$\int 2 e^{-t/2}\, dt = -4 e^{-t/2}$.</li>
+      </ul>
+      <p>$e^{-3t/2} y = -2t e^{-3t/2} - \tfrac{4}{3} e^{-3t/2} - 4 e^{-t/2} + C$.</p>
+      <p>$y = -2t - \tfrac{4}{3} - 4 e^{t} + C e^{3t/2}$.</p>
+      <p><strong>IVP.</strong> $y(0) = -\tfrac{4}{3} - 4 + C = y_0 \Rightarrow C = y_0 + \tfrac{16}{3}$.</p>
+      <p><strong>Long-term behavior.</strong> $e^{3t/2}$ 远超 $e^t$ 和多项式，主导项是 $C e^{3t/2}$. 若 $C > 0$, $y \to +\infty$; $C < 0$, $y \to -\infty$; $C = 0$（仅此一情形）, 主导项变 $-4 e^t$, $y \to -\infty$.</p>
+      <p>分界 $C = 0 \Rightarrow \boxed{\;y_0 = -16/3.\;}$ 但严格说：$y_0 > -16/3 \Rightarrow$ positively；$y_0 \le -16/3 \Rightarrow$ negatively.</p>
+
+      <h3 id="p2-1-22">§2.1 #22 — Show every solution of $y' + a y = b e^{-\lambda t}$ ($a, \lambda > 0$, $b \in \mathbb{R}$) satisfies $y \to 0$ as $t \to \infty$</h3>
+      <p><strong>Case 1: $a \ne \lambda$.</strong> Integrating factor $\mu = e^{at}$. $(e^{at} y)' = b e^{(a - \lambda) t}$. 积分 $e^{at} y = \dfrac{b}{a - \lambda} e^{(a - \lambda)t} + C$. 所以 $y = \dfrac{b}{a - \lambda} e^{-\lambda t} + C e^{-at}$. 两项都 $\to 0$（$\lambda, a > 0$）.</p>
+      <p><strong>Case 2: $a = \lambda$.</strong> $(e^{at} y)' = b$, 积分 $e^{at} y = bt + C$. 所以 $y = bt e^{-at} + C e^{-at}$. 多项式 × 指数衰减仍然 $\to 0$（$L'$Hôpital 或指数比多项式快）.</p>
+      <p>两种情形都成立 → $y \to 0$ for all initial conditions. <strong>QED.</strong></p>
+
+      <h3 id="p2-1-25">§2.1 #25 — Construct linear first-order ODE whose solutions are asymptotic to $y = 2t - 5$ as $t \to \infty$</h3>
+      <p><strong>策略.</strong> 想构造 ODE 使 general solution 形如 $y = (2t - 5) + (\text{衰减项})$. 衰减项需是 $e^{-rt}$ 形式（$r > 0$），所以方程 $y' + r y = g(t)$ 用整理：$y_p = 2t - 5$ 满足时 $g(t) = (2t - 5)' + r(2t - 5) = 2 + 2rt - 5r$.</p>
+      <p>取最简单 $r = 1$：$g(t) = 2 + 2t - 5 = 2t - 3$.</p>
+      <p>$\boxed{\;y' + y = 2t - 3.\;}$（验证：general solution $y = (2t - 5) + C e^{-t}$，$t \to \infty$ 时 $\to 2t - 5$ ✓.）</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 1.2 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-1-2">§1.2 Problems — IVP for $dy/dt = ay + b$</h2>
+
+      <p>这一节本质上就是套公式 $y(t) = (y_0 - b/a) e^{at} + b/a$（推导：移项 $y' - ay = b$，integrating factor $e^{-at}$）.</p>
+
+      <h3 id="p1-2-2a">§1.2 #2a — IVP $dy/dt = y - 5, \quad y(0) = y_0$（不做 compare/contrast）</h3>
+      <p>套公式 $y' = ay + b$：$a = 1, b = -5$，equilibrium $-b/a = 5$.</p>
+      <p>$y(t) = (y_0 - 5) e^t + 5$. 由于 $a = 1 > 0$，equilibrium $y = 5$ 是 unstable.</p>
+      <ul>
+        <li>$y_0 > 5$: $(y_0 - 5) > 0$, $y \to +\infty$.</li>
+        <li>$y_0 = 5$: $y \equiv 5$.</li>
+        <li>$y_0 < 5$: $y \to -\infty$.</li>
+      </ul>
+      <p>$\boxed{\;y(t) = (y_0 - 5) e^t + 5.\;}$</p>
+
+      <h3 id="p1-2-3">§1.2 #3 — $dy/dt = ay - b$ with $a > 0, b > 0$</h3>
+      <p>(a) <strong>General solution.</strong> Equilibrium $y^* = b/a$（解 $ay - b = 0$）. 套公式：$y(t) = (y_0 - b/a) e^{at} + b/a$.</p>
+      <p>(b) <strong>Sketch.</strong> 因 $a > 0$，equilibrium unstable. 解曲线在 $y^* = b/a$ 之上的 $y_0$ 会指数向上发散；之下的会向下发散；$y_0 = b/a$ 是水平线.</p>
+      <p>(c) <strong>条件如何影响.</strong> 越接近 $y^* = b/a$ 的初值衰减越慢；远离的指数发散；唯一的 bounded 解就是 $y \equiv b/a$.</p>
+
+      <h3 id="p1-2-7ab">§1.2 #7ab — Field mice population $dp/dt = p/2 - 450$, $p(0) = p_0$</h3>
+      <p><strong>套公式.</strong> $a = 1/2, b = -450$，equilibrium $p^* = -b/a = 900$. $a > 0 \Rightarrow$ unstable.</p>
+      <p>$p(t) = (p_0 - 900) e^{t/2} + 900$.</p>
+      <p>(a) <strong>If $p_0 = 850$, when does extinction occur?</strong> $p_0 - 900 = -50 < 0$, 所以 $p \to -\infty$. Extinction 即 $p(T) = 0$:</p>
+      $$0 = -50 e^{T/2} + 900 \Rightarrow e^{T/2} = 18 \Rightarrow T = 2 \ln 18 \approx 5.78 \text{ months}.$$
+      <p>(b) <strong>If $p_0 = p_0$ (general), $0 < p_0 < 900$.</strong> 同理 $T = 2 \ln \dfrac{900}{900 - p_0}$.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 2.2 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-2-2">§2.2 Problems — Separable equations</h2>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — "Separable" 的几何意义</p>
+        <p>$\dfrac{dy}{dx} = \dfrac{M(x)}{-N(y)}$ 可以重写为 $N(y) dy + M(x) dx = 0$. 把 $y$ 项搬到一边 $x$ 项搬到另一边，各自积分就行——这就是<em>分离</em>变量. 几何上：解曲线满足 $\int N\, dy + \int M\, dx = C$，是 $xy$ 平面上的<em>level curves</em>，不需要解出 $y(x)$ 也是合法解（implicit form）.</p>
+      </div>
+
+      <h3 id="p2-2-3">§2.2 #3 — $y' + y^2 \sin x = 0$</h3>
+      <p>移项：$\dfrac{dy}{dx} = -y^2 \sin x \Rightarrow \dfrac{dy}{y^2} = -\sin x \, dx$.</p>
+      <p>两边积分：$-\dfrac{1}{y} = \cos x + C$.</p>
+      <p>$\boxed{\;y = -\dfrac{1}{\cos x + C}.\;}$（注意常数解 $y \equiv 0$ 也是 solution，不能由这个公式得到——它是分母为零时的"边界情形"，需单独说明.）</p>
+
+      <h3 id="p2-2-4">§2.2 #4 — $y' = \dfrac{3 x^2 - 1}{3 + 2y}$</h3>
+      <p>分离：$(3 + 2y) dy = (3 x^2 - 1) dx$. 积分：</p>
+      $$3 y + y^2 = x^3 - x + C.$$
+      <p>$\boxed{\;y^2 + 3y - x^3 + x = C.\;}$（implicit form）</p>
+
+      <h3 id="p2-2-9ac">§2.2 #9ac — IVP $y' = (1 - 2x) y^2$, $y(0) = -1/6$. Explicit form + interval</h3>
+      <p>分离：$\dfrac{dy}{y^2} = (1 - 2x) dx \Rightarrow -\dfrac{1}{y} = x - x^2 + C$.</p>
+      <p>$y(0) = -1/6$: $-\dfrac{1}{-1/6} = 6 = C$.</p>
+      <p>$-1/y = x - x^2 + 6 \Rightarrow y = \dfrac{1}{x^2 - x - 6} = \dfrac{1}{(x - 3)(x + 2)}$.</p>
+      <p><strong>Explicit form.</strong> $\boxed{\;y(x) = \dfrac{1}{(x - 3)(x + 2)}.\;}$</p>
+      <p><strong>Interval.</strong> 分母为零在 $x = -2, 3$. 初值 $x = 0 \in (-2, 3)$. So <strong>interval $= -2 < x < 3$</strong>.</p>
+
+      <h3 id="p2-2-13ac">§2.2 #13ac — IVP $y' = \dfrac{2x}{y + x^2 y}$, $y(0) = -2$</h3>
+      <p>整理：$y' = \dfrac{2x}{y(1 + x^2)}$. 分离：$y\, dy = \dfrac{2x}{1 + x^2}\, dx$.</p>
+      <p>积分：$\dfrac{y^2}{2} = \ln(1 + x^2) + C$. $y(0) = -2$: $2 = 0 + C \Rightarrow C = 2$.</p>
+      <p>$y^2 = 2 \ln(1 + x^2) + 4$. 因 $y(0) = -2 < 0$，取负号：</p>
+      <p>$\boxed{\;y(x) = -\sqrt{2 \ln(1 + x^2) + 4}.\;}$</p>
+      <p><strong>Interval.</strong> 被开方 $2 \ln(1 + x^2) + 4 \ge 4 > 0$ 对所有 $x$，且 $y \ne 0$ 保持. 所以 <strong>interval $= (-\infty, \infty)$</strong>.</p>
+
+      <h3 id="p2-2-14ac">§2.2 #14ac — IVP $y' = x y^3 (1 + x^2)^{-1/2}$, $y(0) = 1$</h3>
+      <p>分离：$\dfrac{dy}{y^3} = \dfrac{x\, dx}{\sqrt{1 + x^2}}$.</p>
+      <p>积分（右边代换 $u = 1 + x^2$）：$-\dfrac{1}{2 y^2} = \sqrt{1 + x^2} + C$.</p>
+      <p>$y(0) = 1$: $-1/2 = 1 + C \Rightarrow C = -3/2$.</p>
+      <p>$-\dfrac{1}{2 y^2} = \sqrt{1 + x^2} - \dfrac{3}{2}$，化得 $y^2 = \dfrac{1}{3 - 2\sqrt{1 + x^2}}$. 由 $y(0) = 1 > 0$：</p>
+      <p>$\boxed{\;y(x) = \dfrac{1}{\sqrt{3 - 2\sqrt{1 + x^2}}}.\;}$</p>
+      <p><strong>Interval.</strong> 需 $3 - 2\sqrt{1 + x^2} > 0 \Leftrightarrow \sqrt{1 + x^2} < 3/2 \Leftrightarrow x^2 < 5/4 \Leftrightarrow |x| < \sqrt{5}/2$. 所以 <strong>interval $= -\sqrt{5}/2 < x < \sqrt{5}/2$</strong>.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 2.4 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-2-4">§2.4 Problems — Existence & uniqueness</h2>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 两个 theorem 对应两种方程</p>
+        <p><strong>Theorem 2.4.1（linear）：</strong>$y' + p(t) y = g(t), y(t_0) = y_0$ 在<em>任何</em>包含 $t_0$、$p, g$ 都 continuous 的开区间内有唯一解. 解的存在区间 = "最大包含 $t_0$ 的 $p, g$ continuous 区间".<br><br>
+        <strong>Theorem 2.4.2（nonlinear, Picard）：</strong>$y' = f(t, y), y(t_0) = y_0$, 若 $f$ 和 $\partial f / \partial y$ 在 $(t_0, y_0)$ 的某 rectangle 内 continuous，则有唯一解但只保证<em>某邻域</em>内.</p>
+      </div>
+
+      <h3 id="p2-4-1">§2.4 #1 — Interval of existence: $t y' + 2 y = \sin t, \quad y(\pi) = 1/\pi$</h3>
+      <p>化标准形：$y' + (2/t) y = (\sin t)/t$. $p(t) = 2/t$ 和 $g(t) = (\sin t)/t$ 都在 $t \ne 0$ 处 continuous.</p>
+      <p>$t_0 = \pi > 0$, 最大 continuous 区间含 $\pi$ 的是 $(0, \infty)$.</p>
+      <p>$\boxed{\;0 < t < \infty.\;}$</p>
+
+      <h3 id="p2-4-2">§2.4 #2 — Interval: $(4 - t^2) y' + 2 t y = 3 t^2, \quad y(1) = -3$</h3>
+      <p>化标准形：$y' + \dfrac{2t}{4 - t^2} y = \dfrac{3 t^2}{4 - t^2}$. 系数在 $t = \pm 2$ 处 discontinuous.</p>
+      <p>$t_0 = 1 \in (-2, 2)$. 最大 continuous 区间含 $1$ 的是 $(-2, 2)$.</p>
+      <p>$\boxed{\;-2 < t < 2.\;}$</p>
+
+      <h3 id="p2-4-5">§2.4 #5 — Interval: $(4 - t^2) y' + 2 t y = 3 t^2, \quad y(-3) = 1$</h3>
+      <p>同方程，但 $t_0 = -3 \in (-\infty, -2)$. 最大区间：</p>
+      <p>$\boxed{\;-\infty < t < -2.\;}$</p>
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 同方程不同初值 → 不同存在区间</p>
+        <p>这一组 (#2 vs #5) 故意展示：linear ODE 的 discontinuity 点把 $t$ 轴<em>切断</em>，初值在哪个连通块里，解就只在那一块存在. 没有"跨越" $t = \pm 2$ 的解.</p>
+      </div>
+
+      <h3 id="p2-4-11">§2.4 #11 — Where Theorem 2.4.2 applies for $\dfrac{dy}{dt} = \dfrac{\ln|ty|}{1 - t^2 + y^2}$</h3>
+      <p>$f(t, y) = \dfrac{\ln|ty|}{1 - t^2 + y^2}$. 需 $f$ 和 $f_y$ 都 continuous.</p>
+      <p><strong>$f$ continuous 要求：</strong></p>
+      <ul>
+        <li>$\ln|ty|$ defined：$ty \ne 0$，即 $t \ne 0$ <em>且</em> $y \ne 0$（排除两条坐标轴）.</li>
+        <li>分母 $1 - t^2 + y^2 \ne 0$，即 $y^2 \ne t^2 - 1$（排除双曲线 $t^2 - y^2 = 1$）.</li>
+      </ul>
+      <p><strong>$f_y = \dfrac{\partial}{\partial y} \dfrac{\ln|ty|}{1 - t^2 + y^2}$:</strong> 用 quotient rule. $\partial_y \ln|ty| = 1/y$. $\partial_y (1 - t^2 + y^2) = 2y$. 所以</p>
+      $$f_y = \dfrac{(1/y)(1 - t^2 + y^2) - \ln|ty| \cdot 2y}{(1 - t^2 + y^2)^2}.$$
+      <p>需要的额外限制和 $f$ 一样：$y \ne 0$（$1/y$）, 分母 $\ne 0$.</p>
+      <p><strong>结论.</strong> Theorem 2.4.2 在<em>排除 $t = 0$、$y = 0$ 和双曲线 $t^2 - y^2 = 1$</em> 的开区域上保证唯一解.</p>
+
+      <h3 id="p2-4-18">§2.4 #18 — Nonlinear IVP with parameter dependence</h3>
+      <p><strong>题目类型：</strong>形如 "$y' = f(t, y)$，$y(0) = y_0$. Draw direction field, describe behavior, find critical $y_0$." 标准 § 2.4 #17–22 系列.</p>
+      <p><strong>通用方法.</strong></p>
+      <ol>
+        <li><strong>找 equilibria.</strong> 当 $f$ 是 autonomous 或近似 autonomous 时，$f = 0$ 给 equilibrium curves.</li>
+        <li><strong>Sign chart.</strong> 在各区域确定 $y$ 增减.</li>
+        <li><strong>分类 long-term behavior.</strong> 不同初值进入不同 basin → 找<em>分隔</em>不同行为的初值 $y_0$，那就是 critical 值.</li>
+        <li><strong>若解能 explicit：</strong>分离变量解出 $y(t)$，看 $t \to \infty$ 极限或 finite-time blowup.</li>
+      </ol>
+      <p>因为本题方程依赖具体形式，请按上面四步对照课本所给的 $f(t, y)$ 执行；通常 critical $y_0$ 是某条 equilibrium curve 在 $t = 0$ 的值.</p>
+    </section>
+
+    <section>
+      <h2 id="summary">总结与下一步</h2>
+
+      <p><strong>HW1 的 6 节工具表：</strong></p>
+      <table class="data-table">
+        <thead>
+          <tr><th>节</th><th>识别方式</th><th>核心步骤</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>§1.1</td><td>方向场 + 渐近行为</td><td>找 equilibria → sign chart → 判 stable/unstable</td></tr>
+          <tr><td>§1.3</td><td>分类问题</td><td>看最高阶 → 看 $y$ 是否线性出现 → 验证代入</td></tr>
+          <tr><td>§2.1</td><td>$y' + p(t)y = g(t)$ 形式</td><td>化标准形 → $\mu = e^{\int p\, dt}$ → 两边积分</td></tr>
+          <tr><td>§1.2</td><td>$y' = ay + b$ 简单线性</td><td>套公式 $y = (y_0 - b/a) e^{at} + b/a$（这里 $a$ 是 ODE 的系数）</td></tr>
+          <tr><td>§2.2</td><td>$M(x) + N(y) y' = 0$</td><td>分离变量两边积分（implicit form 即可）</td></tr>
+          <tr><td>§2.4</td><td>问解的存在区间</td><td>linear: $p, g$ continuous 区间含 $t_0$；nonlinear: $f, f_y$ continuous 区域</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Looking ahead — HW2 把 first-order 收尾，进入 second-order</p>
+        <p>HW1 给的 first-order linear（§2.1）和 separable（§2.2）覆盖了"能 closed-form 解"的两大类. HW2 接着用 §2.5 处理<em>autonomous</em> 的<strong>定性</strong>分析（不追求公式，只看 phase line），§2.6 学 exact equations（介于 linear 和 separable 之间的一类），然后跨进 §3.1 开始 second-order constant coefficient. 完整概念见 <a href="../02-first-order.html">File 02</a> 和 <a href="../03-homog-second-order.html">File 03</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

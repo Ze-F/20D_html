@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MT2 Review · Part 1 — Second-Order Nonhomogeneous · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">MT2 Review · Part 1 — Second-Order Nonhomogeneous</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>MT2 Review · Part 1 — Second-Order Nonhomogeneous (§3.5, §3.6)</h1>
+    <p class="note">UCSD MATH 20D Spring 2026 · MT2 = §3.5 → §6.4 · 本文件覆盖 §3.5 (Undetermined Coefficients) 和 §3.6 (Variation of Parameters)</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="scope">Scope &amp; how to use</h2>
+      <p>
+        MT2 考 Fri 5/22, 12:00pm, CENTR 101，50 分钟，<strong>不允许任何资料，只发一张 Laplace transform table</strong>。范围 §3.5 → §6.4。这份 review 共三个文件：
+      </p>
+      <ul>
+        <li><strong>Part 1（本文件）</strong>：§3.5 Undetermined Coefficients + §3.6 Variation of Parameters — 13 HW 题</li>
+        <li><a href="mt2-02-systems.html">Part 2</a>：§7.1, 7.3, 7.4, 7.5, 7.6 Systems — 25 HW 题</li>
+        <li><a href="mt2-03-laplace.html">Part 3</a>：§6.1, 6.2, 6.3, 6.4 Laplace — 24 HW 题</li>
+      </ul>
+      <p>
+        本文件结构：先 cheat sheet（要背的公式 + ansatz 表）→ 决策树（看到题怎么选方法）→ 13 道 HW 题逐题展开 → common pitfalls。如果时间紧只看 cheat sheet + pitfalls + 不熟的题。
+      </p>
+      <p class="note">
+        概念性的推导见 <a href="04-nonhomog-second-order.html">File 04</a>（同样覆盖 §3.5, §3.6），本文件只做应试导向的速查 + 题解。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="cheat-sheet">Cheat sheet — 必背公式</h2>
+
+      <h3 id="general-structure">General solution 结构</h3>
+      <p>
+        给定 nonhomogeneous ODE $ay'' + by' + cy = g(t)$，general solution 永远是：
+      </p>
+      <div class="def">
+        <span class="def-label">General solution.</span>
+        $$y(t) = y_H(t) + y_P(t)$$
+        其中 $y_H = c_1 y_1 + c_2 y_2$ 是对应 homogeneous 方程 $ay'' + by' + cy = 0$ 的 general solution（File 03 的工作），$y_P$ 是任意一个 particular solution（即满足 nonhomogeneous 方程的任一解，不含 arbitrary constants）。
+      </div>
+      <p>
+        所以做 nonhomogeneous 题的固定 workflow：
+      </p>
+      <ol>
+        <li><strong>Step 1</strong>：解 characteristic equation，得 $y_H$（这部分跟 File 03 完全一样）</li>
+        <li><strong>Step 2</strong>：找一个 $y_P$（用 Sec 3.5 undetermined coefficients 或 Sec 3.6 variation of parameters）</li>
+        <li><strong>Step 3</strong>：写出 $y = y_H + y_P$</li>
+        <li><strong>Step 4</strong>（IVP 才需要）：用 initial conditions 解出 $c_1, c_2$</li>
+      </ol>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — IC 一定要 apply 在 general solution 上</p>
+        <p>常见错误：把 initial conditions 直接 apply 在 $y_H$ 上解出 $c_1, c_2$，再加 $y_P$ — <strong>这是错的</strong>。$y_P$ 在 $t=0$ 处一般也有非零值，会影响 $c_1, c_2$ 的取值。必须先写出完整的 $y = y_H + y_P$，再 apply IC。</p>
+      </div>
+
+      <h3 id="ansatz-table">§3.5 Undetermined Coefficients — Ansatz 表</h3>
+      <p>
+        Constant-coefficient 方程 $ay'' + by' + cy = g(t)$，当 $g(t)$ 是 polynomial、exponential、sine/cosine、或者这些的乘积/求和时，可以"猜"出 $y_P$ 的形式：
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr><th>$g(t)$ 形式</th><th>$y_P$ 的 ansatz（未乘 $t^s$）</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$P_n(t) = a_0 t^n + a_1 t^{n-1} + \cdots + a_n$</td>
+            <td>$t^s (A_0 t^n + A_1 t^{n-1} + \cdots + A_n)$</td>
+          </tr>
+          <tr>
+            <td>$P_n(t)\, e^{\alpha t}$</td>
+            <td>$t^s e^{\alpha t}(A_0 t^n + \cdots + A_n)$</td>
+          </tr>
+          <tr>
+            <td>$P_n(t)\, e^{\alpha t}\cos(\beta t)$ 或 $P_n(t)\, e^{\alpha t}\sin(\beta t)$</td>
+            <td>$t^s e^{\alpha t}\!\left[(A_0 t^n + \cdots + A_n)\cos(\beta t) + (B_0 t^n + \cdots + B_n)\sin(\beta t)\right]$</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <strong>$s$ 的取值</strong>是 $0, 1, 2$ 之一，取最小值使得 ansatz 中没有任何 term 与 $y_H$ 重复（即不是 homogeneous 方程的 solution）。Determine $s$ 的方法：
+      </p>
+      <ul>
+        <li>纯 polynomial $P_n(t)$：$s$ = "characteristic equation 中 $r=0$ 是 root 的重数"（0、1、或 2）</li>
+        <li>$P_n(t)\, e^{\alpha t}$：$s$ = "$r = \alpha$ 是 characteristic equation root 的重数"</li>
+        <li>$P_n(t)\, e^{\alpha t}\cos/\sin(\beta t)$：$s$ = "$r = \alpha + i\beta$ 是 characteristic equation root 的重数"</li>
+      </ul>
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么要乘 $t^s$</p>
+        <p>
+          如果 ansatz 中某个 term 已经是 homogeneous 方程的 solution，代入 LHS 会得到 0 而不是匹配 forcing — 永远无解。乘 $t^s$ 把 ansatz 推到一个新的"频率层级"，让 LHS 不再为零。具体多乘几个 $t$？刚好够让所有 term 都 fresh，即 characteristic root 的重数。
+        </p>
+      </div>
+
+      <h3 id="sum-of-terms">$g(t)$ 是多项之和的情形</h3>
+      <p>
+        如果 $g(t) = g_1(t) + g_2(t) + \cdots + g_k(t)$，叠加原理保证：分别对每个 $g_i$ 求 $Y_i$，然后 $y_P = Y_1 + Y_2 + \cdots + Y_k$。
+      </p>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 多项 forcing 时 ansatz 的合并</p>
+        <p>
+          如果两项 $g_i, g_j$ 产生的 ansatz 形式相同（比如都是 $e^{-t}\cos(t)$ 类型，只是 polynomial 的 degree 不同），<strong>合并成一个 ansatz</strong>，用最高 degree。否则会有冗余的 coefficient。例如 $g(t) = 2e^{-t}\cos(t) + 4e^{-t}t^2\sin(t)$ 合并成 $e^{-t}[(A_0 t^2 + A_1 t + A_2)\cos(t) + (B_0 t^2 + B_1 t + B_2)\sin(t)]$，不要拆成两个独立 ansatz。
+        </p>
+      </div>
+
+      <h3 id="varparams-formula">§3.6 Variation of Parameters — 公式</h3>
+      <p>
+        给定 second-order linear ODE in <strong>standard form</strong>：
+      </p>
+      <div class="def">
+        <span class="def-label">Standard form.</span>
+        $$y'' + p(t)y' + q(t)y = g(t)$$
+        即 leading coefficient 必须是 $1$。如果原方程是 $ay'' + by' + cy = g(t)$（$a \neq 1$），先除以 $a$。
+      </div>
+      <p>
+        设 $y_H = c_1 y_1(t) + c_2 y_2(t)$ 是 homogeneous 方程的 general solution（$y_1, y_2$ 是 linearly independent solutions）。Variation of parameters 把 $c_1, c_2$ 换成 functions $u_1(t), u_2(t)$，要求：
+      </p>
+      <div class="thm">
+        <span class="thm-label">Theorem (Variation of Parameters).</span>
+        Particular solution 形如 $y_P = u_1(t) y_1(t) + u_2(t) y_2(t)$，其中
+        $$u_1'(t) = -\dfrac{y_2(t)\, g(t)}{W(t)}, \qquad u_2'(t) = \dfrac{y_1(t)\, g(t)}{W(t)}$$
+        且 $W(t) = W(y_1, y_2)(t) = y_1 y_2' - y_2 y_1'$ 是 Wronskian。
+      </div>
+      <p>
+        三步流程：
+      </p>
+      <ol>
+        <li><strong>Step 1</strong>：确认 standard form。算 $W = y_1 y_2' - y_2 y_1'$。</li>
+        <li><strong>Step 2</strong>：算 $u_1'$ 和 $u_2'$，<strong>积分</strong>得 $u_1, u_2$（不加 $+C$）。</li>
+        <li><strong>Step 3</strong>：$y_P = u_1 y_1 + u_2 y_2$。General solution 是 $y = c_1 y_1 + c_2 y_2 + y_P$。</li>
+      </ol>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 必须 standard form！</p>
+        <p>
+          如果方程是 $4y'' - 4y' + y = 16e^{t/2}$，<strong>必须先除以 4</strong> 变成 $y'' - y' + \frac{1}{4}y = 4e^{t/2}$，再用 variation of parameters 公式。否则 $g(t)$ 就错了，整个解都会差一个常数倍。
+        </p>
+      </div>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — $u_1, u_2$ 不加 $+C$</p>
+        <p>
+          积分 $u_1', u_2'$ 时，<strong>不要加 integration constants</strong>。若加上了，那部分会被 $y_H$ 的 $c_1 y_1 + c_2 y_2$ 吸收，不影响最终答案但会让计算啰嗦。直接取 antiderivative 即可。
+        </p>
+      </div>
+
+      <h3 id="method-choice">何时用哪个方法</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th></th><th>Undetermined Coefficients (§3.5)</th><th>Variation of Parameters (§3.6)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>适用方程类型</td><td>仅 constant-coefficient</td><td>任意 linear（包括 variable coefficient）</td></tr>
+          <tr><td>适用 forcing 类型</td><td>polynomial / exp / sin / cos 及其乘积、求和</td><td>任意 continuous $g(t)$，包括 $\tan, \sec, 1/(1+t^2), e^t/(1+t^2)$ 等</td></tr>
+          <tr><td>计算量</td><td>小（代数）</td><td>大（积分，可能很复杂）</td></tr>
+          <tr><td>什么时候用</td><td>第一选择，几乎所有 HW 都用这个</td><td>只在 §3.5 失效时（$g$ 不属于上表 + 变系数）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="decision-flowchart">决策树 — 看到题怎么选方法</h2>
+      <div class="box deeper">
+        <p class="box-title">📖 Workflow — 拿到一道 second-order nonhomogeneous 题</p>
+        <p>
+          <strong>问题 1</strong>：方程是 constant-coefficient 吗？（即 $a, b, c$ 是常数，不含 $t$？）
+        </p>
+        <ul>
+          <li>否 → 直接 §3.6 (variation of parameters)，题目通常会给你 $y_1, y_2$（HW §3.6 #10, #12 就是这样）</li>
+          <li>是 → 继续问题 2</li>
+        </ul>
+        <p>
+          <strong>问题 2</strong>：forcing $g(t)$ 是 polynomial / exponential / sine / cosine / 它们的乘积或求和吗？
+        </p>
+        <ul>
+          <li>是 → §3.5 (undetermined coefficients)，按 ansatz 表猜形式</li>
+          <li>否（比如 $\tan t, \sec t, 1/(1+t^2)$，或 $g(t)$ 是任意 continuous function 的符号 $g(t)$）→ §3.6 (variation of parameters)</li>
+        </ul>
+        <p>
+          <strong>问题 3</strong>（仅 §3.5 路径）：ansatz 是否与 $y_H$ 重复？
+        </p>
+        <ul>
+          <li>不重复 → $s=0$，直接代入求 coefficients</li>
+          <li>重复但 $y_H$ 里该 root 是 simple → $s=1$（乘 $t$）</li>
+          <li>重复且 $y_H$ 里该 root 是 double → $s=2$（乘 $t^2$）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-35">§3.5 HW Problems (8 题)</h2>
+      <p>HW 列表：#4, #5, #7, #11, #13, #17a, #18a, #19a。前 5 题求 general solution 或 IVP，后 3 题只 determine form（不需要求 coefficients）。</p>
+
+      <h3 id="prob-3-5-4">§3.5 #4 — $y'' - 2y' - 3y = -3te^{-t}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 General solution</p>
+        <p><strong>Problem.</strong> Find the general solution of $y'' - 2y' - 3y = -3te^{-t}$.</p>
+        <p><strong>Setup.</strong> Constant-coefficient，forcing 是 polynomial × exponential ⟹ undetermined coefficients。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1（homogeneous part）：</em> Characteristic equation $r^2 - 2r - 3 = (r-3)(r+1) = 0$，得 $r_1 = 3, r_2 = -1$。所以
+          $$y_H = c_1 e^{3t} + c_2 e^{-t}.$$
+        </p>
+        <p>
+          <em>Step 2（particular solution，find $s$）：</em> Forcing $-3te^{-t}$ 是 polynomial degree 1 × $e^{-t}$。Baseline ansatz $Y = (A_0 t + A_1) e^{-t}$。但 $r = -1$ 是 characteristic equation 的 simple root ⟹ $s = 1$，乘 $t$：
+          $$Y(t) = t(A_0 t + A_1) e^{-t} = (A_0 t^2 + A_1 t) e^{-t}.$$
+        </p>
+        <p>
+          <em>Step 3（代入求 coefficients）：</em> 算
+          $$\begin{aligned}
+          Y &= (A_0 t^2 + A_1 t) e^{-t} \\
+          Y' &= (2A_0 t + A_1) e^{-t} - (A_0 t^2 + A_1 t) e^{-t} = (-A_0 t^2 + (2A_0 - A_1) t + A_1) e^{-t} \\
+          Y'' &= (-2A_0 t + 2A_0 - A_1) e^{-t} - (-A_0 t^2 + (2A_0 - A_1) t + A_1) e^{-t} \\
+              &= (A_0 t^2 + (-4A_0 + A_1) t + (2A_0 - 2A_1)) e^{-t}
+          \end{aligned}$$
+          代入 $Y'' - 2Y' - 3Y$：
+          $$\begin{aligned}
+          Y'' - 2Y' - 3Y &= e^{-t}\big[(A_0 t^2 + (-4A_0 + A_1) t + (2A_0 - 2A_1)) \\
+          &\qquad - 2(-A_0 t^2 + (2A_0 - A_1) t + A_1) - 3(A_0 t^2 + A_1 t)\big] \\
+          &= e^{-t}\big[(A_0 + 2A_0 - 3A_0) t^2 + (-4A_0 + A_1 - 4A_0 + 2A_1 - 3A_1) t + (2A_0 - 2A_1 - 2A_1)\big] \\
+          &= e^{-t}\big[0 \cdot t^2 + (-8A_0) t + (2A_0 - 4A_1)\big].
+          \end{aligned}$$
+          匹配 RHS $-3t e^{-t}$：$-8A_0 = -3 \Rightarrow A_0 = \tfrac{3}{8}$，$2A_0 - 4A_1 = 0 \Rightarrow A_1 = \tfrac{A_0}{2} = \tfrac{3}{16}$。
+        </p>
+        <p>
+          <em>Step 4（组合）：</em>
+          $$Y(t) = \left(\tfrac{3}{8} t^2 + \tfrac{3}{16} t\right) e^{-t}.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 e^{3t} + c_2 e^{-t} + \tfrac{3}{16}(2t^2 + t)\, e^{-t}\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：忘记乘 $t$ 是这题最常见错误。$e^{-t}$ 是 $y_H$ 的一部分（$r = -1$），所以必须 $s = 1$。</p>
+      </div>
+
+      <h3 id="prob-3-5-5">§3.5 #5 — $y'' + 2y' = 3 + 4\sin(2t)$</h3>
+      <div class="box example">
+        <p class="box-title">📝 General solution</p>
+        <p><strong>Problem.</strong> Find the general solution of $y'' + 2y' = 3 + 4\sin(2t)$.</p>
+        <p><strong>Setup.</strong> Constant-coefficient，forcing 是 constant + sine ⟹ undetermined coefficients。两个 forcing 项，分别处理后叠加。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 + 2r = r(r+2) = 0$，$r_1 = 0, r_2 = -2$。
+          $$y_H = c_1 + c_2 e^{-2t}.$$
+        </p>
+        <p>
+          <em>Step 2a（处理常数项 $3$）：</em> Baseline ansatz $Y_1 = A$（degree-0 polynomial）。但 $r = 0$ 是 simple root（对应 $y_H$ 里的 $c_1 = c_1 \cdot e^{0 \cdot t}$）⟹ $s = 1$，乘 $t$：
+          $$Y_1 = At.$$
+          算 $Y_1' = A, Y_1'' = 0$，代入 $Y_1'' + 2Y_1' = 0 + 2A = 2A$。匹配 $3$：$A = \tfrac{3}{2}$。所以 $Y_1 = \tfrac{3}{2} t$。
+        </p>
+        <p>
+          <em>Step 2b（处理 $4\sin(2t)$）：</em> Baseline ansatz $Y_2 = B\cos(2t) + C\sin(2t)$。$r = \pm 2i$ 不是 characteristic root（roots are $0, -2$）⟹ $s = 0$，不乘 $t$。
+          算
+          $$\begin{aligned}
+          Y_2' &= -2B\sin(2t) + 2C\cos(2t), \\
+          Y_2'' &= -4B\cos(2t) - 4C\sin(2t).
+          \end{aligned}$$
+          代入 $Y_2'' + 2Y_2'$：
+          $$Y_2'' + 2Y_2' = (-4B + 4C)\cos(2t) + (-4C - 4B)\sin(2t).$$
+          匹配 $4\sin(2t)$（即 $0 \cdot \cos(2t) + 4 \sin(2t)$）：
+          $$\begin{aligned}
+          -4B + 4C &= 0 \Rightarrow B = C, \\
+          -4B - 4C &= 4 \Rightarrow B + C = -1.
+          \end{aligned}$$
+          得 $B = C = -\tfrac{1}{2}$。所以 $Y_2 = -\tfrac{1}{2}\cos(2t) - \tfrac{1}{2}\sin(2t)$.
+        </p>
+        <p>
+          <em>Step 3（叠加）：</em>
+          $$Y(t) = Y_1 + Y_2 = \tfrac{3}{2} t - \tfrac{1}{2}\cos(2t) - \tfrac{1}{2}\sin(2t).$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 + c_2 e^{-2t} + \tfrac{3}{2} t - \tfrac{1}{2}\cos(2t) - \tfrac{1}{2}\sin(2t)\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：对常数项 $3$，常见错误是忘记 $r=0$ 是 root，直接 ansatz $Y_1 = A$ 然后发现 $2A' = 0 \neq 3$ 永远解不出。看到 $y'' + 2y' = \cdots$（即没有 $y$ 项）就要警觉 $r=0$ 是 root。</p>
+      </div>
+
+      <h3 id="prob-3-5-7">§3.5 #7 — $y'' + y' = t^2 + 2\cos(2t)$</h3>
+      <div class="box example">
+        <p class="box-title">📝 General solution</p>
+        <p><strong>Problem.</strong> Find the general solution of $y'' + y' = t^2 + 2\cos(2t)$.</p>
+        <p><strong>Setup.</strong> Constant-coefficient，forcing 是 polynomial degree 2 + cosine ⟹ undetermined coefficients。注意 $r=0$ 是 root（跟上题一样的陷阱）。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 + r = r(r+1) = 0$，$r_1 = 0, r_2 = -1$。
+          $$y_H = c_1 + c_2 e^{-t}.$$
+        </p>
+        <p>
+          <em>Step 2a（处理 $t^2$）：</em> Baseline ansatz $Y_1 = A_0 t^2 + A_1 t + A_2$。$r = 0$ 是 simple root ⟹ $s = 1$：
+          $$Y_1 = t(A_0 t^2 + A_1 t + A_2) = A_0 t^3 + A_1 t^2 + A_2 t.$$
+          算 $Y_1' = 3A_0 t^2 + 2A_1 t + A_2$, $Y_1'' = 6A_0 t + 2A_1$。代入 $Y_1'' + Y_1'$：
+          $$(6A_0 t + 2A_1) + (3A_0 t^2 + 2A_1 t + A_2) = 3A_0 t^2 + (6A_0 + 2A_1) t + (2A_1 + A_2).$$
+          匹配 $t^2$：$3A_0 = 1 \Rightarrow A_0 = \tfrac{1}{3}$；$6A_0 + 2A_1 = 0 \Rightarrow A_1 = -A_0 = -\tfrac{1}{3}$；wait let me redo: $A_1 = -3A_0 = -1$。Hmm let me check: $6 \cdot \tfrac{1}{3} + 2A_1 = 0 \Rightarrow 2 + 2A_1 = 0 \Rightarrow A_1 = -1$；$2A_1 + A_2 = 0 \Rightarrow A_2 = -2A_1 = 2$。
+          $$Y_1 = \tfrac{1}{3} t^3 - t^2 + 2t.$$
+        </p>
+        <p>
+          <em>Step 2b（处理 $2\cos(2t)$）：</em> Baseline ansatz $Y_2 = B\cos(2t) + C\sin(2t)$。$r = \pm 2i$ 不是 root（roots 是 $0, -1$）⟹ $s = 0$。算
+          $$\begin{aligned}
+          Y_2' &= -2B\sin(2t) + 2C\cos(2t), \\
+          Y_2'' &= -4B\cos(2t) - 4C\sin(2t).
+          \end{aligned}$$
+          代入 $Y_2'' + Y_2'$：
+          $$Y_2'' + Y_2' = (-4B + 2C)\cos(2t) + (-4C - 2B)\sin(2t).$$
+          匹配 $2\cos(2t)$：
+          $$\begin{aligned}
+          -4B + 2C &= 2, \\
+          -2B - 4C &= 0 \Rightarrow B = -2C.
+          \end{aligned}$$
+          代入：$-4(-2C) + 2C = 2 \Rightarrow 10C = 2 \Rightarrow C = \tfrac{1}{5}$，$B = -\tfrac{2}{5}$。
+          $$Y_2 = -\tfrac{2}{5}\cos(2t) + \tfrac{1}{5}\sin(2t).$$
+        </p>
+        <p>
+          <em>Step 3：</em>
+          $$Y(t) = \tfrac{1}{3} t^3 - t^2 + 2t - \tfrac{2}{5}\cos(2t) + \tfrac{1}{5}\sin(2t).$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 + c_2 e^{-t} + \tfrac{1}{3} t^3 - t^2 + 2t - \tfrac{2}{5}\cos(2t) + \tfrac{1}{5}\sin(2t)\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：polynomial 部分要写完整 $A_0 t^2 + A_1 t + A_2$（不能只写 $A_0 t^2$），<strong>所有低阶项都要带</strong>。</p>
+      </div>
+
+      <h3 id="prob-3-5-11">§3.5 #11 — IVP $y'' + y' - 2y = 2t$, $y(0)=0$, $y'(0)=1$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Initial Value Problem</p>
+        <p><strong>Problem.</strong> Solve the initial value problem $y'' + y' - 2y = 2t$, $y(0) = 0$, $y'(0) = 1$.</p>
+        <p><strong>Setup.</strong> Constant-coefficient + polynomial forcing ⟹ undetermined coefficients。先求 general solution，再 apply IC。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 + r - 2 = (r+2)(r-1) = 0$，$r_1 = 1, r_2 = -2$。
+          $$y_H = c_1 e^t + c_2 e^{-2t}.$$
+        </p>
+        <p>
+          <em>Step 2：</em> Forcing $2t$，degree-1 polynomial，$r=0$ 不是 root ⟹ $s = 0$。Ansatz $Y = A_0 t + A_1$。$Y' = A_0, Y'' = 0$。代入：
+          $$Y'' + Y' - 2Y = 0 + A_0 - 2(A_0 t + A_1) = -2A_0 t + (A_0 - 2A_1).$$
+          匹配 $2t$：$-2A_0 = 2 \Rightarrow A_0 = -1$，$A_0 - 2A_1 = 0 \Rightarrow A_1 = -\tfrac{1}{2}$。所以 $Y = -t - \tfrac{1}{2}$。
+        </p>
+        <p>
+          <em>Step 3（general solution）：</em>
+          $$y(t) = c_1 e^t + c_2 e^{-2t} - t - \tfrac{1}{2}.$$
+        </p>
+        <p>
+          <em>Step 4（apply IC）：</em>
+          $$y(0) = c_1 + c_2 - \tfrac{1}{2} = 0 \Rightarrow c_1 + c_2 = \tfrac{1}{2}.$$
+          $y'(t) = c_1 e^t - 2c_2 e^{-2t} - 1$，
+          $$y'(0) = c_1 - 2c_2 - 1 = 1 \Rightarrow c_1 - 2c_2 = 2.$$
+          联立：$c_1 + c_2 = \tfrac{1}{2}$，$c_1 - 2c_2 = 2$。相减：$3c_2 = -\tfrac{3}{2}$，$c_2 = -\tfrac{1}{2}$，$c_1 = 1$。
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = e^t - \tfrac{1}{2} e^{-2t} - t - \tfrac{1}{2}\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：apply IC 时要在<strong>完整的 $y = y_H + y_P$</strong>上做，<strong>不能</strong>只在 $y_H = c_1 e^t + c_2 e^{-2t}$ 上做。如果只在 $y_H$ 上 apply 会得到 $c_1 + c_2 = 0$, $c_1 - 2c_2 = 1$（错的）。</p>
+      </div>
+
+      <h3 id="prob-3-5-13">§3.5 #13 — IVP $y'' - 2y' + y = te^t + 4$, $y(0)=1$, $y'(0)=1$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Initial Value Problem with resonance</p>
+        <p><strong>Problem.</strong> Solve the initial value problem $y'' - 2y' + y = te^t + 4$, $y(0) = 1$, $y'(0) = 1$.</p>
+        <p><strong>Setup.</strong> Constant-coefficient，forcing = polynomial × exp + constant。注意 characteristic equation 有 repeated root，这会影响 $te^t$ 项的 ansatz（duplication 严重）。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 - 2r + 1 = (r-1)^2 = 0$，$r = 1$（double root）。
+          $$y_H = c_1 e^t + c_2 t e^t.$$
+        </p>
+        <p>
+          <em>Step 2a（处理 $te^t$）：</em> Baseline ansatz $Y_1 = (A_0 t + A_1) e^t$。但 $r = 1$ 是 double root ⟹ $s = 2$，乘 $t^2$：
+          $$Y_1 = t^2 (A_0 t + A_1) e^t = (A_0 t^3 + A_1 t^2) e^t.$$
+          算导数（用乘法法则）：
+          $$\begin{aligned}
+          Y_1' &= (3A_0 t^2 + 2A_1 t) e^t + (A_0 t^3 + A_1 t^2) e^t = (A_0 t^3 + (3A_0 + A_1) t^2 + 2A_1 t) e^t, \\
+          Y_1'' &= (3A_0 t^2 + 2(3A_0 + A_1) t + 2A_1) e^t + (A_0 t^3 + (3A_0 + A_1) t^2 + 2A_1 t) e^t \\
+                 &= (A_0 t^3 + (6A_0 + A_1) t^2 + (6A_0 + 4A_1) t + 2A_1) e^t.
+          \end{aligned}$$
+          代入 $Y_1'' - 2Y_1' + Y_1$：
+          $$\begin{aligned}
+          Y_1'' - 2Y_1' + Y_1 &= e^t\big[(A_0 t^3 + (6A_0 + A_1) t^2 + (6A_0 + 4A_1) t + 2A_1) \\
+            &\qquad - 2(A_0 t^3 + (3A_0 + A_1) t^2 + 2A_1 t) + (A_0 t^3 + A_1 t^2)\big] \\
+            &= e^t [(1 - 2 + 1) A_0 t^3 + ((6A_0 + A_1) - 2(3A_0 + A_1) + A_1) t^2 \\
+            &\qquad + ((6A_0 + 4A_1) - 4A_1) t + 2A_1] \\
+            &= e^t [0 \cdot t^3 + 0 \cdot t^2 + 6 A_0 t + 2 A_1].
+          \end{aligned}$$
+          匹配 $te^t$：$6 A_0 = 1 \Rightarrow A_0 = \tfrac{1}{6}$，$2 A_1 = 0 \Rightarrow A_1 = 0$。所以 $Y_1 = \tfrac{1}{6} t^3 e^t$。
+        </p>
+        <p>
+          <em>Step 2b（处理 $4$）：</em> Baseline ansatz $Y_2 = B$。$r = 0$ 不是 root（roots 是 $1$ double）⟹ $s = 0$。$Y_2' = Y_2'' = 0$，代入：$0 - 0 + B = 4 \Rightarrow B = 4$。
+        </p>
+        <p>
+          <em>Step 3（叠加 + general solution）：</em>
+          $$Y = Y_1 + Y_2 = \tfrac{1}{6} t^3 e^t + 4, \qquad y(t) = c_1 e^t + c_2 t e^t + \tfrac{1}{6} t^3 e^t + 4.$$
+        </p>
+        <p>
+          <em>Step 4（apply IC）：</em> $y(0) = c_1 + 0 + 0 + 4 = 1 \Rightarrow c_1 = -3$.
+          算 $y'(t) = c_1 e^t + c_2(e^t + t e^t) + \tfrac{1}{6}(3t^2 e^t + t^3 e^t)$. 在 $t = 0$：
+          $$y'(0) = c_1 + c_2 + 0 = 1 \Rightarrow c_2 = 1 - c_1 = 1 - (-3) = 4.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = -3 e^t + 4 t e^t + \tfrac{1}{6} t^3 e^t + 4\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：$r=1$ 是 <strong>double root</strong>，所以 ansatz 要乘 $t^2$ 不是 $t$。常见错误是只乘一个 $t$，结果代入永远解不出。</p>
+      </div>
+
+      <h3 id="prob-3-5-17a">§3.5 #17a — Form of $Y(t)$ only</h3>
+      <div class="box example">
+        <p class="box-title">📝 Determine ansatz form (no need to solve)</p>
+        <p><strong>Problem.</strong> Determine a suitable form for $Y(t)$ if the method of undetermined coefficients is used for
+        $$y'' - 5y' + 6y = e^t\cos(2t) + e^{2t}(3t + 4)\sin(t).$$</p>
+        <p><strong>Setup.</strong> 只需写出 ansatz 形式，不需求 coefficient 数值。先判断 $y_H$，再对每个 forcing 项查 ansatz 表 + duplication 检查。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 - 5r + 6 = (r-2)(r-3) = 0$，roots $r = 2, 3$。$y_H = c_1 e^{2t} + c_2 e^{3t}$.
+        </p>
+        <p>
+          <em>Step 2a（处理 $e^t\cos(2t)$）：</em> 类型 $e^{\alpha t}\cos(\beta t)$，$\alpha = 1, \beta = 2$。$r = 1 + 2i$ 不是 root（roots 是实数 $2, 3$）⟹ $s = 0$。
+          $$Y_1 = e^t [A\cos(2t) + B\sin(2t)].$$
+        </p>
+        <p>
+          <em>Step 2b（处理 $e^{2t}(3t+4)\sin(t)$）：</em> 类型 $e^{\alpha t} P_1(t)\sin(\beta t)$，$\alpha = 2, \beta = 1$，polynomial degree 1。$r = 2 + i$ 不是 root ⟹ $s = 0$。Ansatz：
+          $$Y_2 = e^{2t} [(C_0 t + C_1)\cos(t) + (D_0 t + D_1)\sin(t)].$$
+        </p>
+        <p>
+          <em>Step 3（合并）：</em> 两项 ansatz 形式不同（一个是 $e^t$ 频率 2，一个是 $e^{2t}$ 频率 1），<strong>无重叠，直接相加</strong>。
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,Y(t) = e^t [A\cos(2t) + B\sin(2t)] + e^{2t}[(C_0 t + C_1)\cos(t) + (D_0 t + D_1)\sin(t)]\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：只 determine form 的题，<strong>不要</strong>真的去算 $A, B, C_0, \ldots$ — 浪费时间。考试看到 "determine a suitable form" 就知道点到为止。</p>
+      </div>
+
+      <h3 id="prob-3-5-18a">§3.5 #18a — Form of $Y(t)$ with duplication</h3>
+      <div class="box example">
+        <p class="box-title">📝 Determine ansatz form (heavy duplication)</p>
+        <p><strong>Problem.</strong> Determine a suitable form for $Y(t)$ for
+        $$y'' + 2y' + 2y = 3e^{-t} + 2e^{-t}\cos(t) + 4e^{-t} t^2 \sin(t).$$</p>
+        <p><strong>Setup.</strong> Characteristic roots 是 complex，多个 forcing 项可能都跟 $y_H$ 重叠。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 + 2r + 2 = 0$，$r = \dfrac{-2 \pm \sqrt{4-8}}{2} = -1 \pm i$.
+          $$y_H = e^{-t}(c_1 \cos t + c_2 \sin t).$$
+        </p>
+        <p>
+          <em>Step 2a（处理 $3 e^{-t}$）：</em> $r = -1$ 是 characteristic root 吗？不是 — characteristic roots 是 $-1 \pm i$（复数）。$r = -1$ 单独（实部 $-1$、虚部 $0$）不是 root。所以 $s = 0$。
+          $$Y_1 = A e^{-t}.$$
+        </p>
+        <p>
+          <em>Step 2b（处理 $2 e^{-t}\cos(t)$ 和 $4 e^{-t} t^2 \sin(t)$ 合并）：</em> 两项都是 $e^{-t} \cdot (\text{polynomial}) \cdot (\cos t \text{ 或 } \sin t)$ — 同一频率结构，合并成一个 ansatz，polynomial degree 取 max(0, 2) = 2：
+          $$Y_2^{\text{baseline}} = e^{-t}\left[(B_0 t^2 + B_1 t + B_2)\cos t + (C_0 t^2 + C_1 t + C_2)\sin t\right].$$
+          但 $r = -1 + i$ 是 simple root ⟹ $s = 1$，乘 $t$：
+          $$Y_2 = t \cdot e^{-t}\left[(B_0 t^2 + B_1 t + B_2)\cos t + (C_0 t^2 + C_1 t + C_2)\sin t\right].$$
+        </p>
+        <p>
+          <em>Step 3（叠加）：</em>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,Y(t) = A e^{-t} + t e^{-t}\left[(B_0 t^2 + B_1 t + B_2)\cos t + (C_0 t^2 + C_1 t + C_2)\sin t\right]\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall (1)：把 $3 e^{-t}$ 和 $2 e^{-t}\cos t$ 混淆，错把 $e^{-t}$ 也当 $y_H$ 的一部分而乘 $t$ — <strong>纯 $e^{-t}$ 不在 $y_H$ 里，$y_H$ 是 $e^{-t}\cos t$ 和 $e^{-t}\sin t$</strong>。</p>
+        <p class="note">⚠️ Pitfall (2)：$2 e^{-t}\cos t$ 和 $4 e^{-t} t^2 \sin t$ 必须<strong>合并</strong>成一个 ansatz（同频率），polynomial degree 取最高（这里是 2）。不要写两个独立 ansatz，会有冗余的 coefficient 解不出。</p>
+      </div>
+
+      <h3 id="prob-3-5-19a">§3.5 #19a — Form of $Y(t)$, repeated complex root scenario</h3>
+      <div class="box example">
+        <p class="box-title">📝 Determine ansatz form (pure imaginary roots)</p>
+        <p><strong>Problem.</strong> Determine a suitable form for $Y(t)$ for
+        $$y'' + 4y = t^2 \sin(2t) + (6t + 7)\cos(2t).$$</p>
+        <p><strong>Setup.</strong> Characteristic roots 是 pure imaginary（$\pm 2i$），forcing 全部跟 $y_H$ 重叠。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $r^2 + 4 = 0$，$r = \pm 2i$。
+          $$y_H = c_1 \cos(2t) + c_2 \sin(2t).$$
+        </p>
+        <p>
+          <em>Step 2（合并两项 forcing）：</em> 两项都是 polynomial × ($\cos 2t$ 或 $\sin 2t$)，同频率结构。合并 ansatz，polynomial degree 取 max(2, 1) = 2：
+          $$Y^{\text{baseline}} = (A_0 t^2 + A_1 t + A_2)\cos(2t) + (B_0 t^2 + B_1 t + B_2)\sin(2t).$$
+          $r = 0 + 2i = 2i$ 是 simple root ⟹ $s = 1$，乘 $t$：
+          $$Y = t\left[(A_0 t^2 + A_1 t + A_2)\cos(2t) + (B_0 t^2 + B_1 t + B_2)\sin(2t)\right].$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,Y(t) = (A_0 t^3 + A_1 t^2 + A_2 t)\cos(2t) + (B_0 t^3 + B_1 t^2 + B_2 t)\sin(2t)\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：$\alpha = 0$（纯虚根）也算 — 检查 $\alpha + i\beta = 0 + 2i = 2i$ 是不是 root。这里答案是 yes，所以 $s = 1$。不要因为"没看到 exponential"就以为不用乘 $t$。</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-36">§3.6 HW Problems (5 题)</h2>
+      <p>HW 列表：#3, #4, #8, #10, #12。前 3 题是 constant-coefficient（理论上 §3.5 也能做但题目要求用 §3.6），后 2 题是 variable-coefficient（必须用 §3.6，题目会给 $y_1, y_2$）。</p>
+
+      <h3 id="prob-3-6-3">§3.6 #3 — $4y'' - 4y' + y = 16 e^{t/2}$ (variation of parameters)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Variation of parameters (constant coeff, double root)</p>
+        <p><strong>Problem.</strong> Use the method of variation of parameters to find a particular solution of $4y'' - 4y' + y = 16 e^{t/2}$. Then check your answer using the method of undetermined coefficients.</p>
+        <p><strong>Setup.</strong> 注意 leading coefficient $a = 4$，<strong>必须先除以 4</strong> 化成 standard form。Characteristic equation $4r^2 - 4r + 1 = (2r - 1)^2 = 0$ 有 double root $r = 1/2$，所以 $y_H = c_1 e^{t/2} + c_2 t e^{t/2}$，forcing $16 e^{t/2}$ 重叠 $y_H$ — 这种 case 用 §3.5 需要 $s = 2$，所以 §3.6 也是一种合理选择。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1（standard form）：</em> 除以 4：
+          $$y'' - y' + \tfrac{1}{4} y = 4 e^{t/2}.$$
+          <strong>注意：</strong>standard form 下 $g(t) = 4 e^{t/2}$（不是 $16 e^{t/2}$）。
+        </p>
+        <p>
+          <em>Step 2（fundamental set + Wronskian）：</em> $y_1 = e^{t/2}, y_2 = t e^{t/2}$.
+          $$\begin{aligned}
+          W = W(y_1, y_2) &= y_1 y_2' - y_2 y_1' \\
+          &= e^{t/2} \cdot (e^{t/2} + \tfrac{1}{2} t e^{t/2}) - t e^{t/2} \cdot \tfrac{1}{2} e^{t/2} \\
+          &= e^t (1 + \tfrac{1}{2} t - \tfrac{1}{2} t) = e^t.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 3（$u_1', u_2'$）：</em>
+          $$\begin{aligned}
+          u_1'(t) &= -\dfrac{y_2 g}{W} = -\dfrac{(t e^{t/2})(4 e^{t/2})}{e^t} = -\dfrac{4t e^t}{e^t} = -4t, \\
+          u_2'(t) &= \dfrac{y_1 g}{W} = \dfrac{(e^{t/2})(4 e^{t/2})}{e^t} = \dfrac{4 e^t}{e^t} = 4.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 4（积分）：</em> $u_1 = -2 t^2$，$u_2 = 4t$（不加 $+C$）。
+        </p>
+        <p>
+          <em>Step 5（$y_P$）：</em>
+          $$y_P = u_1 y_1 + u_2 y_2 = -2 t^2 \cdot e^{t/2} + 4t \cdot t e^{t/2} = -2 t^2 e^{t/2} + 4 t^2 e^{t/2} = 2 t^2 e^{t/2}.$$
+        </p>
+        <p>
+          <em>Check via §3.5 undetermined coeff：</em> Baseline ansatz $Y = A e^{t/2}$，但 $r = 1/2$ 是 double root ⟹ $s = 2$，$Y = A t^2 e^{t/2}$.
+          $$\begin{aligned}
+          Y' &= 2At e^{t/2} + \tfrac{1}{2} A t^2 e^{t/2} = (2At + \tfrac{1}{2} A t^2) e^{t/2}, \\
+          Y'' &= (2A + At) e^{t/2} + \tfrac{1}{2}(2At + \tfrac{1}{2} A t^2) e^{t/2} = (2A + 2At + \tfrac{1}{4} A t^2) e^{t/2}.
+          \end{aligned}$$
+          代入 standard form $Y'' - Y' + \tfrac{1}{4} Y$:
+          $$\begin{aligned}
+          &(2A + 2At + \tfrac{1}{4} A t^2) - (2At + \tfrac{1}{2} A t^2) + \tfrac{1}{4} A t^2 \\
+          &= 2A + (2A - 2A) t + (\tfrac{1}{4} - \tfrac{1}{2} + \tfrac{1}{4}) A t^2 = 2A.
+          \end{aligned}$$
+          匹配 $4 e^{t/2}$ 的系数（除掉 $e^{t/2}$）：$2A = 4 \Rightarrow A = 2$。所以 $Y = 2 t^2 e^{t/2}$，与上面 §3.6 答案一致 ✓.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y_P(t) = 2 t^2 e^{t/2}, \quad y = c_1 e^{t/2} + c_2 t e^{t/2} + 2 t^2 e^{t/2}\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：忘记除以 4！若直接用 $g = 16 e^{t/2}$ 算 $u_1', u_2'$，结果会差 4 倍。每次套公式前先确认是 standard form。</p>
+      </div>
+
+      <h3 id="prob-3-6-4">§3.6 #4 — $y'' + y = \tan(t)$, $0 < t < \pi/2$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Variation of parameters ($\tan$ — undetermined coeff 失效)</p>
+        <p><strong>Problem.</strong> Find the general solution of $y'' + y = \tan(t)$ on $0 < t < \pi/2$.</p>
+        <p><strong>Setup.</strong> $\tan(t)$ 不属于 §3.5 ansatz 表里的 polynomial/exp/sin/cos 类型 ⟹ 必须用 §3.6 variation of parameters。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> 已是 standard form。Characteristic equation $r^2 + 1 = 0$，$r = \pm i$. $y_1 = \cos t, y_2 = \sin t$。
+          $$y_H = c_1 \cos t + c_2 \sin t.$$
+        </p>
+        <p>
+          <em>Step 2（Wronskian）：</em>
+          $$W = y_1 y_2' - y_2 y_1' = \cos t \cdot \cos t - \sin t \cdot (-\sin t) = \cos^2 t + \sin^2 t = 1.$$
+        </p>
+        <p>
+          <em>Step 3（$u_1', u_2'$）：</em>
+          $$\begin{aligned}
+          u_1' &= -\dfrac{y_2 g}{W} = -\sin t \cdot \tan t = -\sin t \cdot \dfrac{\sin t}{\cos t} = -\dfrac{\sin^2 t}{\cos t} = -\dfrac{1 - \cos^2 t}{\cos t} = -\sec t + \cos t, \\
+          u_2' &= \dfrac{y_1 g}{W} = \cos t \cdot \tan t = \sin t.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 4（积分）：</em>
+          $$\begin{aligned}
+          u_1 &= \int (-\sec t + \cos t)\, dt = -\ln|\sec t + \tan t| + \sin t, \\
+          u_2 &= \int \sin t\, dt = -\cos t.
+          \end{aligned}$$
+          在区间 $0 < t < \pi/2$ 上 $\sec t + \tan t > 0$，可以去掉绝对值。
+        </p>
+        <p>
+          <em>Step 5（$y_P$）：</em>
+          $$\begin{aligned}
+          y_P &= u_1 y_1 + u_2 y_2 \\
+              &= (-\ln(\sec t + \tan t) + \sin t)\cos t + (-\cos t)\sin t \\
+              &= -\cos t \cdot \ln(\sec t + \tan t) + \sin t \cos t - \sin t \cos t \\
+              &= -\cos t \cdot \ln(\sec t + \tan t).
+          \end{aligned}$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 \cos t + c_2 \sin t - \cos t \cdot \ln(\sec t + \tan t)\,}$$
+        </p>
+        <p class="note">💡 Key integral：$\int \sec t\, dt = \ln|\sec t + \tan t| + C$ — 这是 §3.6 题目常用的积分，记住。</p>
+      </div>
+
+      <h3 id="prob-3-6-8">§3.6 #8 — $y'' - 2y' + y = \dfrac{e^t}{1 + t^2}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Variation of parameters (rational forcing)</p>
+        <p><strong>Problem.</strong> Find the general solution of $y'' - 2y' + y = \dfrac{e^t}{1 + t^2}$.</p>
+        <p><strong>Setup.</strong> $\dfrac{e^t}{1+t^2}$ 不在 §3.5 表里（rational function）⟹ §3.6.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> 已 standard form。$r^2 - 2r + 1 = (r-1)^2 = 0$，double root $r = 1$. $y_1 = e^t, y_2 = t e^t$.
+        </p>
+        <p>
+          <em>Step 2（Wronskian）：</em>
+          $$W = e^t (e^t + t e^t) - t e^t \cdot e^t = e^{2t} + t e^{2t} - t e^{2t} = e^{2t}.$$
+        </p>
+        <p>
+          <em>Step 3（$u_1', u_2'$）：</em>
+          $$\begin{aligned}
+          u_1' &= -\dfrac{y_2 g}{W} = -\dfrac{t e^t \cdot \tfrac{e^t}{1 + t^2}}{e^{2t}} = -\dfrac{t}{1 + t^2}, \\
+          u_2' &= \dfrac{y_1 g}{W} = \dfrac{e^t \cdot \tfrac{e^t}{1 + t^2}}{e^{2t}} = \dfrac{1}{1 + t^2}.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 4（积分）：</em>
+          $$\begin{aligned}
+          u_1 &= -\int \dfrac{t}{1 + t^2}\, dt = -\tfrac{1}{2} \ln(1 + t^2), \\
+          u_2 &= \int \dfrac{1}{1 + t^2}\, dt = \arctan(t).
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 5（$y_P$）：</em>
+          $$y_P = -\tfrac{1}{2} e^t \ln(1 + t^2) + t e^t \arctan(t).$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = c_1 e^t + c_2 t e^t - \tfrac{1}{2} e^t \ln(1 + t^2) + t e^t \arctan(t)\,}$$
+        </p>
+        <p class="note">💡 此题展示 §3.6 的威力：rational function forcing 时 §3.5 完全没法用，但 §3.6 套公式直接积分。</p>
+      </div>
+
+      <h3 id="prob-3-6-10">§3.6 #10 — Variable coeff: $t^2 y'' - 2y = 3t^2 - 1$ with $y_1 = t^2, y_2 = t^{-1}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Variation of parameters (variable coefficients)</p>
+        <p><strong>Problem.</strong> Verify that $y_1 = t^2$ and $y_2 = t^{-1}$ satisfy the corresponding homogeneous equation $t^2 y'' - 2y = 0$ for $t > 0$, then find a particular solution of $t^2 y'' - 2y = 3t^2 - 1$.</p>
+        <p><strong>Setup.</strong> Variable-coefficient（$t^2$ 在前），§3.5 完全不适用。Standard form 是先除以 $t^2$。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Verify $y_1, y_2$：</em> $y_1 = t^2$, $y_1' = 2t$, $y_1'' = 2$. $t^2 \cdot 2 - 2 \cdot t^2 = 0$ ✓. $y_2 = t^{-1}$, $y_2' = -t^{-2}$, $y_2'' = 2t^{-3}$. $t^2 \cdot 2t^{-3} - 2 \cdot t^{-1} = 2t^{-1} - 2t^{-1} = 0$ ✓.
+        </p>
+        <p>
+          <em>Step 1（standard form）：</em> 除以 $t^2$：
+          $$y'' - \dfrac{2}{t^2} y = \dfrac{3t^2 - 1}{t^2} = 3 - t^{-2}.$$
+          所以 $g(t) = 3 - t^{-2}$.
+        </p>
+        <p>
+          <em>Step 2（Wronskian）：</em>
+          $$W = y_1 y_2' - y_2 y_1' = t^2 \cdot (-t^{-2}) - t^{-1} \cdot 2t = -1 - 2 = -3.$$
+        </p>
+        <p>
+          <em>Step 3（$u_1', u_2'$）：</em>
+          $$\begin{aligned}
+          u_1' &= -\dfrac{y_2 g}{W} = -\dfrac{t^{-1}(3 - t^{-2})}{-3} = \dfrac{t^{-1}(3 - t^{-2})}{3} = \dfrac{1}{t} - \dfrac{1}{3 t^3}, \\
+          u_2' &= \dfrac{y_1 g}{W} = \dfrac{t^2 (3 - t^{-2})}{-3} = -\dfrac{3 t^2 - 1}{3} = -t^2 + \dfrac{1}{3}.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 4（积分）：</em>
+          $$\begin{aligned}
+          u_1 &= \int \left(\dfrac{1}{t} - \dfrac{1}{3 t^3}\right) dt = \ln t + \dfrac{1}{6 t^2}, \\
+          u_2 &= \int \left(-t^2 + \dfrac{1}{3}\right) dt = -\dfrac{t^3}{3} + \dfrac{t}{3}.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 5（$y_P$）：</em>
+          $$\begin{aligned}
+          y_P &= u_1 y_1 + u_2 y_2 \\
+              &= \left(\ln t + \dfrac{1}{6 t^2}\right) t^2 + \left(-\dfrac{t^3}{3} + \dfrac{t}{3}\right) t^{-1} \\
+              &= t^2 \ln t + \dfrac{1}{6} - \dfrac{t^2}{3} + \dfrac{1}{3} \\
+              &= t^2 \ln t - \dfrac{t^2}{3} + \dfrac{1}{2}.
+          \end{aligned}$$
+          注意：$-\dfrac{t^2}{3}$ 项实际上是 $y_1 = t^2$ 的倍数，可以"吸收"进 $y_H$ 的 $c_1 y_1$ 项里（如果要写最简 form）。本题题目只要求 particular solution，所以保留即可，或丢掉那项。
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y_P(t) = t^2 \ln t + \dfrac{1}{2} \quad (\text{已吸收掉 } -\tfrac{t^2}{3} \text{ 进 } y_H)\,}$$
+          或 general solution：$y = c_1 t^2 + c_2 t^{-1} + t^2 \ln t + \dfrac{1}{2}$.
+        </p>
+        <p class="note">⚠️ Pitfall：variable coefficient 题最常见错误是<strong>忘记化 standard form</strong>。原方程是 $t^2 y'' - 2y = 3t^2 - 1$（leading coefficient $t^2$），要先除以 $t^2$ 得到 $g(t) = 3 - t^{-2}$ 才能套 variation of parameters 公式。</p>
+      </div>
+
+      <h3 id="prob-3-6-12">§3.6 #12 — Variable coeff: $ty'' - (1+t)y' + y = t^2 e^{2t}$ with $y_1 = 1+t, y_2 = e^t$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Variation of parameters (variable coefficients)</p>
+        <p><strong>Problem.</strong> Verify that $y_1 = 1 + t$ and $y_2 = e^t$ satisfy the corresponding homogeneous equation $ty'' - (1+t)y' + y = 0$ for $t > 0$, then find a particular solution of $ty'' - (1+t)y' + y = t^2 e^{2t}$.</p>
+        <p><strong>Setup.</strong> Variable coefficient，必先化 standard form。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Verify：</em>
+          <ul>
+            <li>$y_1 = 1 + t$, $y_1' = 1$, $y_1'' = 0$: $t(0) - (1+t)(1) + (1+t) = -(1+t) + (1+t) = 0$ ✓</li>
+            <li>$y_2 = e^t$, $y_2' = e^t$, $y_2'' = e^t$: $t e^t - (1+t) e^t + e^t = (t - 1 - t + 1) e^t = 0$ ✓</li>
+          </ul>
+        </p>
+        <p>
+          <em>Step 1（standard form）：</em> 除以 $t$：
+          $$y'' - \dfrac{1+t}{t} y' + \dfrac{1}{t} y = t e^{2t}.$$
+          所以 $g(t) = t e^{2t}$.
+        </p>
+        <p>
+          <em>Step 2（Wronskian）：</em>
+          $$W = (1+t) e^t - e^t \cdot 1 = e^t (1 + t - 1) = t e^t.$$
+        </p>
+        <p>
+          <em>Step 3（$u_1', u_2'$）：</em>
+          $$\begin{aligned}
+          u_1' &= -\dfrac{y_2 g}{W} = -\dfrac{e^t \cdot t e^{2t}}{t e^t} = -e^{2t}, \\
+          u_2' &= \dfrac{y_1 g}{W} = \dfrac{(1+t) \cdot t e^{2t}}{t e^t} = (1+t) e^t.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>Step 4（积分）：</em>
+          $$\begin{aligned}
+          u_1 &= -\int e^{2t}\, dt = -\dfrac{1}{2} e^{2t}, \\
+          u_2 &= \int (1+t) e^t\, dt.
+          \end{aligned}$$
+          $u_2$ 用 integration by parts：令 $u = 1+t, dv = e^t dt$，$du = dt, v = e^t$。
+          $$u_2 = (1+t) e^t - \int e^t\, dt = (1+t) e^t - e^t = t e^t.$$
+        </p>
+        <p>
+          <em>Step 5（$y_P$）：</em>
+          $$y_P = u_1 y_1 + u_2 y_2 = -\dfrac{1}{2} e^{2t} (1+t) + t e^t \cdot e^t = -\dfrac{1+t}{2} e^{2t} + t e^{2t} = e^{2t}\left(t - \dfrac{1+t}{2}\right) = e^{2t} \cdot \dfrac{t - 1}{2}.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y_P(t) = \dfrac{t - 1}{2} e^{2t}, \quad y = c_1(1+t) + c_2 e^t + \dfrac{t-1}{2} e^{2t}\,}$$
+        </p>
+        <p class="note">💡 此题展示一个 trick：算 $u_2 = \int (1+t) e^t\, dt$ 用 integration by parts。$u_1$ 简单（纯指数），但 $u_2$ 需要 by parts — 这是 §3.6 题目里典型的中等难度积分。</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="pitfalls">Common pitfalls — 必看</h2>
+      <ol>
+        <li><strong>忘记 duplication rule（乘 $t^s$）</strong>。检查 ansatz 的每一项是否在 $y_H$ 里 — 在 $y_H$ 里就要乘 $t$（simple root）或 $t^2$（double root）。</li>
+        <li><strong>把 $r = -1$ 当成 $y_H = e^{-t}(c_1 \cos t + c_2 \sin t)$ 里的"part of $y_H$"</strong>。<strong>不</strong>：$e^{-t}$ 单独不是 $y_H$ 的 solution，$y_H$ 是 $e^{-t}\cos t$ 和 $e^{-t}\sin t$。看到 $y_H = e^{-t}(c_1 \cos t + c_2 \sin t)$，duplicates 只是 $e^{-t}\cos t$ 类型的项。</li>
+        <li><strong>不化 standard form 就套 variation of parameters 公式</strong>。$ay'' + by' + cy = g$ 一定要先除以 $a$，否则 $g$ 错。Variable coefficient 也一样。</li>
+        <li><strong>合并 forcing 项时 ansatz 不合并</strong>。$2 e^{-t}\cos t + 4 t^2 e^{-t} \sin t$ 合并成一个 ansatz（degree 取 max），不要拆。</li>
+        <li><strong>"determine form only" 题花时间算 coefficients</strong>。§3.5 #17a, 18a, 19a 只要写出 $Y(t)$ 的 form 即可，不要继续算 $A, B, C, \ldots$。</li>
+        <li><strong>IC apply 在 $y_H$ 上</strong>。永远在<strong>完整的</strong> $y = y_H + y_P$ 上 apply IC，不是单独的 $y_H$。</li>
+        <li><strong>$\int \sec t\, dt$ 写错</strong>。$\int \sec t\, dt = \ln|\sec t + \tan t| + C$（不是 $\ln|\sec t|$ 也不是 $\sec t \tan t$）。</li>
+        <li><strong>polynomial ansatz 写不全</strong>。如果 forcing 是 $t^2$，ansatz 不能只是 $A_0 t^2$，必须 $A_0 t^2 + A_1 t + A_2$（所有低阶项都要带）。</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+      <ul>
+        <li><strong>结构</strong>：$y = y_H + y_P$。$y_H$ 解 characteristic equation，$y_P$ 用 §3.5 或 §3.6。</li>
+        <li><strong>§3.5 适用条件</strong>：constant-coefficient + forcing 是 polynomial / exp / sin / cos / 它们的乘积或求和。第一选择。</li>
+        <li><strong>§3.5 ansatz</strong>：按表查 baseline form，检查 duplication 决定 $s$，乘 $t^s$，代入求 coefficients。</li>
+        <li><strong>§3.6 适用条件</strong>：通用方法（包括 variable coefficient 和任意 continuous $g$）。计算量大，只在 §3.5 失效时用。</li>
+        <li><strong>§3.6 公式</strong>：$u_1' = -y_2 g / W$, $u_2' = y_1 g / W$，积分得 $u_1, u_2$，$y_P = u_1 y_1 + u_2 y_2$. <strong>先化 standard form</strong>！</li>
+        <li><strong>IVP</strong>：先求 general solution $y = y_H + y_P$，再用 IC 解 $c_1, c_2$。</li>
+      </ul>
+
+      <h3 id="looking-ahead">Looking ahead</h3>
+      <p>
+        下一份 review 是 <a href="mt2-02-systems.html">Part 2 — Systems of First-Order Linear Equations (§7.1, 7.3–7.6)</a>，覆盖 25 道 HW 题。Systems 的核心是 eigenvalue/eigenvector 方法，本质上是把 second-order ODE 系统化处理。Concept walkthrough 见 <a href="05-systems-theory.html">File 05</a> 和 <a href="06-systems-methods.html">File 06</a>。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

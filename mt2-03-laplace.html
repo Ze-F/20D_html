@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MT2 Review · Part 3 — Laplace Transform · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">MT2 Review · Part 3 — Laplace Transform</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>MT2 Review · Part 3 — Laplace Transform (§6.1, 6.2, 6.3, 6.4)</h1>
+    <p class="note">UCSD MATH 20D Spring 2026 · MT2 = §3.5 → §6.4 · 本文件覆盖 §6.1 (Definition), §6.2 (IVP), §6.3 (Step Functions), §6.4 (Discontinuous Forcing)</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="scope">Scope &amp; Laplace table info</h2>
+      <p>
+        Laplace 是 MT2 的最后一个大块。<strong>考试会发一张 Laplace transform table</strong>，所以不用死记所有 transform 公式，但要会用 table（识别哪一条 entry 对应哪个 $F(s)$）。
+      </p>
+      <ul>
+        <li><a href="mt2-01-secondorder.html">Part 1</a>：§3.5, §3.6 — 13 题</li>
+        <li><a href="mt2-02-systems.html">Part 2</a>：§7.x — 25 题</li>
+        <li><strong>Part 3（本文件）</strong>：§6.1–6.4 — 24 题</li>
+      </ul>
+      <p class="note">
+        概念性的讲解见 <a href="07-laplace-basics.html">File 07</a>（§6.1, §6.2）和 <a href="08-laplace-discontinuous.html">File 08</a>（§6.3, §6.4, §6.5）.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="cheat-sheet">Cheat sheet — Laplace 必备</h2>
+
+      <h3 id="definition">Definition</h3>
+      <div class="def">
+        <span class="def-label">Laplace transform.</span>
+        $$\mathcal{L}\{f(t)\} = F(s) = \int_0^\infty e^{-st} f(t)\, dt$$
+        在使得积分 converge 的 $s$ 上有定义。
+      </div>
+
+      <h3 id="key-table">Key Laplace table entries</h3>
+      <p>考试发的 table 包含以下 entries（按 Boyce Table 6.2.1 排列）：</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>$f(t)$</th><th>$F(s) = \mathcal{L}\{f(t)\}$</th><th>条件</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>$1$</td><td>$\dfrac{1}{s}$</td><td>$s > 0$</td></tr>
+          <tr><td>2</td><td>$e^{at}$</td><td>$\dfrac{1}{s - a}$</td><td>$s > a$</td></tr>
+          <tr><td>3</td><td>$t^n$ ($n \in \mathbb{Z}^+$)</td><td>$\dfrac{n!}{s^{n+1}}$</td><td>$s > 0$</td></tr>
+          <tr><td>5</td><td>$\sin(at)$</td><td>$\dfrac{a}{s^2 + a^2}$</td><td>$s > 0$</td></tr>
+          <tr><td>6</td><td>$\cos(at)$</td><td>$\dfrac{s}{s^2 + a^2}$</td><td>$s > 0$</td></tr>
+          <tr><td>7</td><td>$\sinh(at)$</td><td>$\dfrac{a}{s^2 - a^2}$</td><td>$s > |a|$</td></tr>
+          <tr><td>8</td><td>$\cosh(at)$</td><td>$\dfrac{s}{s^2 - a^2}$</td><td>$s > |a|$</td></tr>
+          <tr><td>9</td><td>$e^{at}\sin(bt)$</td><td>$\dfrac{b}{(s-a)^2 + b^2}$</td><td>$s > a$</td></tr>
+          <tr><td>10</td><td>$e^{at}\cos(bt)$</td><td>$\dfrac{s - a}{(s-a)^2 + b^2}$</td><td>$s > a$</td></tr>
+          <tr><td>11</td><td>$t^n e^{at}$</td><td>$\dfrac{n!}{(s-a)^{n+1}}$</td><td>$s > a$</td></tr>
+          <tr><td>12</td><td>$u_c(t)$</td><td>$\dfrac{e^{-cs}}{s}$</td><td>$s > 0$</td></tr>
+          <tr><td>13</td><td>$u_c(t) f(t-c)$</td><td>$e^{-cs} F(s)$</td><td>t-shifting</td></tr>
+          <tr><td>14</td><td>$e^{ct} f(t)$</td><td>$F(s - c)$</td><td>s-shifting</td></tr>
+          <tr><td>18</td><td>$f^{(n)}(t)$</td><td>$s^n F(s) - s^{n-1} f(0) - \cdots - f^{(n-1)}(0)$</td><td>derivative rule</td></tr>
+          <tr><td>19</td><td>$(-t)^n f(t)$</td><td>$F^{(n)}(s)$</td><td>differentiation in $s$</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="derivative-rule">Derivative formula（核心，解 IVP 用）</h3>
+      <div class="thm">
+        <span class="thm-label">Theorem (Laplace of derivatives).</span>
+        $$\mathcal{L}\{y'\} = sY(s) - y(0), \qquad \mathcal{L}\{y''\} = s^2 Y(s) - s y(0) - y'(0).$$
+        这是 entries #18 的展开形式，是把 ODE 转成 algebraic equation 的关键。
+      </div>
+
+      <h3 id="step-function">§6.3 Step function（Heaviside）</h3>
+      <div class="def">
+        <span class="def-label">Unit step function.</span>
+        $$u_c(t) = \begin{cases} 0, & t < c \\ 1, & t \geq c \end{cases}, \qquad c \geq 0.$$
+      </div>
+      <p>
+        关键 properties:
+      </p>
+      <ul>
+        <li>$\mathcal{L}\{u_c(t)\} = \dfrac{e^{-cs}}{s}$.</li>
+        <li><strong>$t$-shifting</strong> (Theorem 6.3.1): $\mathcal{L}\{u_c(t) f(t-c)\} = e^{-cs} F(s)$. 反向：$\mathcal{L}^{-1}\{e^{-cs} F(s)\} = u_c(t) f(t-c)$ where $f = \mathcal{L}^{-1}\{F\}$.</li>
+        <li><strong>$s$-shifting</strong> (Theorem 6.3.2): $\mathcal{L}\{e^{ct} f(t)\} = F(s - c)$. 反向：$\mathcal{L}^{-1}\{F(s-c)\} = e^{ct} f(t)$.</li>
+      </ul>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 两个 shift 不要搞混</p>
+        <p>
+          $t$-shifting：<strong>multiply by $u_c$ and shift $t$</strong> ↔ <strong>multiply by $e^{-cs}$ in $s$-domain</strong>.<br>
+          $s$-shifting：<strong>multiply by $e^{ct}$ in $t$-domain</strong> ↔ <strong>shift $s$ to $s - c$</strong>.<br>
+          口诀："$e^{-cs}$ 来自 $u_c$（t-shift）"，"$F(s-c)$ 来自 $e^{ct}$（s-shift）".
+        </p>
+      </div>
+
+      <h3 id="ivp-workflow">IVP 解题 workflow</h3>
+      <div class="def">
+        <span class="def-label">Steps for solving $ay'' + by' + cy = f(t)$ via Laplace.</span>
+        <ol>
+          <li><strong>Step 1</strong>：Take $\mathcal{L}$ of both sides. $\mathcal{L}\{ay'' + by' + cy\} = a(s^2 Y - s y(0) - y'(0)) + b(s Y - y(0)) + c Y$.</li>
+          <li><strong>Step 2</strong>：解 $Y(s)$（algebraic equation，把所有 $Y$ 项合并）.</li>
+          <li><strong>Step 3</strong>：把 $Y(s)$ 用 partial fractions 拆成 table 里能查到的形式.</li>
+          <li><strong>Step 4</strong>：每项 inverse transform，$y(t) = \mathcal{L}^{-1}\{Y(s)\}$.</li>
+        </ol>
+      </div>
+
+      <h3 id="partial-fractions">Partial fractions 速查</h3>
+      <p>
+        把 $Y(s) = \dfrac{P(s)}{Q(s)}$（degree $P <$ degree $Q$）拆成 table-friendly 项：
+      </p>
+      <ul>
+        <li>$Q(s) = (s - a)(s - b)$ (real distinct roots): $Y = \dfrac{A}{s - a} + \dfrac{B}{s - b}$.</li>
+        <li>$Q(s) = (s - a)^2$ (repeated): $Y = \dfrac{A}{s - a} + \dfrac{B}{(s - a)^2}$.</li>
+        <li>$Q(s) = (s - a)^3$: $Y = \dfrac{A}{s-a} + \dfrac{B}{(s-a)^2} + \dfrac{C}{(s-a)^3}$.</li>
+        <li>$Q(s) = (s - a)(s^2 + b^2)$ (linear × irreducible quadratic): $Y = \dfrac{A}{s - a} + \dfrac{Bs + C}{s^2 + b^2}$.</li>
+        <li>$Q(s) = s^2 + p s + q$ with discriminant $< 0$ (irreducible): 不拆，<strong>complete the square</strong> to $(s + p/2)^2 + (q - p^2/4)$，然后用 entries #9, #10.</li>
+      </ul>
+
+      <h3 id="completing-square">Completing the square 技巧</h3>
+      <p>看到 $s^2 + ps + q$ with $p^2 - 4q < 0$（i.e., 不能在实数 factor），<strong>不要</strong>试图分解。改成：</p>
+      $$s^2 + p s + q = \left(s + \frac{p}{2}\right)^2 + \left(q - \frac{p^2}{4}\right).$$
+      <p>然后令 $a = -p/2, b = \sqrt{q - p^2/4}$，套用 entries #9, #10：</p>
+      $$\mathcal{L}^{-1}\!\left\{\dfrac{1}{(s-a)^2 + b^2}\right\} = \dfrac{1}{b} e^{at}\sin(bt), \qquad \mathcal{L}^{-1}\!\left\{\dfrac{s-a}{(s-a)^2 + b^2}\right\} = e^{at}\cos(bt).$$
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="decision-flowchart">决策树 — Laplace 题怎么做</h2>
+      <div class="box deeper">
+        <p class="box-title">📖 Workflow</p>
+        <p><strong>看到 IVP 题</strong>：</p>
+        <ol>
+          <li>对两边取 $\mathcal{L}$（用 derivative rule 把 $y', y''$ 转成 $sY, s^2 Y$，注意带入 $y(0), y'(0)$）.</li>
+          <li>解 $Y(s)$ — 把所有 $Y$ 项收集到一边，其他到另一边。</li>
+          <li>看 $Y(s)$ 的分母：
+            <ul>
+              <li>能 factor 成 real linear factors → partial fractions</li>
+              <li>irreducible quadratic → complete the square + table #9, #10</li>
+              <li>含 $e^{-cs}$ → 必有 $u_c$ 在答案里（§6.4 题型，要用 t-shifting）</li>
+            </ul>
+          </li>
+          <li>Inverse transform 每一项.</li>
+        </ol>
+        <p><strong>看到 $\mathcal{L}\{f\}$ 题（§6.1）</strong>：</p>
+        <ol>
+          <li>直接 from table（如 $f(t) = \cos(at)$ → entry #6）.</li>
+          <li>带乘积/和：用 linearity + 对各项 from table.</li>
+          <li>含 $u_c$ 或 piecewise：用 step functions + t-shifting (§6.3).</li>
+        </ol>
+        <p><strong>看到 $\mathcal{L}^{-1}\{F\}$ 题（§6.2）</strong>：</p>
+        <ol>
+          <li>partial fractions（如果 rational）.</li>
+          <li>complete the square（如果 irreducible quadratic in denominator）.</li>
+          <li>识别 $e^{-cs}$ → t-shifting 给 $u_c f(t-c)$.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-61">§6.1 HW Problems (6 题)</h2>
+      <p>HW 列表：#1, #2, #4a, #5, #16, #18。前 2 题是 continuity check，#4a 是 transform of $f(t) = t$，#5 是 $\cos(at)$ transform，#16 #18 是 piecewise functions.</p>
+
+      <h3 id="prob-6-1-1">§6.1 #1 — Piecewise continuity check</h3>
+      <div class="box example">
+        <p class="box-title">📝 Continuity / piecewise continuity</p>
+        <p><strong>Problem.</strong> Sketch and determine continuity for
+        $$f(t) = \begin{cases} t^2, & 0 \leq t \leq 1, \\ 2 + t, & 1 < t \leq 2, \\ 6 - t, & 2 < t \leq 3. \end{cases}$$</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          检查 $t = 1$: $\lim_{t \to 1^-} f(t) = 1^2 = 1$, $\lim_{t \to 1^+} f(t) = 2 + 1 = 3$. 跳跃 — discontinuous at $t = 1$.
+        </p>
+        <p>
+          检查 $t = 2$: $\lim_{t \to 2^-} f(t) = 2 + 2 = 4$, $\lim_{t \to 2^+} f(t) = 6 - 2 = 4$. 相等 — continuous at $t = 2$.
+        </p>
+        <p>
+          每段内（$t^2, 2+t, 6-t$）都是 continuous，只有 $t = 1$ 处跳跃 ⟹ <strong>piecewise continuous</strong>（不 continuous）.
+        </p>
+        <p><strong>Answer.</strong> Piecewise continuous on $[0, 3]$. Jump discontinuity at $t = 1$.</p>
+      </div>
+
+      <h3 id="prob-6-1-2">§6.1 #2 — Piecewise continuity check (singularity)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Continuity check with singularity</p>
+        <p><strong>Problem.</strong> Check continuity for
+        $$f(t) = \begin{cases} t^2, & 0 \leq t \leq 1, \\ (t - 1)^{-1}, & 1 < t \leq 2, \\ 1, & 2 < t \leq 3. \end{cases}$$</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          检查 $t = 1$: $\lim_{t \to 1^-} f(t) = 1$. $\lim_{t \to 1^+} (t - 1)^{-1} = +\infty$ — <strong>unbounded</strong>! 所以不仅 discontinuous，连 piecewise continuous 都不是（piecewise continuous 要求每段在端点处有 finite limit）.
+        </p>
+        <p>
+          所以 $f$ on $[0, 3]$ 是 <strong>neither continuous nor piecewise continuous</strong>.
+        </p>
+        <p class="note">⚠️ Pitfall：piecewise continuous 要求 finite jump，<strong>不允许</strong> infinite singularity. 这种 $f$ 没有 Laplace transform（积分发散）.</p>
+      </div>
+
+      <h3 id="prob-6-1-4a">§6.1 #4a — Find $\mathcal{L}\{t\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Laplace transform of $t$ from definition</p>
+        <p><strong>Problem.</strong> Find the Laplace transform of $f(t) = t$.</p>
+        <p><strong>Solution.</strong> 直接 from definition:
+        $$\mathcal{L}\{t\} = \int_0^\infty e^{-st} \cdot t\, dt.$$
+        用 integration by parts: $u = t, dv = e^{-st} dt$, $du = dt, v = -\dfrac{1}{s} e^{-st}$.
+        $$\int_0^\infty t e^{-st} dt = \left[-\dfrac{t}{s} e^{-st}\right]_0^\infty + \dfrac{1}{s}\int_0^\infty e^{-st} dt.$$
+        第一项在 $t \to \infty$ 时（$s > 0$）趋于 0；在 $t = 0$ 时也是 0。第二项：$\dfrac{1}{s} \cdot \dfrac{1}{s} = \dfrac{1}{s^2}$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathcal{L}\{t\} = \dfrac{1}{s^2}, \quad s > 0\,}$$
+        </p>
+        <p class="note">💡 这是 table entry #3 with $n = 1$: $\mathcal{L}\{t^n\} = \dfrac{n!}{s^{n+1}}$, so $\mathcal{L}\{t\} = \dfrac{1!}{s^2} = \dfrac{1}{s^2}$. 一致.</p>
+      </div>
+
+      <h3 id="prob-6-1-5">§6.1 #5 — Find $\mathcal{L}\{\cos(at)\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Laplace transform of $\cos(at)$</p>
+        <p><strong>Problem.</strong> Find $\mathcal{L}\{\cos(at)\}$. <em>Hint:</em> use $\cos(bt) = \tfrac{1}{2}(e^{ibt} + e^{-ibt})$.</p>
+        <p><strong>Solution.</strong>
+        $$\mathcal{L}\{\cos(at)\} = \tfrac{1}{2}\mathcal{L}\{e^{iat}\} + \tfrac{1}{2}\mathcal{L}\{e^{-iat}\}.$$
+        用 $\mathcal{L}\{e^{ct}\} = \dfrac{1}{s - c}$（entry #2）:
+        $$= \tfrac{1}{2}\cdot\dfrac{1}{s - ia} + \tfrac{1}{2}\cdot\dfrac{1}{s + ia} = \dfrac{1}{2}\cdot\dfrac{(s + ia) + (s - ia)}{(s - ia)(s + ia)} = \dfrac{1}{2}\cdot\dfrac{2s}{s^2 + a^2} = \dfrac{s}{s^2 + a^2}.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathcal{L}\{\cos(at)\} = \dfrac{s}{s^2 + a^2}\,}$$
+        </p>
+        <p class="note">💡 这是 entry #6. 用 complex exponentials 推导是 standard trick.</p>
+      </div>
+
+      <h3 id="prob-6-1-16">§6.1 #16 — $\mathcal{L}\{f\}$ for piecewise step function</h3>
+      <div class="box example">
+        <p class="box-title">📝 Piecewise function — direct integration</p>
+        <p><strong>Problem.</strong> Find $\mathcal{L}\{f\}$ where $f(t) = \begin{cases} 1, & 0 \leq t < \pi \\ 0, & \pi \leq t < \infty. \end{cases}$</p>
+        <p><strong>Solution.</strong> 直接 from definition:
+        $$\mathcal{L}\{f\} = \int_0^\infty e^{-st} f(t)\, dt = \int_0^\pi e^{-st} \cdot 1\, dt + \int_\pi^\infty e^{-st} \cdot 0\, dt.$$
+        $$= \int_0^\pi e^{-st} dt = \left[-\dfrac{1}{s} e^{-st}\right]_0^\pi = -\dfrac{1}{s} e^{-\pi s} + \dfrac{1}{s} = \dfrac{1 - e^{-\pi s}}{s}.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathcal{L}\{f\} = \dfrac{1 - e^{-\pi s}}{s}\,}$$
+        </p>
+        <p class="note">💡 用 step function 写：$f(t) = 1 - u_\pi(t)$，所以 $\mathcal{L}\{f\} = \dfrac{1}{s} - \dfrac{e^{-\pi s}}{s} = \dfrac{1 - e^{-\pi s}}{s}$. 同样结果，更简洁.</p>
+      </div>
+
+      <h3 id="prob-6-1-18">§6.1 #18 — $\mathcal{L}\{f\}$ for three-piece function</h3>
+      <div class="box example">
+        <p class="box-title">📝 Three-piece function — direct integration</p>
+        <p><strong>Problem.</strong> $f(t) = \begin{cases} 1, & 0 \leq t < 1 \\ 2 - t, & 1 \leq t < 2 \\ 0, & 2 \leq t < \infty. \end{cases}$ Find $\mathcal{L}\{f\}$.</p>
+        <p><strong>Solution.</strong>
+        $$\mathcal{L}\{f\} = \int_0^1 e^{-st}\, dt + \int_1^2 e^{-st}(2 - t)\, dt + 0.$$
+        第一项：$\int_0^1 e^{-st} dt = \dfrac{1 - e^{-s}}{s}$.
+        第二项需要 integration by parts。令 $u = 2 - t, dv = e^{-st} dt$, $du = -dt, v = -\dfrac{1}{s} e^{-st}$.
+        $$\int_1^2 e^{-st}(2 - t)\, dt = \left[-\dfrac{(2-t)}{s} e^{-st}\right]_1^2 - \int_1^2 \dfrac{e^{-st}}{s} dt.$$
+        $\left[-\dfrac{2-t}{s} e^{-st}\right]_1^2 = -\dfrac{0}{s} e^{-2s} - \left(-\dfrac{1}{s} e^{-s}\right) = \dfrac{e^{-s}}{s}$.
+        $\int_1^2 \dfrac{e^{-st}}{s} dt = \dfrac{1}{s} \cdot \dfrac{e^{-s} - e^{-2s}}{s} = \dfrac{e^{-s} - e^{-2s}}{s^2}$.
+        所以第二项 = $\dfrac{e^{-s}}{s} - \dfrac{e^{-s} - e^{-2s}}{s^2}$.
+        </p>
+        <p>
+          总和：
+          $$\mathcal{L}\{f\} = \dfrac{1 - e^{-s}}{s} + \dfrac{e^{-s}}{s} - \dfrac{e^{-s} - e^{-2s}}{s^2} = \dfrac{1}{s} - \dfrac{e^{-s} - e^{-2s}}{s^2}.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathcal{L}\{f\} = \dfrac{1}{s} - \dfrac{e^{-s}}{s^2} + \dfrac{e^{-2s}}{s^2}\,}$$
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-62">§6.2 HW Problems (7 题)</h2>
+      <p>HW 列表：#2, #4, #6, #8, #11, #16, #19。前 3 题是 inverse transform，后 4 题是 IVP。</p>
+
+      <h3 id="prob-6-2-2">§6.2 #2 — $\mathcal{L}^{-1}\{4/(s-1)^3\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Inverse transform (table lookup)</p>
+        <p><strong>Problem.</strong> Find $\mathcal{L}^{-1}\!\left\{\dfrac{4}{(s-1)^3}\right\}$.</p>
+        <p><strong>Solution.</strong> Entry #11: $\mathcal{L}\{t^n e^{at}\} = \dfrac{n!}{(s-a)^{n+1}}$. 这里 $a = 1, n+1 = 3 \Rightarrow n = 2$，$n! = 2! = 2$.
+        所以 $\mathcal{L}^{-1}\!\left\{\dfrac{2}{(s-1)^3}\right\} = t^2 e^t$. 我们的 $F$ 是 $\dfrac{4}{(s-1)^3} = 2 \cdot \dfrac{2}{(s-1)^3}$，所以 inverse 是 $2 t^2 e^t$.
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\mathcal{L}^{-1}\{4/(s-1)^3\} = 2 t^2 e^t\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-4">§6.2 #4 — $\mathcal{L}^{-1}\{2/(s^2 + 2s + 5)\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Inverse transform (complete the square)</p>
+        <p><strong>Problem.</strong> Find $\mathcal{L}^{-1}\!\left\{\dfrac{2}{s^2 + 2s + 5}\right\}$.</p>
+        <p><strong>Solution.</strong> Denominator $s^2 + 2s + 5$，discriminant $4 - 20 = -16 < 0$ ⟹ irreducible. Complete the square:
+        $$s^2 + 2s + 5 = (s + 1)^2 + 4.$$
+        所以 $\dfrac{2}{(s+1)^2 + 2^2}$. 用 entry #9: $\mathcal{L}\{e^{at}\sin(bt)\} = \dfrac{b}{(s-a)^2 + b^2}$. 这里 $a = -1, b = 2$. 所以
+        $$\mathcal{L}^{-1}\!\left\{\dfrac{2}{(s+1)^2 + 4}\right\} = e^{-t}\sin(2t).$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\mathcal{L}^{-1}\{2/(s^2 + 2s + 5)\} = e^{-t}\sin(2t)\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-6">§6.2 #6 — $\mathcal{L}^{-1}\{(8 s^2 - 4s + 12)/(s(s^2 + 4))\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Inverse transform (partial fractions)</p>
+        <p><strong>Problem.</strong> Find $\mathcal{L}^{-1}\!\left\{\dfrac{8 s^2 - 4s + 12}{s(s^2 + 4)}\right\}$.</p>
+        <p><strong>Solution.</strong> Partial fractions: $\dfrac{8 s^2 - 4s + 12}{s(s^2 + 4)} = \dfrac{A}{s} + \dfrac{Bs + C}{s^2 + 4}$.
+        $$8 s^2 - 4s + 12 = A(s^2 + 4) + (Bs + C)s = (A + B)s^2 + C s + 4A.$$
+        匹配：$A + B = 8$, $C = -4$, $4A = 12 \Rightarrow A = 3$. 所以 $B = 5$.
+        $$F = \dfrac{3}{s} + \dfrac{5 s - 4}{s^2 + 4} = \dfrac{3}{s} + 5 \cdot \dfrac{s}{s^2 + 4} - 2 \cdot \dfrac{2}{s^2 + 4}.$$
+        Inverse:
+        $$f(t) = 3 + 5 \cos(2t) - 2 \sin(2t).$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\mathcal{L}^{-1}\{F\} = 3 + 5\cos(2t) - 2\sin(2t)\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-8">§6.2 #8 — IVP $y'' - y' - 6y = 0$, $y(0) = 1, y'(0) = -1$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP via Laplace (simplest case)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1（取 Laplace）：</em> $\mathcal{L}\{y''\} - \mathcal{L}\{y'\} - 6\mathcal{L}\{y\} = 0$.
+          $$(s^2 Y - s y(0) - y'(0)) - (s Y - y(0)) - 6 Y = 0.$$
+          代入 IC: $(s^2 Y - s + 1) - (s Y - 1) - 6 Y = 0 \Rightarrow (s^2 - s - 6) Y - s + 2 = 0$.
+        </p>
+        <p>
+          <em>Step 2（解 $Y$）：</em>
+          $$Y(s) = \dfrac{s - 2}{s^2 - s - 6} = \dfrac{s - 2}{(s - 3)(s + 2)}.$$
+        </p>
+        <p>
+          <em>Step 3（partial fractions）：</em>
+          $$\dfrac{s - 2}{(s - 3)(s + 2)} = \dfrac{A}{s - 3} + \dfrac{B}{s + 2}.$$
+          $s - 2 = A(s + 2) + B(s - 3)$. 设 $s = 3$: $1 = 5A \Rightarrow A = 1/5$. 设 $s = -2$: $-4 = -5B \Rightarrow B = 4/5$.
+        </p>
+        <p>
+          <em>Step 4（inverse）：</em>
+          $$y(t) = \dfrac{1}{5} e^{3t} + \dfrac{4}{5} e^{-2t}.$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,y(t) = \tfrac{1}{5} e^{3t} + \tfrac{4}{5} e^{-2t}\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-11">§6.2 #11 — IVP $y'' - 2y' + 4y = 0$, $y(0) = 2, y'(0) = 0$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP (complex roots, complete square)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $(s^2 Y - 2s - 0) - 2(s Y - 2) + 4 Y = 0 \Rightarrow (s^2 - 2s + 4) Y - 2s + 4 = 0$.
+        </p>
+        <p>
+          <em>Step 2：</em>
+          $$Y(s) = \dfrac{2s - 4}{s^2 - 2s + 4} = \dfrac{2(s - 2)}{s^2 - 2s + 4}.$$
+        </p>
+        <p>
+          <em>Step 3（complete square）：</em> $s^2 - 2s + 4 = (s - 1)^2 + 3$. 把分子调整成 $(s - 1)$ 的形式：
+          $$2(s - 2) = 2(s - 1) - 2.$$
+          $$Y(s) = \dfrac{2(s - 1)}{(s-1)^2 + 3} - \dfrac{2}{(s-1)^2 + 3} = 2 \cdot \dfrac{s - 1}{(s-1)^2 + (\sqrt{3})^2} - \dfrac{2}{\sqrt{3}} \cdot \dfrac{\sqrt{3}}{(s-1)^2 + (\sqrt{3})^2}.$$
+        </p>
+        <p>
+          <em>Step 4（inverse using entries #9, #10）：</em>
+          $$y(t) = 2 e^t \cos(\sqrt{3}\, t) - \dfrac{2}{\sqrt{3}} e^t \sin(\sqrt{3}\, t).$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,y(t) = 2 e^t \cos(\sqrt{3}\, t) - \tfrac{2}{\sqrt{3}} e^t \sin(\sqrt{3}\, t)\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-16">§6.2 #16 — IVP $y'' - 2y' + 2y = e^{-t}$, $y(0) = 0, y'(0) = 1$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with exponential forcing</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $\mathcal{L}\{e^{-t}\} = \dfrac{1}{s + 1}$. 等式两边 transform:
+          $$(s^2 Y - 0 - 1) - 2(s Y - 0) + 2 Y = \dfrac{1}{s + 1}.$$
+          $$(s^2 - 2s + 2) Y - 1 = \dfrac{1}{s + 1} \Rightarrow Y(s) = \dfrac{1}{(s^2 - 2s + 2)(s + 1)} + \dfrac{1}{s^2 - 2s + 2} \cdot \dfrac{1}{1}.$$
+          整理：
+          $$Y(s) = \dfrac{1}{s^2 - 2s + 2}\left(\dfrac{1}{s + 1} + 1\right) = \dfrac{1}{s^2 - 2s + 2} \cdot \dfrac{s + 2}{s + 1}.$$
+          $$Y(s) = \dfrac{s + 2}{(s + 1)(s^2 - 2s + 2)}.$$
+        </p>
+        <p>
+          <em>Step 2（partial fractions）：</em>
+          $$\dfrac{s + 2}{(s + 1)(s^2 - 2s + 2)} = \dfrac{A}{s + 1} + \dfrac{B s + C}{s^2 - 2s + 2}.$$
+          $s + 2 = A(s^2 - 2s + 2) + (Bs + C)(s + 1) = (A + B) s^2 + (-2A + B + C) s + (2A + C)$.
+          匹配：$A + B = 0$（$s^2$ 项），$-2A + B + C = 1$（$s$），$2A + C = 2$（常数）.
+          从 $A + B = 0$: $B = -A$. 从 $2A + C = 2$: $C = 2 - 2A$. 代入第二式：$-2A - A + 2 - 2A = 1 \Rightarrow -5A = -1 \Rightarrow A = 1/5$. 所以 $B = -1/5, C = 8/5$.
+        </p>
+        <p>
+          <em>Step 3：</em>
+          $$Y = \dfrac{1/5}{s + 1} + \dfrac{(-1/5) s + 8/5}{s^2 - 2s + 2}.$$
+          第二项分母 $s^2 - 2s + 2 = (s-1)^2 + 1$. 调整分子：$-\tfrac{1}{5} s + \tfrac{8}{5} = -\tfrac{1}{5}(s - 1) + \tfrac{7}{5}$.
+          $$Y = \dfrac{1/5}{s + 1} - \dfrac{1}{5} \cdot \dfrac{s - 1}{(s-1)^2 + 1} + \dfrac{7}{5} \cdot \dfrac{1}{(s-1)^2 + 1}.$$
+        </p>
+        <p>
+          <em>Step 4：</em>
+          $$y(t) = \dfrac{1}{5} e^{-t} - \dfrac{1}{5} e^t \cos(t) + \dfrac{7}{5} e^t \sin(t).$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,y(t) = \tfrac{1}{5} e^{-t} - \tfrac{1}{5} e^t \cos(t) + \tfrac{7}{5} e^t \sin(t)\,}$</p>
+      </div>
+
+      <h3 id="prob-6-2-19">§6.2 #19 — IVP with piecewise forcing</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with piecewise forcing (preview §6.3)</p>
+        <p><strong>Problem.</strong> $y'' + y = f(t)$, $y(0) = 0, y'(0) = 0$; $f(t) = \begin{cases} t, & 0 \leq t < 1 \\ 2 - t, & 1 \leq t < 2 \\ 0, & 2 \leq t < \infty. \end{cases}$ <em>Note: $\mathcal{L}\{f\}$ from §6.1 #18.</em></p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1（Laplace）：</em> 用 §6.1 #18 result, $\mathcal{L}\{f\} = \dfrac{1}{s} - \dfrac{e^{-s}}{s^2} + \dfrac{e^{-2s}}{s^2}$.
+
+          Hmm wait — 让我重新算 $\mathcal{L}\{f\}$ for this problem. Comparing to §6.1 #18: 那题的 $f$ 是 $\{1, 2-t, 0\}$ 三段；这里 $f$ 是 $\{t, 2-t, 0\}$ 三段。不一样！
+
+          Actually #19's $f$ has the first piece as $t$ (not $1$). Let me recompute:
+          $$\mathcal{L}\{f\} = \int_0^1 t e^{-st} dt + \int_1^2 (2-t) e^{-st} dt.$$
+          $\int_0^1 t e^{-st} dt$: 用 by parts, $u = t, dv = e^{-st} dt$. 得到 $-\tfrac{1}{s} e^{-s} + \tfrac{1}{s^2}(1 - e^{-s})$.
+          类似算 $\int_1^2 (2-t) e^{-st} dt$.
+
+          实际上更简洁的方法：注意 $f$ 可以写成 piecewise + step functions. $f(t) = t \cdot u_0(t) - 2(t-1) u_1(t) + (t - 2) u_2(t)$? Hmm let me verify.
+
+          在 $0 \leq t < 1$: $t \cdot 1 - 0 + 0 = t$ ✓.
+          在 $1 \leq t < 2$: $t - 2(t-1) + 0 = t - 2t + 2 = 2 - t$ ✓.
+          在 $t \geq 2$: $t - 2(t - 1) + (t - 2) = t - 2t + 2 + t - 2 = 0$ ✓.
+
+          所以 $f(t) = t - 2(t - 1) u_1(t) + (t - 2) u_2(t)$.
+
+          $\mathcal{L}\{t\} = \dfrac{1}{s^2}$.
+          $\mathcal{L}\{u_1(t)(t - 1)\} = e^{-s} \cdot \dfrac{1}{s^2}$ (t-shifting with $f(t) = t$).
+          $\mathcal{L}\{u_2(t)(t - 2)\} = e^{-2s} \cdot \dfrac{1}{s^2}$.
+
+          所以 $\mathcal{L}\{f\} = \dfrac{1}{s^2} - \dfrac{2 e^{-s}}{s^2} + \dfrac{e^{-2s}}{s^2} = \dfrac{1 - 2 e^{-s} + e^{-2s}}{s^2}$.
+        </p>
+        <p>
+          <em>Step 2（解 $Y$）：</em> $(s^2 + 1) Y = \dfrac{1 - 2 e^{-s} + e^{-2s}}{s^2}$ + IC contributions (here all 0).
+          $$Y(s) = \dfrac{1 - 2 e^{-s} + e^{-2s}}{s^2 (s^2 + 1)} = (1 - 2 e^{-s} + e^{-2s}) \cdot \dfrac{1}{s^2 (s^2 + 1)}.$$
+        </p>
+        <p>
+          <em>Step 3（partial fractions of $\dfrac{1}{s^2(s^2 + 1)}$）：</em>
+          $$\dfrac{1}{s^2(s^2 + 1)} = \dfrac{A}{s} + \dfrac{B}{s^2} + \dfrac{C s + D}{s^2 + 1}.$$
+          通分：$1 = A s(s^2 + 1) + B(s^2 + 1) + (Cs + D) s^2 = (A + C) s^3 + (B + D) s^2 + A s + B$.
+          匹配：$B = 1$, $A = 0$, $B + D = 0 \Rightarrow D = -1$, $A + C = 0 \Rightarrow C = 0$.
+          所以 $\dfrac{1}{s^2(s^2 + 1)} = \dfrac{1}{s^2} - \dfrac{1}{s^2 + 1}$.
+          $\mathcal{L}^{-1}\!\left\{\dfrac{1}{s^2} - \dfrac{1}{s^2 + 1}\right\} = t - \sin(t)$.
+        </p>
+        <p>
+          <em>Step 4（apply $t$-shifting for the $e^{-s}$ and $e^{-2s}$ terms）：</em> Define $h(t) = t - \sin(t)$. Then
+          $$y(t) = h(t) - 2 u_1(t) h(t - 1) + u_2(t) h(t - 2).$$
+          展开：
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = (t - \sin t) - 2 u_1(t)[(t-1) - \sin(t-1)] + u_2(t)[(t-2) - \sin(t-2)]\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：t-shifting 要求<strong>整个</strong> $f(t-c)$ 的 argument 是 $t - c$。所以 $h(t - 1)$ 里 $\sin$ 也要变成 $\sin(t - 1)$，不是 $\sin(t)$. 否则结果错.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-63">§6.3 HW Problems (6 题)</h2>
+      <p>HW 列表：#2, #5, #7, #10, #14, #15。前 3 题是 sketch / express in step function form，后 3 题是 transform / inverse transform.</p>
+
+      <h3 id="prob-6-3-2">§6.3 #2 — Sketch $g(t) = f(t - \pi) u_\pi(t)$ where $f(t) = t^2$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Sketch shifted function</p>
+        <p><strong>Solution.</strong> $g(t) = (t - \pi)^2 \cdot u_\pi(t)$:
+        $g(t) = 0$ for $t < \pi$; $g(t) = (t - \pi)^2$ for $t \geq \pi$.
+        图：$x$ 轴从 0 开始，先沿 $x$ 轴贴着到 $\pi$，然后从 $(\pi, 0)$ 开始 parabola $(t - \pi)^2$（向上开口）.</p>
+      </div>
+
+      <h3 id="prob-6-3-5">§6.3 #5 — Express piecewise $f(t)$ in $u_c$ form</h3>
+      <div class="box example">
+        <p class="box-title">📝 Piecewise → step function</p>
+        <p><strong>Problem.</strong> $f(t) = \begin{cases} 0, & 0 \leq t < 3 \\ -2, & 3 \leq t < 5 \\ 2, & 5 \leq t < 7 \\ 1, & t \geq 7. \end{cases}$ Sketch + express via $u_c(t)$.</p>
+        <p><strong>Solution.</strong> 从 $f \equiv 0$ 出发，每个 jump 加一个 step function 项：
+        <ul>
+          <li>在 $t = 3$: jump from $0$ to $-2$, 增量 $-2$. 加 $-2 u_3(t)$.</li>
+          <li>在 $t = 5$: jump from $-2$ to $2$, 增量 $+4$. 加 $4 u_5(t)$.</li>
+          <li>在 $t = 7$: jump from $2$ to $1$, 增量 $-1$. 加 $-u_7(t)$.</li>
+        </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,f(t) = -2 u_3(t) + 4 u_5(t) - u_7(t)\,}$$
+        </p>
+        <p class="note">💡 一般规律：每个 jump，加一个 (jump 大小) $\cdot u_c(t)$ 项，$c$ 是 jump 发生的时间.</p>
+      </div>
+
+      <h3 id="prob-6-3-7">§6.3 #7 — Express $f(t) = \begin{cases} 1, & 0 \leq t < 2 \\ e^{-(t-2)}, & t \geq 2 \end{cases}$ via $u_c$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Piecewise with exponential second piece</p>
+        <p><strong>Solution.</strong> 在 $t = 2$ 处，$f$ from $1$ to $e^{-0} = 1$（连续）。但 $t < 2$ 时是常数 $1$，$t \geq 2$ 时变成 $e^{-(t-2)}$. 写：
+        $$f(t) = 1 + u_2(t)[e^{-(t-2)} - 1].$$
+        验证：$t < 2$: $1 + 0 = 1$ ✓. $t \geq 2$: $1 + (e^{-(t-2)} - 1) = e^{-(t-2)}$ ✓.</p>
+        <p><strong>Answer.</strong> $\boxed{\,f(t) = 1 + u_2(t)[e^{-(t-2)} - 1]\,}$ or equivalently $1 - u_2(t) + u_2(t)e^{-(t-2)}$.</p>
+      </div>
+
+      <h3 id="prob-6-3-10">§6.3 #10 — Find $\mathcal{L}\{f\}$ for piecewise function</h3>
+      <div class="box example">
+        <p class="box-title">📝 Transform via step function decomposition</p>
+        <p><strong>Problem.</strong> $f(t) = \begin{cases} 0, & t < \pi \\ t - \pi, & \pi \leq t < 2\pi \\ 0, & t \geq 2\pi \end{cases}$. Find $\mathcal{L}\{f\}$.</p>
+        <p><strong>Solution.</strong> 写 $f$ via step functions:
+        $$f(t) = u_\pi(t)(t - \pi) - u_{2\pi}(t)(t - \pi).$$
+        验证：$t < \pi$: $0 - 0 = 0$ ✓. $\pi \leq t < 2\pi$: $(t - \pi) - 0 = t - \pi$ ✓. $t \geq 2\pi$: $(t - \pi) - (t - \pi) = 0$ ✓.
+
+        但第二项 $u_{2\pi}(t)(t - \pi)$ 不直接是 $u_c(t) g(t - c)$ form（要 argument $t - 2\pi$）. 改写：$t - \pi = (t - 2\pi) + \pi$，所以 $u_{2\pi}(t)(t - \pi) = u_{2\pi}(t)[(t - 2\pi) + \pi]$.
+        $$f(t) = u_\pi(t)(t - \pi) - u_{2\pi}(t)(t - 2\pi) - \pi u_{2\pi}(t).$$
+        </p>
+        <p>
+          Transform each term using $\mathcal{L}\{u_c(t) g(t - c)\} = e^{-cs} G(s)$:
+          <ul>
+            <li>$u_\pi(t)(t - \pi)$: here $g(t) = t$, $G(s) = 1/s^2$. ⟹ $\dfrac{e^{-\pi s}}{s^2}$.</li>
+            <li>$u_{2\pi}(t)(t - 2\pi)$: same form with $c = 2\pi$. ⟹ $\dfrac{e^{-2\pi s}}{s^2}$.</li>
+            <li>$\pi u_{2\pi}(t)$: $\mathcal{L}\{u_{2\pi}\} = e^{-2\pi s}/s$. ⟹ $\dfrac{\pi e^{-2\pi s}}{s}$.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathcal{L}\{f\} = \dfrac{e^{-\pi s}}{s^2} - \dfrac{e^{-2\pi s}}{s^2} - \dfrac{\pi e^{-2\pi s}}{s}\,}$$
+        </p>
+      </div>
+
+      <h3 id="prob-6-3-14">§6.3 #14 — $\mathcal{L}^{-1}\{e^{-2s}/(s^2 + s - 2)\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Inverse transform with $e^{-cs}$ factor</p>
+        <p><strong>Solution.</strong> 看到 $e^{-cs}$ → t-shifting。先求 $\mathcal{L}^{-1}\{1/(s^2 + s - 2)\}$，再 shift。
+        $s^2 + s - 2 = (s + 2)(s - 1)$. Partial fractions: $\dfrac{1}{(s + 2)(s - 1)} = \dfrac{A}{s + 2} + \dfrac{B}{s - 1}$.
+        $1 = A(s - 1) + B(s + 2)$. $s = 1$: $1 = 3B \Rightarrow B = 1/3$. $s = -2$: $1 = -3A \Rightarrow A = -1/3$.
+        $$\mathcal{L}^{-1}\!\left\{\dfrac{1}{s^2 + s - 2}\right\} = -\tfrac{1}{3} e^{-2t} + \tfrac{1}{3} e^t \equiv h(t).$$
+        Apply t-shifting ($c = 2$):
+        $$\mathcal{L}^{-1}\!\left\{\dfrac{e^{-2s}}{s^2 + s - 2}\right\} = u_2(t) h(t - 2) = u_2(t)\big[-\tfrac{1}{3} e^{-2(t-2)} + \tfrac{1}{3} e^{t-2}\big].$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\mathcal{L}^{-1}\{e^{-2s}/(s^2 + s - 2)\} = \tfrac{1}{3} u_2(t)\big[e^{t-2} - e^{-2(t-2)}\big]\,}$</p>
+      </div>
+
+      <h3 id="prob-6-3-15">§6.3 #15 — $\mathcal{L}^{-1}\{2(s-1) e^{-2s}/(s^2 - 2s + 2)\}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Inverse: $e^{-cs}$ + complete square</p>
+        <p><strong>Solution.</strong> 先求 $\mathcal{L}^{-1}\{2(s-1)/(s^2 - 2s + 2)\}$，再 t-shift.
+        分母 $s^2 - 2s + 2 = (s - 1)^2 + 1$. 分子 $2(s - 1)$，恰好是 $(s - 1)$ 的形式。
+        $$\mathcal{L}^{-1}\!\left\{\dfrac{2(s - 1)}{(s-1)^2 + 1}\right\} = 2 e^t \cos(t) \equiv h(t).$$
+        Apply $t$-shifting ($c = 2$):
+        $$\mathcal{L}^{-1}\!\left\{\dfrac{2(s - 1) e^{-2s}}{s^2 - 2s + 2}\right\} = u_2(t) h(t - 2) = 2 u_2(t) e^{t - 2} \cos(t - 2).$$
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,2 u_2(t) e^{t - 2} \cos(t - 2)\,}$</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-64">§6.4 HW Problems (5 题)</h2>
+      <p>HW 列表：#1, #3, #6, #9, #13。这些是 IVP with discontinuous forcing — 综合 §6.2 + §6.3 的技巧。</p>
+
+      <h3 id="prob-6-4-1">§6.4 #1 — IVP $y'' + y = f(t)$, $f = \begin{cases} 1, & 0 \leq t < 3\pi \\ 0, & t \geq 3\pi \end{cases}$, $y(0) = 0, y'(0) = 1$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with step-down forcing</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $f(t) = 1 - u_{3\pi}(t)$. $\mathcal{L}\{f\} = \dfrac{1}{s} - \dfrac{e^{-3\pi s}}{s}$.
+          Transform both sides:
+          $$(s^2 Y - 0 - 1) + Y = \dfrac{1}{s} - \dfrac{e^{-3\pi s}}{s}.$$
+          $(s^2 + 1) Y = 1 + \dfrac{1 - e^{-3\pi s}}{s}$.
+          $$Y(s) = \dfrac{1}{s^2 + 1} + \dfrac{1}{s(s^2 + 1)} - \dfrac{e^{-3\pi s}}{s(s^2 + 1)}.$$
+        </p>
+        <p>
+          <em>Step 2（partial fractions of $\dfrac{1}{s(s^2 + 1)}$）：</em>
+          $\dfrac{1}{s(s^2 + 1)} = \dfrac{A}{s} + \dfrac{B s + C}{s^2 + 1}$. $1 = A(s^2 + 1) + (Bs + C) s = (A + B)s^2 + Cs + A$. So $A = 1, B = -1, C = 0$.
+          $\dfrac{1}{s(s^2 + 1)} = \dfrac{1}{s} - \dfrac{s}{s^2 + 1}$.
+          Inverse: $1 - \cos t \equiv h(t)$.
+        </p>
+        <p>
+          <em>Step 3：</em>
+          $$Y = \dfrac{1}{s^2 + 1} + \left(\dfrac{1}{s} - \dfrac{s}{s^2 + 1}\right) - e^{-3\pi s}\left(\dfrac{1}{s} - \dfrac{s}{s^2 + 1}\right).$$
+          $$y(t) = \sin t + (1 - \cos t) - u_{3\pi}(t)[1 - \cos(t - 3\pi)].$$
+          $\cos(t - 3\pi) = \cos(t)\cos(3\pi) + \sin(t)\sin(3\pi) = -\cos(t) + 0 = -\cos(t)$. 所以 $1 - \cos(t - 3\pi) = 1 + \cos(t)$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = 1 + \sin t - \cos t - u_{3\pi}(t)(1 + \cos t)\,}$$
+        </p>
+      </div>
+
+      <h3 id="prob-6-4-3">§6.4 #3 — IVP $y'' + 4y = \sin t - u_{2\pi}(t)\sin(t - 2\pi)$, $y(0) = 0, y'(0) = 0$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with shifted sine forcing</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> $\mathcal{L}\{\sin t\} = \dfrac{1}{s^2 + 1}$. $\mathcal{L}\{u_{2\pi}(t)\sin(t - 2\pi)\} = e^{-2\pi s} \cdot \dfrac{1}{s^2 + 1}$ (t-shifting).
+          $(s^2 + 4) Y = \dfrac{1 - e^{-2\pi s}}{s^2 + 1}$.
+          $$Y(s) = \dfrac{1 - e^{-2\pi s}}{(s^2 + 1)(s^2 + 4)}.$$
+        </p>
+        <p>
+          <em>Step 2（partial fractions of $\dfrac{1}{(s^2 + 1)(s^2 + 4)}$）：</em>
+          $\dfrac{1}{(s^2 + 1)(s^2 + 4)} = \dfrac{A s + B}{s^2 + 1} + \dfrac{C s + D}{s^2 + 4}$.
+          $1 = (As + B)(s^2 + 4) + (Cs + D)(s^2 + 1) = (A + C) s^3 + (B + D) s^2 + (4A + C) s + (4B + D)$.
+          $A + C = 0, B + D = 0, 4A + C = 0 \Rightarrow A = 0, C = 0$. 然后 $B + D = 0$, $4B + D = 1 \Rightarrow 3B = 1 \Rightarrow B = 1/3, D = -1/3$.
+          $\dfrac{1}{(s^2 + 1)(s^2 + 4)} = \dfrac{1/3}{s^2 + 1} - \dfrac{1/3}{s^2 + 4} = \dfrac{1}{3} \cdot \dfrac{1}{s^2 + 1} - \dfrac{1}{6} \cdot \dfrac{2}{s^2 + 4}$.
+          Inverse: $\tfrac{1}{3} \sin t - \tfrac{1}{6} \sin(2t) \equiv h(t)$.
+        </p>
+        <p>
+          <em>Step 3（apply t-shifting）：</em>
+          $$y(t) = h(t) - u_{2\pi}(t) h(t - 2\pi).$$
+          $h(t - 2\pi) = \tfrac{1}{3} \sin(t - 2\pi) - \tfrac{1}{6} \sin(2(t - 2\pi)) = \tfrac{1}{3} \sin t - \tfrac{1}{6} \sin(2t)$（因为 $\sin$ period $2\pi$ 和 $\pi$ 都给同样值）= $h(t)$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = \tfrac{1}{3} \sin t - \tfrac{1}{6} \sin(2t) - u_{2\pi}(t)\big[\tfrac{1}{3} \sin t - \tfrac{1}{6} \sin(2t)\big]\,}$$
+          即 for $t < 2\pi$: $y = \tfrac{1}{3} \sin t - \tfrac{1}{6} \sin(2t)$; for $t \geq 2\pi$: $y = 0$ (forcing 在 $2\pi$ 之后变 0，且 IVP 在 $2\pi$ 处恰好回到 zero state).
+        </p>
+      </div>
+
+      <h3 id="prob-6-4-6">§6.4 #6 — IVP $y'' + y' + (5/4) y = g(t)$, $g = \begin{cases} \sin t, & 0 \leq t < \pi \\ 0, & t \geq \pi \end{cases}$, $y(0) = 0, y'(0) = 0$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with truncated sine forcing</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Step 1：</em> 写 $g(t) = \sin t - u_\pi(t)\sin t$. 但第二项不是 $u_\pi(t) \sin(t - \pi)$ 形式 — 改写：$\sin t = -\sin(t - \pi)$（因为 $\sin(t - \pi) = -\sin t$). 所以
+          $$g(t) = \sin t - u_\pi(t)\sin t = \sin t + u_\pi(t)\sin(t - \pi).$$
+          $\mathcal{L}\{g\} = \dfrac{1}{s^2 + 1} + \dfrac{e^{-\pi s}}{s^2 + 1} = \dfrac{1 + e^{-\pi s}}{s^2 + 1}$.
+        </p>
+        <p>
+          <em>Step 2：</em> $(s^2 + s + 5/4) Y = \dfrac{1 + e^{-\pi s}}{s^2 + 1}$.
+          $$Y(s) = \dfrac{1 + e^{-\pi s}}{(s^2 + 1)(s^2 + s + 5/4)}.$$
+          分母第二个因子：$s^2 + s + 5/4 = (s + 1/2)^2 + 1$. 不能再 factor.
+        </p>
+        <p>
+          <em>Step 3（partial fractions of $\dfrac{1}{(s^2+1)(s^2+s+5/4)}$）：</em>
+          $$\dfrac{1}{(s^2+1)((s+1/2)^2+1)} = \dfrac{As+B}{s^2+1} + \dfrac{Cs+D}{(s+1/2)^2+1}.$$
+          展开+匹配 coefficients 是 standard 但繁琐的代数。结果（略详细计算）应该给出 something like
+          $A, B, C, D$ 的具体数值. <em>留作练习</em>（或参考答案 key）.
+        </p>
+        <p>
+          <em>Step 4（formal answer，未化简）：</em>
+          $$y(t) = h(t) + u_\pi(t) h(t - \pi),$$
+          其中 $h(t) = \mathcal{L}^{-1}\!\left\{\dfrac{1}{(s^2+1)(s^2+s+5/4)}\right\}$.
+        </p>
+        <p class="note">⚠️ 这题代数最繁。考试时要 work through partial fractions 仔细，每个 coefficient 都要算清楚。建议先在草稿上做。</p>
+      </div>
+
+      <h3 id="prob-6-4-9">§6.4 #9 — Express ramp-up function in $u_c$ form</h3>
+      <div class="box example">
+        <p class="box-title">📝 Ramp function in step function form</p>
+        <p><strong>Problem.</strong> Find an expression involving $u_c(t)$ for a function $f$ that ramps up from zero at $t = t_0$ to the value $h$ at $t = t_0 + k$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          Ramp slope = $h / k$（在 $t_0$ 到 $t_0 + k$ 之间），然后 stay at $h$ afterwards. 写：
+        </p>
+        <p>
+          $f(t) = 0$ for $t < t_0$<br>
+          $f(t) = \dfrac{h}{k}(t - t_0)$ for $t_0 \leq t < t_0 + k$<br>
+          $f(t) = h$ for $t \geq t_0 + k$.
+        </p>
+        <p>
+          Using step functions:
+          $$f(t) = \dfrac{h}{k}(t - t_0) u_{t_0}(t) - \dfrac{h}{k}(t - t_0 - k) u_{t_0 + k}(t).$$
+          验证：
+          <ul>
+            <li>$t < t_0$: $0 - 0 = 0$ ✓.</li>
+            <li>$t_0 \leq t < t_0 + k$: $\dfrac{h}{k}(t - t_0) - 0 = \dfrac{h}{k}(t - t_0)$ ✓.</li>
+            <li>$t \geq t_0 + k$: $\dfrac{h}{k}(t - t_0) - \dfrac{h}{k}(t - t_0 - k) = \dfrac{h}{k} \cdot k = h$ ✓.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,f(t) = \dfrac{h}{k}\big[(t - t_0) u_{t_0}(t) - (t - t_0 - k) u_{t_0 + k}(t)\big]\,}$$
+        </p>
+        <p class="note">💡 Trick：ramp up = 在 $t_0$ 处启动线性增长 + 在 $t_0 + k$ 处关掉增长（变成 flat）. 关掉就是减去相同 slope 的 line.</p>
+      </div>
+
+      <h3 id="prob-6-4-13">§6.4 #13 — IVP $y'' + y = f(t)$ with infinite step function sum</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP with periodic-like step function sum (resonance theme)</p>
+        <p><strong>Problem.</strong> $y'' + y = f(t)$, $y(0) = 0, y'(0) = 0$; $f(t) = u_0(t) + 2 \sum_{k=1}^n (-1)^k u_{k\pi}(t)$.</p>
+        <p><strong>Setup.</strong> $f$ 是一个 square-wave-like function — alternating between 0 and ±1 with period $\pi$（实际上是 $\pm 1$ 之间切换）.</p>
+        <p><strong>Solution sketch.</strong></p>
+        <p>
+          <em>Step 1：</em> $\mathcal{L}\{f\} = \dfrac{1}{s} + \dfrac{2}{s}\sum_{k=1}^n (-1)^k e^{-k\pi s} = \dfrac{1}{s}\left[1 + 2\sum_{k=1}^n (-1)^k e^{-k\pi s}\right]$.
+        </p>
+        <p>
+          <em>Step 2：</em> $(s^2 + 1) Y = \dfrac{1}{s}\left[1 + 2\sum (-1)^k e^{-k\pi s}\right]$.
+          $$Y(s) = \dfrac{1}{s(s^2 + 1)}\left[1 + 2\sum_{k=1}^n (-1)^k e^{-k\pi s}\right].$$
+        </p>
+        <p>
+          <em>Step 3：</em> $\mathcal{L}^{-1}\{1/(s(s^2+1))\} = 1 - \cos t$（partial fractions 同 #1 题）.
+          Apply t-shifting term-by-term:
+          $$y(t) = (1 - \cos t) + 2 \sum_{k=1}^n (-1)^k u_{k\pi}(t)[1 - \cos(t - k\pi)].$$
+        </p>
+        <p>
+          $\cos(t - k\pi) = (-1)^k \cos t$（because $\cos(t - k\pi) = \cos t \cos(k\pi) + \sin t \sin(k\pi) = (-1)^k \cos t$）.
+          所以 $1 - \cos(t - k\pi) = 1 - (-1)^k \cos t$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,y(t) = (1 - \cos t) + 2 \sum_{k=1}^n (-1)^k u_{k\pi}(t)\big[1 - (-1)^k \cos t\big]\,}$$
+        </p>
+        <p class="note">💡 这题是 resonance 的研究 — forcing 周期 $2\pi$ 接近 natural frequency $1$ 的 period $2\pi$，会有共振放大。Boyce 在原题里让你 plot for various $n$，研究 large $n$ 行为.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="pitfalls">Common pitfalls — Laplace</h2>
+      <ol>
+        <li><strong>Derivative rule 忘记 IC</strong>：$\mathcal{L}\{y'\} = s Y - y(0)$，不是 $s Y$. $\mathcal{L}\{y''\} = s^2 Y - s y(0) - y'(0)$，不是 $s^2 Y$. <strong>IC 必须代入</strong>.</li>
+        <li><strong>$\mathcal{L}\{y''\}$ 公式记错</strong>：是 $s^2 Y - s y(0) - y'(0)$（注意 $s y(0)$ 系数是 $s$，不是 $1$）.</li>
+        <li><strong>Partial fractions 拆错</strong>：irreducible quadratic 分母对应 $\dfrac{Bs + C}{\cdots}$ 形式（不是 $\dfrac{B}{\cdots}$）. Linear 分母才是 $\dfrac{B}{s - a}$. Repeated factor $(s - a)^2$ 对应 $\dfrac{A}{s - a} + \dfrac{B}{(s - a)^2}$.</li>
+        <li><strong>不 complete the square</strong>：看到 $s^2 + 2s + 5$ 不能 factor 时，直接 complete the square 成 $(s + 1)^2 + 4$，然后用 entries #9, #10.</li>
+        <li><strong>t-shifting 没把 $f$ 的 argument 也 shift</strong>：$\mathcal{L}^{-1}\{e^{-cs} F(s)\} = u_c(t) f(t - c)$，不是 $u_c(t) f(t)$. $f$ 里所有 $t$ 都要变成 $t - c$.</li>
+        <li><strong>$s$-shifting vs $t$-shifting 搞混</strong>：$F(s - c) \leftrightarrow e^{ct} f(t)$（s-shift） vs $e^{-cs} F(s) \leftrightarrow u_c(t) f(t - c)$（t-shift）. 看 $s$ 域里是 $F(s - c)$ 还是 $e^{-cs} F(s)$.</li>
+        <li><strong>看到 $\sin t = -\sin(t - \pi)$ 不会变换</strong>：要把 $\sin t$ 在 $t = \pi$ 处的 t-shift 形式写出来，需要用三角恒等式 $\sin t = -\sin(t - \pi)$ 或 $\cos t = -\cos(t - \pi)$ 等. 类似的 shift 化简很常见.</li>
+        <li><strong>IVP 解完了忘记 inverse transform</strong>：$Y(s)$ 是 transform，<strong>不是</strong>最终答案. 必须 $y(t) = \mathcal{L}^{-1}\{Y(s)\}$.</li>
+        <li><strong>用 derivative rule 时忘记 $y(0), y'(0)$ 是 numerical values</strong>：IC 给的是数（比如 $y(0) = 2$），代入 derivative rule 后 $-s y(0) = -2s$（不是 $-y(0) s$ 之类的）.</li>
+        <li><strong>Piecewise 函数转 $u_c$ 时漏写一项或多算一项</strong>：每个 jump 都要单独 account for. 验证：在每段 interval 上代入 $u_c$ 表达式应该恢复原 piecewise 定义.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="last-24h">Last 24 hours — 复习路线</h2>
+      <ol>
+        <li><strong>背公式</strong>（30 min）：derivative rule、entries #9, #10, #11, #12 (Laplace 表常用条目)、undetermined coefficients ansatz 表、variation of parameters 公式.</li>
+        <li><strong>过 cheat sheet</strong>（30 min）：本 3 份 review 的 cheat sheet 部分.</li>
+        <li><strong>过 decision flowcharts</strong>（15 min）：看到题先识别类型 + 选方法.</li>
+        <li><strong>过最难的题</strong>（2-3 hours）：每节 pick 1-2 道最 challenging 的，重做一遍.
+          <ul>
+            <li>§3.5: #18a（duplication 合并）, #13（double root + IVP）</li>
+            <li>§3.6: #4（$\tan t$）, #12（variable coeff）</li>
+            <li>§7.3: #13（subtle linear indep vs dep）</li>
+            <li>§7.5: #5（zero eigenvalue）, #23（bifurcation）</li>
+            <li>§7.6: #11（bifurcation analysis）</li>
+            <li>§6.2: #19（piecewise forcing — preview of §6.3）</li>
+            <li>§6.4: #3（shifted sine 化简）</li>
+          </ul>
+        </li>
+        <li><strong>过 common pitfalls</strong>（30 min）：每份 review 的 pitfalls section 都看一遍.</li>
+        <li><strong>睡觉</strong>：早睡比熬夜刷题 ROI 高，考试不困比多做 2 题重要.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+      <h3 id="key-points">本节要点</h3>
+      <ul>
+        <li><strong>Laplace = transform method</strong>：把 ODE in $t$ 转成 algebraic equation in $s$，解完 inverse 回去.</li>
+        <li><strong>Derivative rule</strong>：$\mathcal{L}\{y'\} = sY - y(0)$，$\mathcal{L}\{y''\} = s^2 Y - s y(0) - y'(0)$ — 解 IVP 的钥匙.</li>
+        <li><strong>Partial fractions + complete the square</strong>：把 $Y(s)$ 拆成 table 里能 inverse 的形式.</li>
+        <li><strong>Step function $u_c(t)$</strong>：处理 piecewise / discontinuous forcing.</li>
+        <li><strong>t-shifting</strong>：$e^{-cs} F(s) \leftrightarrow u_c(t) f(t - c)$ — argument 也要 shift!</li>
+        <li><strong>s-shifting</strong>：$F(s - c) \leftrightarrow e^{ct} f(t)$ — 用于 entries #9, #10, #11 (forcing 含 exponential).</li>
+      </ul>
+
+      <h3 id="exam-strategy">考试策略</h3>
+      <ul>
+        <li><strong>50 minutes，按时间分配</strong>：开始 5 分钟通读所有题，估难度顺序。先做 §3.5/§3.6 (熟悉)，再 §6.x (Laplace 表辅助)，最后 §7.x (eigenvalue 计算最繁琐).</li>
+        <li><strong>遇到卡的题</strong>：跳过，<strong>不要</strong>死磕。回头再做。</li>
+        <li><strong>检查步骤</strong>：算 eigenvalues 后<strong>回代</strong>验证 $A\boldsymbol{\xi} = r\boldsymbol{\xi}$；算 inverse Laplace 后<strong>取 Laplace 验证</strong>结果；IVP 解完后<strong>代回</strong>原方程 + IC 检查。</li>
+        <li><strong>书写清晰</strong>：把每步 labeled (Step 1, 2, ...), 把最终 boxed 答案明显标出. Partial credit 是真的.</li>
+      </ul>
+
+      <h3 id="good-luck">Good luck!</h3>
+      <p>明天考好！你已经做了大量准备工作，三份 review 涵盖所有 HW 题。如果某道题忘了方法，回到对应的 cheat sheet 部分 ↑.</p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

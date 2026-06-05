@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW5 · Sec 7.1, 7.3, 7.4, 7.5 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW5 · §7.1 + §7.3 + §7.4 + §7.5 — Systems Setup, Eigensystems, Real Distinct Eigenvalues</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW5 索引 — Systems of First-Order Linear ODEs (主菜)</h1>
+    <p class="note">Section 7.1 Problems 1, 3, 4, 8, 9 · Section 7.3 Problems 6, 7, 11–13, 18 · Section 7.4 Problems 2a–e, 7, 11, 12 · Section 7.5 Problems 1, 4, 5, 12, 23 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../05-systems-theory.html">File 05</a> 和 <a href="../06-systems-methods.html">File 06</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <div class="box warning">
+        <p class="box-title">📌 关于本页 — 索引页</p>
+        <p>
+          HW5 的全部 20 道题在 <strong><a href="../mt2-02-systems.html">MT2 Part 2 (Systems)</a></strong> 里有完整逐题展开（含 graphing guide for phase portraits）。本页只列出题目摘要 + 一句策略 + 跳转链接。
+        </p>
+      </div>
+
+      <p>HW5 是本学期<strong>题量最大</strong>的一份 HW（20 题，涵盖 4 节内容），把整个 systems chapter 的<em>主线</em>串起来：</p>
+
+      <ul>
+        <li><strong>§7.1 Introduction</strong>（5 题）：把<em>高阶</em> linear ODE 改写成 first-order system 的标准操作。例如 $u'' + p u' + q u = 0$ 通过 $x_1 = u, x_2 = u'$ 变成 $\mathbf{x}' = A \mathbf{x}$。</li>
+        <li><strong>§7.3 Linear independence + eigenvalues</strong>（6 题）：vector functions 的 linear independence 判定（用 determinant 或 Wronskian），以及具体 matrix 的 eigenvalue / eigenvector 计算（Ch 7 主线工具）。</li>
+        <li><strong>§7.4 Theory of systems</strong>（4 题）：generalized superposition principle，fundamental matrix，Abel's theorem 类的推理题。这一节理论密度高，但题目主要是<em>应用</em>这些定理而不是证明。</li>
+        <li><strong>§7.5 Homogeneous systems with real distinct eigenvalues</strong>（5 题）：把 §7.3 的 eigenvalue 工具用于解 $\mathbf{x}' = A\mathbf{x}$. 解形式 $\mathbf{x} = c_1 e^{\lambda_1 t} \mathbf{v}_1 + c_2 e^{\lambda_2 t} \mathbf{v}_2$. Phase portrait 由 eigenvalue 的符号组合决定：两正 unstable node、两负 stable node、异号 saddle、零特征值是退化情形。</li>
+      </ul>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) 求 eigenvalue 时别忘了 $-\lambda$ 在对角：</strong>$\det(A - \lambda I) = 0$，$I$ 必须是 identity matrix。每个对角元都是 $a_{ii} - \lambda$，<em>不</em>是 $a_{ii}$.<br><br>
+          <strong>(2) Linearly dependent at every point ≠ dependent as functions：</strong>§7.3 #13 是典型 trap——两个 vector functions 在每个 $t$ 都成比例（同方向），但<em>比例系数随 $t$ 变化</em>时不是 LI of functions。判定 vector-function 的 LI 看 Wronskian (det) 是否对至少一个 $t$ 不为零。<br><br>
+          <strong>(3) Phase portrait 题：eigenvalue 符号决定一切：</strong>两正 → unstable node, 两负 → stable node, 一正一负 → saddle, 零特征值 → degenerate. Eigenvalue 大小决定 trajectory<em>方向</em>（大的特征值方向是 dominant direction）。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-7-1">§7.1 Problems — Convert higher-order ODE to system</h2>
+
+      <p>本节 5 题。基本操作：定义 $x_1 = u, x_2 = u'$（高阶就再加 $x_3 = u'', \ldots$），改写成 $\mathbf{x}' = A\mathbf{x} + \mathbf{g}(t)$ 形式. <em>不</em>必<em>解</em>方程，只要写出系统。</p>
+
+      <h3 id="p7-1-1">§7.1 #1 — Convert $u'' + 0.5 u' + 2u = 0$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-1-1">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$x_1 = u, x_2 = u'$. $x_1' = x_2$, $x_2' = u'' = -2 u - 0.5 u' = -2 x_1 - 0.5 x_2$. 矩阵 $A = \begin{pmatrix} 0 & 1 \\ -2 & -0.5 \end{pmatrix}$.</p>
+
+      <h3 id="p7-1-3">§7.1 #3 — Convert $u^{(4)} - u = 0$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-1-3">→ 完整解</a></h3>
+      <p><strong>策略：</strong>4 阶 ODE 需要 4 个 state variables：$x_1 = u, x_2 = u', x_3 = u'', x_4 = u'''$. 系统：$x_4' = u^{(4)} = u = x_1$. 矩阵是 companion form $A = \begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ 1 & 0 & 0 & 0 \end{pmatrix}$.</p>
+
+      <h3 id="p7-1-4">§7.1 #4 — IVP $u'' + 0.25 u' + 4u = 2\cos 3t$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-1-4">→ 完整解</a></h3>
+      <p><strong>策略：</strong>同 #1，但带 nonhomogeneous forcing。系统 $\mathbf{x}' = A\mathbf{x} + \mathbf{g}(t)$，$\mathbf{g}(t) = \begin{pmatrix} 0 \\ 2\cos 3t \end{pmatrix}$. IC $\mathbf{x}(0) = \begin{pmatrix} 1 \\ -2 \end{pmatrix}$.</p>
+
+      <h3 id="p7-1-8">§7.1 #8 — Verify solution of system &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-1-8">→ 完整解</a></h3>
+      <p><strong>策略：</strong>给出 candidate $\mathbf{x}(t)$，验证它满足 $\mathbf{x}' = A\mathbf{x}$ 以及 IC。直接代入计算两边 + 比对.</p>
+
+      <h3 id="p7-1-9">§7.1 #9 — $2 \times 2$ system with IC &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-1-9">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$x_1' = -\tfrac{1}{2} x_1 + 2 x_2$, $x_2' = -2 x_1 - \tfrac{1}{2} x_2$, IC $(x_1(0), x_2(0)) = (-2, 2)$.</p>
+      <p><strong>策略：</strong>这道是<em>预告</em>题——题目让你用 algebraic substitution（消元）解，但实际上这是个 eigenvalue 问题（$\lambda = -\tfrac{1}{2} \pm 2i$，complex pair，stable spiral）。§7.5/7.6 会用 matrix 方法系统地处理.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-7-3">§7.3 Problems — Linear independence + eigenvalues</h2>
+
+      <p>本节 6 题。前 4 题（#6, 7, 11, 12）练 vector / vector-function 的 LI 判定；#13 是典型 trap；#18 算 $3 \times 3$ matrix 的 eigenvalues + eigenvectors。</p>
+
+      <h3 id="p7-3-6">§7.3 #6 — LI of three vectors in $\mathbb{R}^3$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-6">→ 完整解</a></h3>
+      <p><strong>策略：</strong>三个 $3 \times 1$ vectors 拼成 $3 \times 3$ matrix，算 determinant. $\ne 0$ → LI, $= 0$ → LD.</p>
+
+      <h3 id="p7-3-7">§7.3 #7 — Linear dependence of three vectors &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-7">→ 完整解</a></h3>
+      <p><strong>策略：</strong>同 #6 但 determinant $= 0$. 进一步要求出<em>具体的</em> linear combination 把第三个写成前两个的组合——通过行简化或观察.</p>
+
+      <h3 id="p7-3-11">§7.3 #11 — LI of vector functions &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-11">→ 完整解</a></h3>
+      <p><strong>策略：</strong>对 vector functions，Wronskian $W(t) = \det[\mathbf{x}_1(t), \mathbf{x}_2(t), \ldots]$ 在<em>某</em>个 $t_0$ 不为零 → LI。Functions 和 constant vectors 不同：LI of functions 是更强的条件.</p>
+
+      <h3 id="p7-3-12">§7.3 #12 — Parallel multiples &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-12">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$\mathbf{x}_1(t) = f(t) \mathbf{v}, \mathbf{x}_2(t) = g(t) \mathbf{v}$（共方向）→ 即使 $f, g$ 是 LI scalar functions，$\mathbf{x}_1, \mathbf{x}_2$ 仍 LD（因为可以任意 cancel 到零方向），所以 Wronskian = 0.</p>
+
+      <h3 id="p7-3-13">§7.3 #13 — Dependent at each point but LI as functions &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-13">→ 完整解</a></h3>
+      <p><strong>策略：</strong>典型 trap。$\mathbf{x}_1(t) = (t, t^2)^T, \mathbf{x}_2(t) = (t^2, t^3)^T$. 在每个 $t \ne 0$ 都 parallel（即 pointwise LD），但 <em>不</em>存在 constants $c_1, c_2$ 不全为零使 $c_1 \mathbf{x}_1(t) + c_2 \mathbf{x}_2(t) \equiv 0$ for all $t$. Wronskian = 0 但 functions 是 LI of functions。和 #12 严格对比.</p>
+
+      <h3 id="p7-3-18">§7.3 #18 — Eigenvalues + eigenvectors of $3 \times 3$ matrix &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-3-18">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$A = \begin{pmatrix} 1 & 0 & 0 \\ 2 & 1 & -2 \\ 3 & 2 & 1 \end{pmatrix}$.</p>
+      <p><strong>策略：</strong>展开 $\det(A - \lambda I)$（沿第一行展开省力，因为有零）。Eigenvalues $\lambda = 1, 1 + 2i, 1 - 2i$（一个 real + complex pair）。对 $\lambda = 1$ 求 $\mathbf{v}$：解 $(A - I)\mathbf{v} = 0$. Complex eigenvalues 的 eigenvectors 之后 §7.6 会用.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-7-4">§7.4 Problems — Theory of systems</h2>
+
+      <p>本节 4 题。#2 是 Theorem 7.4.1（generalized superposition）的应用 + 综合练习；#7 是 abstract 证明题；#11, #12 是用 fundamental matrix 解 IVP.</p>
+
+      <h3 id="p7-4-2">§7.4 #2 a–e — Verify, fundamental set, IVP, Wronskian &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-4-2">→ 完整解</a></h3>
+      <p><strong>策略：</strong>这是个多部分题，把 §7.4 全部概念串起来：(a) verify two given vector functions 是 solutions; (b) compute Wronskian，确认 LI; (c) state general solution; (d) apply IC 算 $c_1, c_2$; (e) interpret.</p>
+
+      <h3 id="p7-4-7">§7.4 #7 — Proof of generalized superposition &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-4-7">→ 完整解</a></h3>
+      <p><strong>策略：</strong>证明若 $\mathbf{x}_1, \mathbf{x}_2$ 都是 $\mathbf{x}' = A\mathbf{x}$ 的解，则 $c_1 \mathbf{x}_1 + c_2 \mathbf{x}_2$ 也是. 直接展开两边 derivative + linearity of $A$，三行就完.</p>
+
+      <h3 id="p7-4-11">§7.4 #11 — IVP $\mathbf{x}' = \begin{pmatrix} -2 & 1 \\ -5 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = (1, 3)^T$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-4-11">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = \lambda^2 - 2\lambda - 3 = (\lambda - 3)(\lambda + 1)$. Eigenvalues $3, -1$（异号 → saddle）. Eigenvectors $(1, 5)^T, (1, 1)^T$. General solution $\mathbf{x} = c_1 e^{3t}(1, 5)^T + c_2 e^{-t}(1, 1)^T$. 代入 IC 解 $c_1, c_2$.</p>
+
+      <h3 id="p7-4-12">§7.4 #12 — IVP $3 \times 3$ system &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-4-12">→ 完整解</a></h3>
+      <p><strong>策略：</strong>同 #11 但 $3 \times 3$ matrix。三个 eigenvalues 都 real distinct → 三个 eigenvectors 拼出 general solution。系统对 IC 解 $3 \times 3$ 代数方程.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-7-5">§7.5 Problems — Homogeneous systems with real eigenvalues</h2>
+
+      <p>本节 5 题。前 3 题（#1, 4, 5）是 phase portrait 分类题；#12 是 $3 \times 3$ IVP；#23 是 bifurcation 题。</p>
+
+      <h3 id="p7-5-1">§7.5 #1 — Saddle point &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-5-1">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} 3 & -2 \\ 2 & -2 \end{pmatrix}\mathbf{x}$.</p>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = \lambda^2 - \lambda - 2 = (\lambda - 2)(\lambda + 1)$. Eigenvalues $2, -1$（异号 → saddle）. Eigenvectors $(2, 1)^T, (1, 2)^T$. 画 phase portrait 时：$\lambda = 2$ 方向是<em>外向</em>渐近线（trajectories along (2,1) 加速），$\lambda = -1$ 方向是<em>内向</em>渐近线.</p>
+
+      <h3 id="p7-5-4">§7.5 #4 — Unstable node &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-5-4">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} 5/4 & 3/4 \\ 3/4 & 5/4 \end{pmatrix}\mathbf{x}$.</p>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = (\lambda - 1/2)(\lambda - 2)$. Eigenvalues $1/2, 2$（两正 → unstable node）. Dominant direction 是 $\lambda = 2$ 的 eigenvector. Phase portrait 所有 trajectories 离原点而去，但<em>方向</em>渐近趋向 $\lambda = 2$ 的 eigenvector.</p>
+
+      <h3 id="p7-5-5">§7.5 #5 — Zero eigenvalue (degenerate) &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-5-5">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} 4 & -3 \\ 8 & -6 \end{pmatrix}\mathbf{x}$.</p>
+      <p><strong>策略：</strong>$\det A = 0$ 意味着<em>有零特征值</em>。$\det(A - \lambda I) = \lambda(\lambda - (-2)) = 0$. Eigenvalues $0, -2$. $\lambda = 0$ 的 eigenvector 给出整条 equilibrium line（所有该方向上的点都是 fixed points）；$\lambda = -2$ 的 eigenvector 给出衰减方向. Phase portrait 是 "all trajectories collapse to a line of equilibria"。是 degenerate node 的一种.</p>
+
+      <h3 id="p7-5-12">§7.5 #12 — $3 \times 3$ IVP &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-5-12">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} 0 & 0 & -1 \\ 2 & 0 & 0 \\ -1 & 2 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = (7, 5, 5)^T$.</p>
+      <p><strong>策略：</strong>展开 $\det(A - \lambda I)$，得 $-\lambda^3 + 4\lambda^2 - \lambda - 6 = -(\lambda - 2)(\lambda - 3)(\lambda + 1)$. Eigenvalues $2, 3, -1$. 各求 eigenvector，构造 general solution，代入 IC.</p>
+
+      <h3 id="p7-5-23">§7.5 #23 — Bifurcation $\mathbf{x}' = \begin{pmatrix} -1 & -1 \\ -\alpha & -1 \end{pmatrix}\mathbf{x}$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-5-23">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = (\lambda + 1)^2 - \alpha = 0 \Rightarrow \lambda = -1 \pm \sqrt{\alpha}$. 临界值 $\alpha = 0$ 时 repeated root（degenerate node, §7.6 范围）. $\alpha > 0$ 两 real distinct（一个可能 $\ge 0$ 视 $\alpha$ 大小），$\alpha < 0$ complex pair $-1 \pm i\sqrt{-\alpha}$（stable spiral）. 此题完整 bifurcation 分析涉及多个临界值（$\alpha = 0, \alpha = 1$）。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="pipeline">通用解题 pipeline</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>题型</th><th>核心步骤</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>§7.1 改写为 system</td><td>定义 $x_i$ 链，$\mathbf{x}' = A\mathbf{x}$ 写出 $A$；高阶 ODE 对应 companion matrix.</td></tr>
+          <tr><td>§7.3 LI 判定</td><td>Constant vectors → det of matrix；Vector functions → Wronskian. 注意 LI of functions 不等价于 pointwise LI.</td></tr>
+          <tr><td>§7.3 / §7.5 Eigensystem</td><td>$\det(A - \lambda I) = 0$ 求 eigenvalues；$(A - \lambda I)\mathbf{v} = 0$ 求 eigenvectors. 沿稀疏行/列展开 determinant 省时间.</td></tr>
+          <tr><td>§7.4 / §7.5 解 system</td><td>$\mathbf{x}(t) = \sum_i c_i e^{\lambda_i t} \mathbf{v}_i$；代入 IC 解 $c_i$. Wronskian $\det[\mathbf{x}_1(t), \mathbf{x}_2(t)] \ne 0$ 证明 fundamental set.</td></tr>
+          <tr><td>§7.5 Phase portrait 分类</td><td>看 eigenvalues 的符号：两正 unstable node, 两负 stable node, 异号 saddle, 零特征值 degenerate, complex 共轭对（§7.6）spiral/center.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Characteristic equation</strong>: $\det(A - \lambda I) = 0$. → <a href="../05-systems-theory.html#eigenvalues">File 05 §eigenvalues</a></li>
+        <li><strong>Eigenvector</strong>: $(A - \lambda I) \mathbf{v} = 0$，解 null space.</li>
+        <li><strong>General solution (real distinct $\lambda_i$)</strong>: $\mathbf{x}(t) = \sum_i c_i e^{\lambda_i t} \mathbf{v}_i$. → <a href="../06-systems-methods.html#real-distinct-eigenvalues">File 06 §real-distinct-eigenvalues</a></li>
+        <li><strong>Wronskian for systems</strong>: $W[\mathbf{x}_1, \mathbf{x}_2](t) = \det[\mathbf{x}_1(t)\, \mathbf{x}_2(t)]$. 非零 → fundamental set.</li>
+        <li><strong>Phase portrait classification</strong>: 两正 unstable node, 两负 stable node, 异号 saddle, 零特征值 degenerate, complex 共轭对 spiral/center. → <a href="../06-systems-methods.html#phase-portrait-summary">File 06 §phase-portrait</a></li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW5 是 systems 的<em>核心</em>，HW6 把 §7.6（complex eigenvalues）做完后整个 Ch 7 就结束了。然后从 HW6 后半 + HW7 进入 Laplace transform（Ch 6）。<a href="hw6.html">HW6</a> 同样是 mt2-* redirect 页。HW5 的最大复习价值在于"Phase portrait 分类速查表"——把 Sec 7.5 + 7.6 所有可能的 portrait 类型对照 eigenvalue 配对，是 MT2 必备图表。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

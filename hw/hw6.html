@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW6 · Sec 7.6, 6.1, 6.2 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW6 · §7.6 + §6.1 + §6.2 — Complex Eigenvalues, Laplace Definition & IVPs</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW6 索引 — §7.6 (Complex Eigenvalues) + §6.1 (Laplace Definition) + §6.2 (Laplace IVPs)</h1>
+    <p class="note">Section 7.6 Problems 1, 4, 6, 11, 13 · Section 6.1 Problems 1, 2, 4a, 5, 16, 18 · Section 6.2 Problems 2, 4, 6, 8, 11, 16, 19 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../06-systems-methods.html">File 06</a> 和 <a href="../07-laplace-basics.html">File 07</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <div class="box warning">
+        <p class="box-title">📌 关于本页 — 索引页</p>
+        <p>
+          HW6 的全部 18 道题在 <a href="../mt2-02-systems.html">MT2 Part 2 (Systems)</a> 和 <a href="../mt2-03-laplace.html">MT2 Part 3 (Laplace)</a> 里有完整逐题展开。本页只列出题目摘要 + 一句策略 + 跳转链接，避免内容重复。
+        </p>
+      </div>
+
+      <p>HW6 是<strong>两大主题的衔接点</strong>：上半是 §7.6（系统理论的最后一节，complex eigenvalues），下半是 §6.1 / §6.2（Laplace transform 的开头）。注意虽然 textbook chapter 顺序是 6 在 7 前，但 prof 按 7 → 6 → 5 的顺序教，所以这次 HW 同时收尾 systems 又开启 Laplace。</p>
+
+      <ul>
+        <li><strong>§7.6 Complex eigenvalues</strong>（5 题）：当 $A$ 的 eigenvalue 是 complex 共轭对 $\lambda = \alpha \pm \beta i$ 时，把 complex eigenvector 解 $\mathbf{x} = e^{(\alpha + \beta i)t} \mathbf{v}$ 拆成 real / imaginary 两部分，得到 real-valued fundamental set $\{e^{\alpha t}(\cos\beta t \cdot \mathbf{u} - \sin\beta t \cdot \mathbf{w}),\, e^{\alpha t}(\sin\beta t \cdot \mathbf{u} + \cos\beta t \cdot \mathbf{w})\}$. 相图根据 $\alpha$ 的符号是 stable spiral / center / unstable spiral.</li>
+        <li><strong>§6.1 Laplace transform definition</strong>（6 题）：从定义 $\mathcal{L}\{f\}(s) = \int_0^\infty e^{-st} f(t)\,dt$ 出发，练 piecewise continuity 判定 + 几个基础 transform 的计算。</li>
+        <li><strong>§6.2 Solving IVPs by Laplace</strong>（7 题）：先练 inverse Laplace（partial fractions, completing the square），再练用 Laplace 解 IVP 的标准流程：取 $\mathcal{L}$ → 代入 IC → 解出 $Y(s)$ → 反变换。</li>
+      </ul>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) Complex eigenvector 必须取一个：</strong>complex 共轭对 $\lambda_1 = \alpha + \beta i$ 和 $\lambda_2 = \alpha - \beta i$ 的 eigenvector 也共轭，<em>不要</em>同时算两个——算 $\lambda_1$ 那一个，把它的 real 和 imaginary 部分拆成两个 real 解就够了。<br><br>
+          <strong>(2) Phase portrait 由 $\alpha$ 决定：</strong>$\alpha < 0$ 内旋 stable spiral；$\alpha > 0$ 外旋 unstable spiral；$\alpha = 0$ 是 center（闭轨）。$\beta$ 只决定<em>转速</em>，不决定<em>稳定性</em>。<br><br>
+          <strong>(3) Laplace 解 IVP 时别漏 $sy(0) - y'(0)$：</strong>$\mathcal{L}\{y''\} = s^2 Y(s) - s y(0) - y'(0)$，这里有<strong>两个</strong>初值项，容易漏一个。同样 $\mathcal{L}\{y'\} = sY(s) - y(0)$ 一个。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-7-6">§7.6 Problems — Systems with complex eigenvalues</h2>
+
+      <p>本节 5 题。前 3 题（#1, 4, 6）求<em>具体系统</em>的 general solution + phase portrait 类型；后 2 题（#11, 13）是 <strong>bifurcation</strong> 题——给一个含参 matrix $A(\alpha)$，分析 phase portrait 随 $\alpha$ 变化的临界值（trace 或 discriminant 越过零）。</p>
+
+      <h3 id="p7-6-1">§7.6 #1 — Stable spiral &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-6-1">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} -1 & -4 \\ 1 & -1 \end{pmatrix}\mathbf{x}$.</p>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = (\lambda + 1)^2 + 4 = 0 \Rightarrow \lambda = -1 \pm 2i$（$\alpha = -1 < 0$, $\beta = 2$）→ stable spiral. 算 eigenvector $\mathbf{v} = (2i, 1)^T$（对应 $\lambda = -1 + 2i$），拆 real + imaginary 部分得 fundamental real solutions $e^{-t}(\cos 2t \cdot (0, 1)^T - \sin 2t \cdot (2, 0)^T)$ 和对应的 $\sin / \cos$ 翻转。</p>
+
+      <h3 id="p7-6-4">§7.6 #4 — Center &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-6-4">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathbf{x}' = \begin{pmatrix} 1 & 2 \\ -5 & -1 \end{pmatrix}\mathbf{x}$.</p>
+      <p><strong>策略：</strong>$\det(A - \lambda I) = \lambda^2 + 9 = 0 \Rightarrow \lambda = \pm 3 i$. $\alpha = 0$ → <strong>center</strong>，所有 trajectories 是<em>闭轨</em>椭圆（既不稳定也不发散）。这是一个边界状态，物理上对应无 damping 振子。</p>
+
+      <h3 id="p7-6-6">§7.6 #6 — 3D system, complex eigenvalues &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-6-6">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$3 \times 3$ matrix $\begin{pmatrix} -3 & 0 & 2 \\ 1 & -1 & 0 \\ -2 & -1 & 0 \end{pmatrix}$.</p>
+      <p><strong>策略：</strong>3D 系统 eigenvalues 之一是 real，另两个 complex 共轭对。展开 $\det(A - \lambda I) = -(\lambda + 2)(\lambda^2 + 2\lambda + 2) = 0$ → $\lambda_1 = -2$（real）, $\lambda_{2,3} = -1 \pm i$. General solution 是 real eigenvector 解 + complex pair 拆出来的两个 real 解，共 3 个 linearly independent solutions.</p>
+
+      <h3 id="p7-6-11">§7.6 #11 — Bifurcation $A(\alpha) = \begin{pmatrix} \alpha & 1 \\ -1 & \alpha \end{pmatrix}$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-6-11">→ 完整解</a></h3>
+      <p><strong>策略：</strong>Trace $= 2\alpha$, $\det = \alpha^2 + 1 > 0$，所以 $\lambda = \alpha \pm i$ 始终复数. Phase portrait 由 $\alpha$ 决定: $\alpha < 0$ stable spiral, $\alpha = 0$ center, $\alpha > 0$ unstable spiral. 临界值 $\alpha = 0$ 是 <em>Hopf bifurcation</em> 的简化版。</p>
+
+      <h3 id="p7-6-13">§7.6 #13 — Bifurcation $A(\alpha) = \begin{pmatrix} 5/4 & 3/4 \\ \alpha & 5/4 \end{pmatrix}$ &nbsp;·&nbsp; <a href="../mt2-02-systems.html#prob-7-6-13">→ 完整解</a></h3>
+      <p><strong>策略：</strong>Characteristic equation $(\lambda - 5/4)^2 - 3\alpha/4 = 0$. 判别式 $3\alpha/4$ 的<em>符号</em>决定 eigenvalue 是 real 还是 complex: $\alpha > 0$ 两 real distinct, $\alpha = 0$ repeated, $\alpha < 0$ complex 共轭. 临界 $\alpha = 0$ 是 <em>saddle-node 类</em> bifurcation. 此题考察 discriminant 的几何意义。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-6-1">§6.1 Problems — Laplace transform definition</h2>
+
+      <p>本节 6 题。前 2 题（#1, 2）练 piecewise continuity / improper integral 收敛的判定；中 2 题（#4a, 5）从定义出发推导基本 transform；后 2 题（#16, 18）求 piecewise functions 的 Laplace transform.</p>
+
+      <h3 id="p6-1-1">§6.1 #1 — Piecewise continuity check &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-1">→ 完整解</a></h3>
+      <p><strong>策略：</strong>判定一个 piecewise function 是否在 $[a, b]$ 上 piecewise continuous——需要每段内 continuous 且各 breakpoint 处 left/right limits 存在有限. <em>不</em>要求函数<em>本身</em>在 breakpoint 处有定义.</p>
+
+      <h3 id="p6-1-2">§6.1 #2 — Continuity with singularity &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-2">→ 完整解</a></h3>
+      <p><strong>策略：</strong>类似 #1，但函数在某点有 vertical asymptote（如 $1/(t-2)$）—— infinite limit 意味着<em>不是</em> piecewise continuous. Laplace transform 可能不存在（积分 diverges）。</p>
+
+      <h3 id="p6-1-4a">§6.1 #4a — $\mathcal{L}\{t\}$ from definition &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-4a">→ 完整解</a></h3>
+      <p><strong>策略：</strong>$\mathcal{L}\{t\} = \int_0^\infty e^{-st} t \, dt$. 用 integration by parts（$u = t, dv = e^{-st} dt$）→ $-\frac{t}{s} e^{-st}\bigg|_0^\infty + \frac{1}{s}\int_0^\infty e^{-st} dt = 0 + \frac{1}{s^2}$. 答案 $\mathcal{L}\{t\} = \dfrac{1}{s^2}, s > 0$.</p>
+
+      <h3 id="p6-1-5">§6.1 #5 — $\mathcal{L}\{\cos(at)\}$ via complex exponential &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-5">→ 完整解</a></h3>
+      <p><strong>策略：</strong>用 Euler $\cos(at) = \tfrac{1}{2}(e^{iat} + e^{-iat})$，分别对每个 $e^{\pm iat}$ 求 Laplace transform（用 $\mathcal{L}\{e^{ct}\} = \dfrac{1}{s-c}$ 推广到 complex $c$），合并得 $\dfrac{s}{s^2 + a^2}$. 比 integration by parts 两次快得多。</p>
+
+      <h3 id="p6-1-16">§6.1 #16 — Step-up function &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-16">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$f(t) = 1$ 在 $0 \le t < \pi$，$f(t) = 0$ 在 $t \ge \pi$. 求 $\mathcal{L}\{f\}$.</p>
+      <p><strong>策略：</strong>直接从定义 $\int_0^\infty e^{-st} f(t)\,dt = \int_0^\pi e^{-st}\,dt = \dfrac{1 - e^{-\pi s}}{s}$. 注意这道题是<em>不</em>用 Heaviside step function 直接算的（§6.3 才正式引入 $u_c$）。</p>
+
+      <h3 id="p6-1-18">§6.1 #18 — Three-piece function &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-1-18">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$f(t) = 1$ 在 $[0, 1)$，$f(t) = 2 - t$ 在 $[1, 2)$，$f(t) = 0$ 在 $t \ge 2$. 求 $\mathcal{L}\{f\}$.</p>
+      <p><strong>策略：</strong>分段积分 $\int_0^1 + \int_1^2 + \int_2^\infty$，第二段对 $t$ 是线性，做 integration by parts. 答案是 $\dfrac{1 - e^{-s}}{s} + \dfrac{e^{-s} - e^{-2s}(1 + ...)}{s^2}$ 类型（详细见 mt2-03）。这道题<em>会</em>在 §6.2 #19 复用，所以记住答案形式有帮助。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-6-2">§6.2 Problems — Solving IVPs by Laplace transform</h2>
+
+      <p>本节 7 题。前 3 题（#2, 4, 6）练 inverse Laplace（partial fractions / completing the square）；中 3 题（#8, 11, 16）是<em>标准</em> IVP（无 piecewise forcing）；末题（#19）是 piecewise forcing 的 IVP，预示 §6.4 的内容。</p>
+
+      <h3 id="p6-2-2">§6.2 #2 — $\mathcal{L}^{-1}\{4/(s-1)^3\}$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-2">→ 完整解</a></h3>
+      <p><strong>策略：</strong>查表 $\mathcal{L}\{t^n\} = \dfrac{n!}{s^{n+1}}$ + $s$-shifting $\mathcal{L}\{e^{at} f(t)\} = F(s - a)$. $\dfrac{4}{(s-1)^3} = \dfrac{4}{2!} \cdot \dfrac{2!}{(s-1)^3} \to 2 e^t t^2$.</p>
+
+      <h3 id="p6-2-4">§6.2 #4 — $\mathcal{L}^{-1}\{2/(s^2 + 2s + 5)\}$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-4">→ 完整解</a></h3>
+      <p><strong>策略：</strong>分母判别式 $4 - 20 < 0$ → completing the square: $s^2 + 2s + 5 = (s+1)^2 + 4$. $\dfrac{2}{(s+1)^2 + 4} = \dfrac{2}{2} \cdot \dfrac{2}{(s+1)^2 + 2^2} \to e^{-t} \sin 2t$. 用 $s$-shifting 倒推 $a = -1$（即移到 $s+1$）, $\sin 2t$ 来自 $\dfrac{2}{s^2 + 4}$.</p>
+
+      <h3 id="p6-2-6">§6.2 #6 — Inverse with rational, irreducible quadratic &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-6">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$\mathcal{L}^{-1}\!\left\{\dfrac{8 s^2 - 4s + 12}{s(s^2 + 4)}\right\}$.</p>
+      <p><strong>策略：</strong>Partial fractions $\dfrac{A}{s} + \dfrac{Bs + C}{s^2 + 4}$ (irreducible quadratic 分母配 $Bs + C$). 通分比对得 $A = 3, B = 5, C = -4$. 反变换 $3 + 5\cos 2t - 2\sin 2t$.</p>
+
+      <h3 id="p6-2-8">§6.2 #8 — IVP $y'' - y' - 6y = 0$, $y(0) = 1, y'(0) = -1$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-8">→ 完整解</a></h3>
+      <p><strong>策略：</strong>取 Laplace: $(s^2 Y - s + 1) - (sY - 1) - 6Y = 0 \Rightarrow Y(s) = \dfrac{s - 2}{s^2 - s - 6}$. 分母 $= (s-3)(s+2)$，partial fractions → $Y = \dfrac{1}{5}\dfrac{1}{s-3} + \dfrac{4}{5}\dfrac{1}{s+2}$. 反变换 $y(t) = \dfrac{1}{5} e^{3t} + \dfrac{4}{5} e^{-2t}$.</p>
+
+      <h3 id="p6-2-11">§6.2 #11 — IVP $y'' - 2y' + 4y = 0$, $y(0) = 2, y'(0) = 0$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-11">→ 完整解</a></h3>
+      <p><strong>策略：</strong>同 #8，但分母 $s^2 - 2s + 4 = (s-1)^2 + 3$ 判别式 $< 0$. Completing the square + $s$-shifting：$y(t) = e^t \bigl(2 \cos\sqrt{3}\,t - \dfrac{2}{\sqrt{3}} \sin\sqrt{3}\,t\bigr)$.</p>
+
+      <h3 id="p6-2-16">§6.2 #16 — IVP $y'' - 2y' + 2y = e^{-t}$, $y(0) = 0, y'(0) = 1$ &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-16">→ 完整解</a></h3>
+      <p><strong>策略：</strong>非齐次 forcing $e^{-t}$. Laplace $\mathcal{L}\{e^{-t}\} = \dfrac{1}{s+1}$. 解出 $Y(s) = \dfrac{(s+1) + (s+1)(s-1)/(...)}{\ldots}$ 形态，partial fractions 拆分母 $(s+1)(s^2 - 2s + 2)$. 答案含 $e^{-t}$（forced response）和 $e^t \cos t, e^t \sin t$（natural response）的组合.</p>
+
+      <h3 id="p6-2-19">§6.2 #19 — IVP with piecewise forcing &nbsp;·&nbsp; <a href="../mt2-03-laplace.html#prob-6-2-19">→ 完整解</a></h3>
+      <p><strong>题目摘要：</strong>$y'' + y = f(t)$, $y(0) = 0, y'(0) = 0$；$f(t)$ 同 §6.1 #18 的 three-piece function.</p>
+      <p><strong>策略：</strong>这是 §6.4 内容的预告——piecewise forcing 经 Laplace 后产生 $e^{-cs}/s$ 等项. Hint 提示 reuse #18 的答案. 此题刚好是过渡题：用 §6.1 的"piecewise → 定义直接积分"思路得到 $\mathcal{L}\{f\}$（不引入 step function），然后接 §6.2 标准 IVP 流程。比 §6.4 用 $u_c$ 重写的方法长，但思路简单。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="pipeline-7-6">§7.6 解题 pipeline（complex eigenvalues）</h3>
+      <ol>
+        <li>算 $\det(A - \lambda I) = 0$，识别 complex 共轭对 $\lambda = \alpha \pm \beta i$.</li>
+        <li>判断 phase portrait 类型：$\alpha < 0$ stable spiral, $\alpha > 0$ unstable spiral, $\alpha = 0$ center.</li>
+        <li>取<em>一个</em> complex eigenvalue（如 $\lambda_1 = \alpha + \beta i$），算 complex eigenvector $\mathbf{v} = \mathbf{u} + i \mathbf{w}$.</li>
+        <li>$\mathbf{x}_1 = e^{\alpha t}(\cos\beta t \cdot \mathbf{u} - \sin\beta t \cdot \mathbf{w})$, $\mathbf{x}_2 = e^{\alpha t}(\sin\beta t \cdot \mathbf{u} + \cos\beta t \cdot \mathbf{w})$ → real-valued fundamental set.</li>
+        <li>General solution $\mathbf{x} = c_1 \mathbf{x}_1 + c_2 \mathbf{x}_2$，由 IC 定 $c_1, c_2$.</li>
+      </ol>
+
+      <h3 id="pipeline-6-1-2">§6.1 + §6.2 解题 pipeline（Laplace 基础）</h3>
+      <ol>
+        <li>对 ODE 两边取 Laplace transform，用 derivative property $\mathcal{L}\{y''\} = s^2 Y - s y(0) - y'(0)$, $\mathcal{L}\{y'\} = sY - y(0)$.</li>
+        <li>代入 IC，得到 $Y(s) = $ 多项式分式.</li>
+        <li>处理分母：实根 + linear factor → partial fractions; irreducible quadratic → completing the square; 重根 → 用 $\dfrac{1}{(s-a)^n}$ 配 $\dfrac{t^{n-1}}{(n-1)!} e^{at}$ 的查表.</li>
+        <li>反变换得 $y(t)$。每个 partial fraction 项分别查表反变换. 用 $s$-shifting 处理 $(s-a)$ 平移.</li>
+      </ol>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Complex eigenvalues</strong>: $\lambda = \alpha \pm \beta i$, eigenvector $\mathbf{v} = \mathbf{u} + i\mathbf{w}$ → $e^{\alpha t}(\cos \beta t \cdot \mathbf{u} - \sin\beta t \cdot \mathbf{w})$ 和 $e^{\alpha t}(\sin\beta t \cdot \mathbf{u} + \cos\beta t \cdot \mathbf{w})$. → <a href="../06-systems-methods.html#complex-eigenvalues">File 06 §complex-eigenvalues</a></li>
+        <li><strong>Phase portrait</strong>: $\alpha < 0$ stable spiral, $\alpha = 0$ center, $\alpha > 0$ unstable spiral. $\beta$ 决定转速.</li>
+        <li><strong>Laplace definition</strong>: $\mathcal{L}\{f\}(s) = \int_0^\infty e^{-st} f(t)\,dt$（converges for $s$ large enough）. → <a href="../07-laplace-basics.html#definition">File 07 §definition</a></li>
+        <li><strong>Derivative property</strong>: $\mathcal{L}\{y'\} = sY - y(0)$, $\mathcal{L}\{y''\} = s^2 Y - sy(0) - y'(0)$.</li>
+        <li><strong>$s$-shifting</strong>: $\mathcal{L}\{e^{at} f(t)\} = F(s - a)$，反向 $\mathcal{L}^{-1}\{F(s-a)\} = e^{at} f(t)$.</li>
+        <li><strong>Completing the square</strong>: 分母 $s^2 + ps + q$ 判别式 $< 0$ → $(s + p/2)^2 + (q - p^2/4)$.</li>
+        <li><strong>Standard table</strong>: $\mathcal{L}\{t^n\} = n!/s^{n+1}$, $\mathcal{L}\{e^{at}\} = 1/(s-a)$, $\mathcal{L}\{\cos at\} = s/(s^2 + a^2)$, $\mathcal{L}\{\sin at\} = a/(s^2 + a^2)$. → <a href="../07-laplace-basics.html#table">File 07 §table</a></li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW6 收尾了 systems chapter，开启了 Laplace transform。<a href="hw7.html">HW7</a> 全是 §6.3 + §6.4（step functions + discontinuous forcing），同样是 <a href="../mt2-03-laplace.html">mt2-03</a> redirect 页. 真正的"全新内容" walkthrough 从 <a href="hw8.html">HW8</a>（§6.5 Dirac delta）开始。
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

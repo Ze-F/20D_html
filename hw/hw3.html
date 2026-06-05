@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW3 · Sec 3.2, 3.3, 3.4, 3.5 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW3 · §3.2 + §3.3 + §3.4 + §3.5 — Wronskian, Char. Equation, Undetermined Coefficients</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW3 讲解 — Second-Order Linear Homogeneous & Nonhomogeneous</h1>
+    <p class="note">Section 3.2 Problems 7, 8, 13, 17, 22, 27, 29 · Section 3.3 Problems 6, 10, 12, 15, 18, 20 · Section 3.4 Problems 4, 5, 10, 11, 14, 15 (no reduction of order) · Section 3.5 Problems 4, 5, 7, 11, 13, 17a, 18a, 19a &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../03-homog-second-order.html">File 03</a> 和 <a href="../04-nonhomog-second-order.html">File 04</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <p>HW3 cover 了 Ch 3 的<strong>核心</strong>：</p>
+      <ul>
+        <li><strong>§3.2 Wronskian 和 fundamental sets</strong>（7 题）：理论 + 应用混合。判定 IVP 解的<em>存在区间</em>、判断两个 solutions 是否<em>linearly independent</em>、用 <em>Abel's theorem</em> 在不解方程的情况下求 Wronskian。</li>
+        <li><strong>§3.3 Complex roots of characteristic equation</strong>（6 题）：常系数齐次 ODE 当判别式 $b^2 - 4ac < 0$ 时，roots $\lambda = \alpha \pm \beta i$ 给出 real-valued solutions $e^{\alpha t}\cos\beta t$ 和 $e^{\alpha t}\sin\beta t$（用 Euler's formula 推导）。</li>
+        <li><strong>§3.4 Repeated roots</strong>（6 题，HW 标注 "no reduction of order"）：判别式 $b^2 - 4ac = 0$ 时 roots $r_1 = r_2 = -b/(2a)$，第二个 solution 是 $t e^{rt}$. 整章主线工具就此完成. （HW 跳过 reduction of order，所以解法都直接套 $\{e^{rt}, t e^{rt}\}$.）</li>
+        <li><strong>§3.5 Method of undetermined coefficients</strong>（8 题）：开始解<em>nonhomogeneous</em> ODE $ay'' + by' + cy = g(t)$. 对特定形态 forcing（polynomial, $e^{at}$, $\sin / \cos$, 它们的乘积）猜测 ansatz 形式，代入解未定系数. <em>§3.5 这 8 题在 <a href="../mt2-01-secondorder.html">mt2-01</a> 已有完整逐题展开</em>，本页用 redirect.</li>
+      </ul>
+
+      <p>HW3 的<strong>核心技能矩阵</strong>：</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>判别式 $b^2 - 4ac$</th><th>Roots</th><th>General solution</th><th>这次 HW 在哪</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>$> 0$</td><td>Real distinct $r_1, r_2$</td><td>$c_1 e^{r_1 t} + c_2 e^{r_2 t}$</td><td>§3.1 (HW2) + §3.3 #10</td></tr>
+          <tr><td>$< 0$</td><td>Complex pair $\alpha \pm \beta i$</td><td>$e^{\alpha t}(c_1 \cos\beta t + c_2 \sin\beta t)$</td><td>§3.3 主题 + §3.4 #4</td></tr>
+          <tr><td>$= 0$</td><td>Repeated $r$</td><td>$(c_1 + c_2 t) e^{rt}$</td><td>§3.4 主题</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) Standard form 才能定 $p(t), q(t)$：</strong>判定 IVP 存在区间或用 Abel's theorem 时，方程必须先除以 $y''$ 系数化标准形 $y'' + p(t) y' + q(t) y = 0$. 然后看 $p, q$ 在哪里 continuous.<br><br>
+          <strong>(2) §3.3 / §3.4 不要求"识别类型"：</strong>HW3 的 §3.3 / §3.4 problems 不<em>预先告诉</em>你判别式正负——你必须先算 $b^2 - 4ac$ 才知道用哪种 general solution 形式. §3.3 #10 故意是<em>真实根</em>的题（不是 complex），考察这一点.<br><br>
+          <strong>(3) Complex roots 写实数解时位置很重要：</strong>$\lambda = \alpha + \beta i$ 给的实数解是 $e^{\alpha t}\cos(\beta t)$ 和 $e^{\alpha t}\sin(\beta t)$. $\alpha$ 在 exponential, $\beta$ 在三角函数. 不要互换.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 3.2 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-3-2">§3.2 Problems — Wronskian & fundamental sets</h2>
+
+      <p>本节 7 题分三组：#7, 8（找 IVP 存在区间）；#13（解能否长得像 $\sin(t^2)$）；#17（造 Theorem 3.2.5 的 fundamental set）；#22（综合判别）；#27, 29（Abel's theorem 应用 + 理论证明）.</p>
+
+      <h3 id="p3-2-7">§3.2 #7 — Longest interval for IVP $t(t-4) y'' + 3t y' + 4y = 2$, $y(3) = 0, y'(3) = -1$</h3>
+      <p><strong>思路：</strong>化标准形 $y'' + \dfrac{3}{t-4} y' + \dfrac{4}{t(t-4)} y = \dfrac{2}{t(t-4)}$. $p, q, g$ 的分母都在 $t = 0$ 和 $t = 4$ 处为零（discontinuous）. Initial point $t_0 = 3 \in (0, 4)$. 所以最长存在区间是 $\boxed{0 < t < 4}$.</p>
+
+      <h3 id="p3-2-8">§3.2 #8 — Longest interval for $y'' + (\cos t) y' + 3\ln|t|\, y = 0$, $y(2) = 3, y'(2) = 1$</h3>
+      <p><strong>思路：</strong>$p(t) = \cos t$ everywhere continuous; $q(t) = 3\ln|t|$ 在 $t = 0$ 不 defined（$\ln 0 = -\infty$）. 但 $|t|$ 对 $t \ne 0$ 都好. Initial point $t_0 = 2 > 0$. 所以最长存在区间是 $\boxed{0 < t < \infty}$.</p>
+
+      <h3 id="p3-2-13">§3.2 #13 — Can $y = \sin(t^2)$ solve $y'' + p y' + q y = 0$ with continuous coefficients on interval containing $t = 0$?</h3>
+      <p><strong>思路：</strong>$y(0) = 0$, $y'(0) = 2t \cos(t^2)|_{t=0} = 0$. 所以 $y$ 和 $y'$ 在 $t = 0$ 同时为零. 由 Theorem 3.2.5 + uniqueness, $p, q$ continuous 时唯一满足 $y(0) = y'(0) = 0$ 的解就是 $y \equiv 0$. 但 $\sin(t^2)$ 不恒为零. <strong>矛盾 → 不能</strong>. 这道题用 IVP 的 uniqueness 推出"非平凡解不能在某点同时 $y$ 和 $y'$ 都为零"——一个很有用的定性观察.</p>
+
+      <h3 id="p3-2-17">§3.2 #17 — Fundamental set via Theorem 3.2.5 for $y'' - 2y' + y = 0$, $t_0 = 0$</h3>
+      <p><strong>思路：</strong>Theorem 3.2.5 要求 $y_3(t)$ 满足 $y_3(0) = 1, y_3'(0) = 0$ 和 $y_4(t)$ 满足 $y_4(0) = 0, y_4'(0) = 1$. Characteristic eq $r^2 - 2r + 1 = (r-1)^2$, 重根 $r = 1$, general solution $y = (c_1 + c_2 t) e^t$.<br>
+      对 $y_3$: $y_3(0) = c_1 = 1$, $y_3'(0) = c_1 + c_2 = 1 + c_2 = 0 \Rightarrow c_2 = -1$. 所以 $y_3(t) = (1 - t) e^t$.<br>
+      对 $y_4$: $y_4(0) = c_1 = 0$, $y_4'(0) = c_2 = 1$. 所以 $y_4(t) = t e^t$.<br>
+      Wronskian at $0$: $W[y_3, y_4](0) = \begin{vmatrix} 1 & 0 \\ 0 & 1 \end{vmatrix} = 1$, fundamental set ✓.</p>
+
+      <h3 id="p3-2-22">§3.2 #22 — $y'' - y' - 2y = 0$ with multiple candidate solution sets</h3>
+      <p><strong>思路：</strong>Characteristic eq $r^2 - r - 2 = (r-2)(r+1)$, roots $r = 2, -1$. General solution $y = c_1 e^{2t} + c_2 e^{-t}$.<br>
+      <strong>(a)</strong> 验证 $y_1 = e^{-t}, y_2 = e^{2t}$ form fundamental set: $W[y_1, y_2] = \begin{vmatrix} e^{-t} & e^{2t} \\ -e^{-t} & 2e^{2t} \end{vmatrix} = 3 e^t \ne 0$ ✓.<br>
+      <strong>(b)</strong> 给 $y_3 = -2 e^{2t}$, $y_4 = y_1 + 2 y_2 = e^{-t} + 2 e^{2t}$, $y_5 = 2 y_1 - 2 y_2 = 2 e^{-t} - 2 e^{2t}$. 都是 solutions（线性组合 of $y_1, y_2$）.<br>
+      <strong>(c)</strong> 判定 fundamental set: $\{y_1, y_3\}$ —— $y_3 = -2 e^{2t}$ 是 $y_2$ 的倍数，所以 $y_1, y_3$ LI（不成比例）→ fundamental set. $\{y_2, y_3\}$ —— $y_3 = -2 y_2$, LD → 不是. $\{y_1, y_4\}$ —— $y_4$ 含 $y_2$ 成分，LI → fundamental set. $\{y_4, y_5\}$ —— 都是 $y_1, y_2$ 组合，算 Wronskian 看是否非零. $W = (e^{-t} + 2 e^{2t})(2 e^{-t} + 4 e^{2t})' - \ldots$ 较繁琐，通常先观察 $y_4, y_5$ 是否成比例 (不成) → 进一步 Wronskian 算出非零 → fundamental set.</p>
+
+      <h3 id="p3-2-27">§3.2 #27 — Abel's theorem on $ty'' + 2y' + te^t y = 0$, $W[y_1, y_2](1) = 2$. Find $W[y_1, y_2](5)$.</h3>
+      <p><strong>思路：</strong>化标准形 $y'' + \dfrac{2}{t} y' + e^t y = 0 \Rightarrow p(t) = \dfrac{2}{t}$. Abel's theorem: $W(t) = c \exp\left(-\int p(t)\,dt\right) = c \exp(-2 \ln t) = \dfrac{c}{t^2}$. 用 $W(1) = c = 2$, 所以 $W(t) = \dfrac{2}{t^2}$.<br>
+      $W(5) = \boxed{\dfrac{2}{25}}$.</p>
+
+      <h3 id="p3-2-29">§3.2 #29 — Proof: if $y_1, y_2$ both vanish at $t_0$, they cannot form fundamental set</h3>
+      <p><strong>思路：</strong>若 $y_1(t_0) = y_2(t_0) = 0$, 则 $W[y_1, y_2](t_0) = y_1(t_0) y_2'(t_0) - y_1'(t_0) y_2(t_0) = 0 \cdot y_2'(t_0) - y_1'(t_0) \cdot 0 = 0$. 由 Theorem 3.2.4, fundamental set 的 Wronskian 必须 nonzero 至少在某点. 实际上 Abel's theorem 进一步说 $W$ 要么<em>处处</em>为零要么<em>处处</em>非零. 既然在 $t_0$ 为零, 则 $W \equiv 0$, 不是 fundamental set. $\square$</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 3.3 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-3-3">§3.3 Problems — Complex roots of the characteristic equation</h2>
+
+      <p>本节 6 题：4 题机械（找 general solution 或解 IVP），1 题含参（#18 with $\alpha$），1 题理论（#20 Euler's formula 推导）.</p>
+
+      <h3 id="p3-3-6">§3.3 #6 — General solution of $y'' + 2y' + 6y = 0$</h3>
+      <p><strong>思路：</strong>Characteristic eq $r^2 + 2r + 6 = 0$, 判别式 $4 - 24 < 0$. Roots $r = \dfrac{-2 \pm \sqrt{-20}}{2} = -1 \pm i\sqrt{5}$. $\alpha = -1, \beta = \sqrt{5}$.<br>
+      $$\boxed{\;y(t) = e^{-t}\bigl(c_1 \cos(\sqrt{5}\,t) + c_2 \sin(\sqrt{5}\,t)\bigr).\;}$$</p>
+
+      <h3 id="p3-3-10">§3.3 #10 — General solution of $9 y'' + 9y' - 4y = 0$ &nbsp;<span class="note">⚠️ 此题为<em>真实根</em>，非 §3.3 标准情形</span></h3>
+      <p><strong>思路：</strong>判别式 $81 - 4 \cdot 9 \cdot (-4) = 81 + 144 = 225 > 0$. Roots 实数且 distinct: $r = \dfrac{-9 \pm 15}{18}$, 即 $r_1 = \dfrac{1}{3}, r_2 = -\dfrac{4}{3}$. 这是 §3.1 类型, 不是 complex.<br>
+      $$\boxed{\;y(t) = c_1 e^{t/3} + c_2 e^{-4t/3}.\;}$$
+      <strong>教学意义：</strong>§3.3 problem set 故意混入这道题, 让学生<em>先算判别式</em>再决定用哪种形式. 不能盲目套 complex pattern.</p>
+
+      <h3 id="p3-3-12">§3.3 #12 — IVP $y'' + 4y = 0$, $y(0) = 0, y'(0) = 1$</h3>
+      <p><strong>思路：</strong>Characteristic $r^2 + 4 = 0 \Rightarrow r = \pm 2i$. $\alpha = 0, \beta = 2$. General solution $y = c_1 \cos 2t + c_2 \sin 2t$.<br>
+      $y(0) = c_1 = 0 \Rightarrow c_1 = 0$. $y'(0) = 2 c_2 = 1 \Rightarrow c_2 = \dfrac{1}{2}$.<br>
+      $$\boxed{\;y(t) = \tfrac{1}{2} \sin 2t.\;}$$
+      Phase portrait: 持续振荡, 振幅 $1/2$, period $\pi$. $\alpha = 0$ 是 center 状态.</p>
+
+      <h3 id="p3-3-15">§3.3 #15 — IVP $y'' + 2y' + 2y = 0$, $y(\pi/4) = 2, y'(\pi/4) = -2$</h3>
+      <p><strong>思路：</strong>Characteristic $r^2 + 2r + 2 = 0$, 判别式 $-4 < 0$. Roots $r = -1 \pm i$. General solution $y(t) = e^{-t}(c_1 \cos t + c_2 \sin t)$.<br>
+      $y'(t) = e^{-t}(-c_1 \cos t - c_2 \sin t) + e^{-t}(-c_1 \sin t + c_2 \cos t) = e^{-t}\bigl((-c_1 + c_2)\cos t + (-c_1 - c_2)\sin t\bigr)$.<br>
+      代入 $t = \pi/4$: $y(\pi/4) = e^{-\pi/4} \cdot \dfrac{\sqrt{2}}{2}(c_1 + c_2) = 2 \Rightarrow c_1 + c_2 = 2\sqrt{2} e^{\pi/4}$. $y'(\pi/4) = e^{-\pi/4} \cdot \dfrac{\sqrt{2}}{2}(-2 c_1) = -2 \Rightarrow c_1 = \sqrt{2} e^{\pi/4}$. 所以 $c_2 = \sqrt{2} e^{\pi/4}$.<br>
+      $$\boxed{\;y(t) = \sqrt{2}\, e^{\pi/4 - t}(\cos t + \sin t).\;}$$
+      <em>简化：</em>$\cos t + \sin t = \sqrt{2}\sin(t + \pi/4)$, 所以 $y(t) = 2 e^{\pi/4 - t}\sin(t + \pi/4)$. Damped oscillation.</p>
+
+      <h3 id="p3-3-18">§3.3 #18 — IVP $y'' + 2y' + 6y = 0$, $y(0) = 2, y'(0) = \alpha \ge 0$</h3>
+      <p><strong>思路：</strong>四部分题. Characteristic $r^2 + 2r + 6 = 0 \Rightarrow r = -1 \pm i\sqrt{5}$. General solution $y = e^{-t}(c_1 \cos\sqrt{5}t + c_2 \sin\sqrt{5}t)$.<br>
+      <strong>(a)</strong> 用 IC: $y(0) = c_1 = 2$. $y'(0) = -c_1 + \sqrt{5} c_2 = -2 + \sqrt{5} c_2 = \alpha \Rightarrow c_2 = \dfrac{\alpha + 2}{\sqrt{5}}$.
+      $$y(t) = e^{-t}\left(2 \cos\sqrt{5}\,t + \tfrac{\alpha + 2}{\sqrt{5}}\sin\sqrt{5}\,t\right).$$
+      <strong>(b)</strong> 找 $\alpha$ 使 $y(1) = 0$: $2 \cos\sqrt{5} + \dfrac{\alpha + 2}{\sqrt{5}}\sin\sqrt{5} = 0 \Rightarrow \alpha = -2 - \dfrac{2\sqrt{5}\cos\sqrt{5}}{\sin\sqrt{5}}$. 算 numeric: $\sqrt{5} \approx 2.236$, $\cos\sqrt{5} \approx -0.618$, $\sin\sqrt{5} \approx 0.786$, 所以 $\alpha \approx -2 + 3.51 \approx 1.51$.<br>
+      <strong>(c)</strong> 找 first positive $t$ 使 $y = 0$ as function of $\alpha$. 即 $\tan\sqrt{5}t = -\dfrac{2\sqrt{5}}{\alpha + 2}$, $t = \dfrac{1}{\sqrt{5}}\arctan\left(-\dfrac{2\sqrt{5}}{\alpha + 2}\right) + \dfrac{\pi}{\sqrt{5}}$ (取 first positive).<br>
+      <strong>(d)</strong> $\alpha \to \infty$: $\arctan \to 0^-$, 所以 $t \to \dfrac{\pi}{\sqrt{5}}$.</p>
+
+      <h3 id="p3-3-20">§3.3 #20 — Alternative derivation of Euler's formula</h3>
+      <p><strong>思路：</strong>四部分推导.<br>
+      <strong>(a)</strong> 验证 $y_1 = \cos t, y_2 = \sin t$ form fundamental set of $y'' + y = 0$: $W = \cos t \cdot \cos t - (-\sin t) \cdot \sin t = 1 \ne 0$. ✓<br>
+      <strong>(b)</strong> Formally 把 $y = e^{it}$ 代入 $y'' + y = 0$: $y'' = i^2 e^{it} = -e^{it} = -y$, 所以 $y'' + y = 0$ ✓. 因此 $e^{it}$ 是 solution, 必能写成 $c_1 \cos t + c_2 \sin t$.<br>
+      <strong>(c)</strong> 设 $t = 0$: $e^0 = 1 = c_1 \cos 0 + c_2 \sin 0 = c_1$. 所以 $c_1 = 1$.<br>
+      <strong>(d)</strong> 用假设 $\dfrac{d}{dt}(e^{it}) = i e^{it}$（即 #15 中的导数公式）, 在 $t = 0$ 处求导: $i = -c_1 \sin 0 + c_2 \cos 0 = c_2$. 所以 $c_2 = i$.<br>
+      合起来: $e^{it} = \cos t + i \sin t$. 这是 Euler's formula 的另一种推导路径——用 ODE solution 唯一性而不是 Taylor series.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 3.4 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-3-4">§3.4 Problems — Repeated roots (no reduction of order)</h2>
+
+      <p>本节 6 题：#4, 5 找 general solution；#10, 11 解 IVP；#14, 15 是理论 / 推导. HW 注明不用 reduction of order——直接套公式 $\{e^{rt}, te^{rt}\}$（重根时）.</p>
+
+      <h3 id="p3-4-4">§3.4 #4 — General solution of $y'' - 2y' + 10y = 0$ &nbsp;<span class="note">⚠️ 此题为<em>complex</em> roots, 非 §3.4 标准情形</span></h3>
+      <p><strong>思路：</strong>判别式 $4 - 40 = -36 < 0$. Roots $r = \dfrac{2 \pm 6i}{2} = 1 \pm 3i$. $\alpha = 1, \beta = 3$.<br>
+      $$\boxed{\;y(t) = e^t(c_1 \cos 3t + c_2 \sin 3t).\;}$$
+      同 §3.3 #10 类似——故意混入非"重根"情形, 考察判别式识别.</p>
+
+      <h3 id="p3-4-5">§3.4 #5 — General solution of $y'' - 6y' + 9y = 0$</h3>
+      <p><strong>思路：</strong>判别式 $36 - 36 = 0$. Repeated root $r = 3$. 套公式:
+      $$\boxed{\;y(t) = (c_1 + c_2 t) e^{3t}.\;}$$</p>
+
+      <h3 id="p3-4-10">§3.4 #10 — IVP $y'' - 6y' + 9y = 0$, $y(0) = 0, y'(0) = 2$</h3>
+      <p><strong>思路：</strong>同 #5 的 ODE. General solution $y = (c_1 + c_2 t) e^{3t}$.<br>
+      $y(0) = c_1 = 0 \Rightarrow c_1 = 0$. $y'(t) = c_2 e^{3t} + 3 c_2 t e^{3t}$, $y'(0) = c_2 = 2$.<br>
+      $$\boxed{\;y(t) = 2 t e^{3t}.\;}$$
+      Behavior: $y \to +\infty$ as $t \to \infty$（exponential growth），$y \to 0$ as $t \to -\infty$. Single peak at $t = -1/3$ 是 minimum，否则单调.</p>
+
+      <h3 id="p3-4-11">§3.4 #11 — IVP $y'' + 4y' + 4y = 0$, $y(-1) = 2, y'(-1) = 1$</h3>
+      <p><strong>思路：</strong>判别式 $16 - 16 = 0$, repeated root $r = -2$. General solution $y = (c_1 + c_2 t) e^{-2t}$.<br>
+      用 $y(-1) = 2$: $(c_1 - c_2) e^2 = 2 \Rightarrow c_1 - c_2 = 2 e^{-2}$.<br>
+      $y'(t) = c_2 e^{-2t} - 2(c_1 + c_2 t) e^{-2t} = (c_2 - 2 c_1 - 2 c_2 t) e^{-2t}$.<br>
+      $y'(-1) = (c_2 - 2 c_1 + 2 c_2) e^2 = (3 c_2 - 2 c_1) e^2 = 1 \Rightarrow 3 c_2 - 2 c_1 = e^{-2}$.<br>
+      联立: 由 $c_1 = c_2 + 2 e^{-2}$, 代入 $3 c_2 - 2(c_2 + 2 e^{-2}) = e^{-2} \Rightarrow c_2 - 4 e^{-2} = e^{-2} \Rightarrow c_2 = 5 e^{-2}$. 所以 $c_1 = 7 e^{-2}$.<br>
+      $$\boxed{\;y(t) = (7 + 5 t) e^{-2(t+1)}.\;}$$</p>
+
+      <h3 id="p3-4-14">§3.4 #14 — Theorem: $ay'' + by' + cy = 0$ with real char. roots → solution is zero only at most once</h3>
+      <p><strong>思路：</strong>(a) 若 roots distinct $r_1 \ne r_2$ real, $y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$. 设 $y(t_0) = 0$: $c_1 e^{r_1 t_0} = -c_2 e^{r_2 t_0} \Rightarrow \dfrac{c_1}{c_2} = -e^{(r_2 - r_1) t_0}$. 若另一点 $t_1$ 也 $y(t_1) = 0$, 同理 $\dfrac{c_1}{c_2} = -e^{(r_2 - r_1) t_1}$. 两式相等 $\Rightarrow e^{(r_2 - r_1) t_0} = e^{(r_2 - r_1) t_1} \Rightarrow t_0 = t_1$（除非 $r_1 = r_2$）. 所以 zero at most once.<br>
+      (b) 若 repeated root $r$, $y = (c_1 + c_2 t) e^{rt}$. $y(t) = 0 \Leftrightarrow c_1 + c_2 t = 0 \Leftrightarrow t = -c_1/c_2$（除非 $c_2 = 0$ 同时 $c_1 = 0$, 这给 $y \equiv 0$, 排除）. 所以 zero exactly once.<br>
+      Combined: 非平凡 solution 要么<em>处处非零</em>要么<em>只有一个零点</em>. Complex roots 情况下不同（振荡）.</p>
+
+      <h3 id="p3-4-15">§3.4 #15 — Derivation of $y_2 = t e^{-at}$ from $y'' + 2ay' + a^2 y = 0$ via Abel's formula</h3>
+      <p><strong>思路：</strong>三部分.<br>
+      (a) Characteristic $r^2 + 2ar + a^2 = (r+a)^2 = 0 \Rightarrow r_1 = r_2 = -a$, 一个 solution $y_1 = e^{-at}$.<br>
+      (b) Abel's formula: $W[y_1, y_2](t) = c_1 \exp(-\int 2a\, dt) = c_1 e^{-2at}$.<br>
+      (c) 设 $y_1 = e^{-at}, y_2 = ?$. $W = y_1 y_2' - y_1' y_2 = e^{-at} y_2' + a e^{-at} y_2 = e^{-at}(y_2' + a y_2)$. 由 (b) 等于 $c_1 e^{-2at}$, 所以 $y_2' + a y_2 = c_1 e^{-at}$. 这是 first-order linear ODE in $y_2$. Integrating factor $e^{at}$, $\dfrac{d}{dt}(e^{at} y_2) = c_1 \Rightarrow e^{at} y_2 = c_1 t + c_2 \Rightarrow y_2 = (c_1 t + c_2) e^{-at}$. 取 $c_1 = 1, c_2 = 0$ 得 $\boxed{y_2 = t e^{-at}}$. ✓<br>
+      <em>意义：</em>不用 reduction of order, 用 Abel + 一次 first-order ODE 推出 $te^{-at}$.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 3.5 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="sec-3-5">§3.5 Problems — Method of undetermined coefficients (redirect)</h2>
+
+      <div class="box warning">
+        <p class="box-title">📌 §3.5 部分是 redirect</p>
+        <p>
+          §3.5 problems 4, 5, 7, 11, 13, 17a, 18a, 19a 在 <strong><a href="../mt2-01-secondorder.html">MT2 Part 1 (Second-Order Nonhomogeneous)</a></strong> 已有完整逐题展开（每题约 25–40 行 detailed solution）。本小节只列摘要 + 跳转链接.
+        </p>
+      </div>
+
+      <h3 id="p3-5-4">§3.5 #4 — $y'' - 2y' - 3y = -3t e^{-t}$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-4">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Homogeneous roots $r = 3, -1$. Forcing 含 $e^{-t}$ 与 homogeneous solution $e^{-t}$ 共振——ansatz 需要额外乘 $t$. Try $Y = (At + B) t e^{-t} = (At^2 + Bt) e^{-t}$. 代入解 $A, B$.</p>
+
+      <h3 id="p3-5-5">§3.5 #5 — $y'' + 2y' = 3 + 4\sin 2t$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-5">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Homogeneous roots $r = 0, -2$. $r = 0$ 与 constant forcing $3$ 共振 → ansatz $Y_1 = At$（不是 $A$）. $\sin 2t$ 不共振 → $Y_2 = B \sin 2t + C \cos 2t$. 叠加.</p>
+
+      <h3 id="p3-5-7">§3.5 #7 — $y'' + y' = t^2 + 2\cos 2t$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-7">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Homogeneous roots $r = 0, -1$. Polynomial forcing $t^2$ 共振 $r = 0$ → ansatz $t(At^2 + Bt + C) = At^3 + Bt^2 + Ct$. $\cos 2t$ 不共振 → $D \cos 2t + E \sin 2t$.</p>
+
+      <h3 id="p3-5-11">§3.5 #11 — IVP $y'' + y' - 2y = 2t$, $y(0) = 0, y'(0) = 1$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-11">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Homogeneous roots $r = 1, -2$. Linear forcing 不共振 → ansatz $At + B$. 解出 $Y_p$, 加上 $y_h = c_1 e^t + c_2 e^{-2t}$, 用 IC.</p>
+
+      <h3 id="p3-5-13">§3.5 #13 — IVP $y'' - 2y' + y = t e^t + 4$, $y(0) = 1, y'(0) = 1$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-13">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Homogeneous repeated $r = 1$. $t e^t$ 共振至<em>两次</em>（$e^t$ 和 $t e^t$ 都 hom solutions），ansatz 需要乘 $t^2$: $(At + B) t^2 e^t$. Constant 4 不共振 → 加 $C$.</p>
+
+      <h3 id="p3-5-17a">§3.5 #17a — Form of $Y(t)$ only &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-17a">→ 完整解</a></h3>
+      <p><strong>思路：</strong>只写出<em>ansatz 形式</em>，不算系数. 训练 ansatz 选择直觉.</p>
+
+      <h3 id="p3-5-18a">§3.5 #18a — Form of $Y(t)$ with duplication &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-18a">→ 完整解</a></h3>
+      <p><strong>思路：</strong>多种 forcing 叠加, 注意每段 forcing 是否与 homogeneous solution 共振决定要不要乘 $t^k$.</p>
+
+      <h3 id="p3-5-19a">§3.5 #19a — Form of $Y(t)$, repeated complex root scenario &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-5-19a">→ 完整解</a></h3>
+      <p><strong>思路：</strong>Forcing 是 $\sin / \cos$ 且 homogeneous 也是 oscillatory → 注意 resonance + 重根 mix.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="key-pipeline">常系数 second-order ODE 的<em>分类</em> + 求解 pipeline</h3>
+      <ol>
+        <li><strong>写出 characteristic equation</strong>: $ar^2 + br + c = 0$.</li>
+        <li><strong>算判别式</strong> $\Delta = b^2 - 4ac$.</li>
+        <li><strong>按 $\Delta$ 符号分类：</strong>
+          <ul>
+            <li>$\Delta > 0$ (real distinct $r_1, r_2$): $y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$</li>
+            <li>$\Delta < 0$ (complex $\alpha \pm \beta i$): $y = e^{\alpha t}(c_1 \cos\beta t + c_2 \sin\beta t)$</li>
+            <li>$\Delta = 0$ (repeated $r$): $y = (c_1 + c_2 t) e^{rt}$</li>
+          </ul>
+        </li>
+        <li><strong>代入 IC</strong>（如有）解 $c_1, c_2$.</li>
+        <li><strong>Nonhomogeneous（§3.5+）：</strong>先 homogeneous solution $y_h$，再 ansatz $Y_p$，注意共振时乘 $t^k$ ($k$ = 重复次数), 解 $Y_p$ 后 $y = y_h + Y_p$，代 IC.</li>
+      </ol>
+
+      <h3 id="key-theorems">§3.2 理论速查</h3>
+      <ul>
+        <li><strong>Existence + uniqueness (Theorem 3.2.1)</strong>: $y'' + p(t)y' + q(t)y = g(t)$ 的 IVP 在 $p, q, g$ continuous 的最大 interval containing $t_0$ 内有唯一解.</li>
+        <li><strong>Superposition (Theorem 3.2.2)</strong>: $y_1, y_2$ are solutions → $c_1 y_1 + c_2 y_2$ also solution（homogeneous case）.</li>
+        <li><strong>Wronskian (Theorem 3.2.3 + 3.2.4)</strong>: $\{y_1, y_2\}$ fundamental set $\Leftrightarrow W[y_1, y_2](t_0) \ne 0$ at some $t_0$ in interval.</li>
+        <li><strong>Abel's theorem (Theorem 3.2.7)</strong>: $W[y_1, y_2](t) = c \exp\left(-\int p(t)\,dt\right)$. 给出 Wronskian 的 explicit formula without solving ODE.</li>
+        <li>常用推论: $W$ 要么处处零要么处处非零.</li>
+      </ul>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Wronskian</strong>: $W[y_1, y_2] = y_1 y_2' - y_1' y_2$. → <a href="../03-homog-second-order.html#wronskian">File 03 §wronskian</a></li>
+        <li><strong>Abel's formula</strong>: $W(t) = W(t_0) \exp\left(-\int_{t_0}^t p(s)\,ds\right)$.</li>
+        <li><strong>Euler's formula</strong>: $e^{i\theta} = \cos\theta + i\sin\theta$. 推出 complex roots 的实数解. → <a href="../03-homog-second-order.html#complex-roots">File 03 §complex-roots</a></li>
+        <li><strong>Undetermined coefficients ansatz</strong>: polynomial $\to$ polynomial; $e^{at} \to$ multiple of $e^{at}$; $\sin/\cos \to$ $A\sin + B\cos$. <em>共振乘 $t^k$</em>. → <a href="../04-nonhomog-second-order.html#undetermined-coefficients">File 04 §undetermined-coefficients</a></li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW3 是 Ch 3 的<em>主干</em>: 完成<em>常系数</em> homogeneous 三种 cases (§3.1 already, §3.3, §3.4) + nonhomogeneous (§3.5). HW4 是 §3.6（variation of parameters）—— nonhomogeneous 的<em>变系数</em> / <em>非 elementary forcing</em> 通用化方法，跟 §3.5 配套. <a href="hw4.html">HW4</a> 是 mt2-01 redirect 页.
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW4 · Sec 3.6 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW4 · §3.6 — Variation of Parameters</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW4 索引 — §3.6 Variation of Parameters</h1>
+    <p class="note">Section 3.6 Problems 3, 4, 8, 10, 12 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../04-nonhomog-second-order.html#variation-of-parameters">File 04 §variation-of-parameters</a></p>
+
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <div class="box warning">
+        <p class="box-title">📌 关于本页 — 索引页</p>
+        <p>
+          HW4 是本学期<strong>最短</strong>的一份 HW（只 5 道题，全部在 §3.6）。这 5 题在 <strong><a href="../mt2-01-secondorder.html">MT2 Part 1 (Second-Order Nonhomogeneous)</a></strong> 里已有完整逐题展开。本页只列出题目摘要 + 一句策略 + 跳转链接。
+        </p>
+      </div>
+
+      <p><strong>§3.6 Variation of parameters</strong> 是 §3.5（undetermined coefficients）的<em>通用化</em>：</p>
+      <ul>
+        <li>§3.5（undetermined coefficients）只对<em>特殊</em>的 forcing（polynomial, $e^{at}$, $\sin/\cos$, 以及它们的乘积）有效。</li>
+        <li>§3.6（variation of parameters）对<em>任意</em> continuous forcing $g(t)$ 都管用，包括 $\tan t, e^t/(1+t^2), 1/t$ 等。</li>
+      </ul>
+
+      <p>核心公式：若 $y_1, y_2$ 是 $y'' + p(t) y' + q(t) y = 0$ 的 fundamental set，且 $g(t)$ 是 forcing，则 particular solution</p>
+      $$y_p(t) = -y_1(t) \int \frac{y_2(t) g(t)}{W[y_1, y_2](t)} dt + y_2(t) \int \frac{y_1(t) g(t)}{W[y_1, y_2](t)} dt,$$
+      <p>其中 $W[y_1, y_2] = y_1 y_2' - y_2 y_1'$ 是 Wronskian.</p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最容易踩的坑</p>
+        <p>
+          <strong>(1) Standard form 必须是 $y'' + p y' + q y = g$：</strong>方程 leading coefficient 必须为 1。如果原方程是 $a_2(t) y'' + \cdots = g_0(t)$，必须先除以 $a_2(t)$，这样 $g(t)$ 才是公式里那个 forcing。<br><br>
+          <strong>(2) 积分常数：</strong>两个 $\int$ 各产生一个常数，但它们其实只贡献到<em>homogeneous</em> 解（被 $y_h$ 吸收），所以做 $y_p$ 时常数取零即可——不必引入额外的 $C_1, C_2$.<br><br>
+          <strong>(3) Variable-coefficient 题（#10, #12）：</strong>不能用 §3.5 的 undetermined coefficients，因为 $p(t), q(t)$ 不是常数。题目会<em>给</em>你 $y_1, y_2$，直接套公式即可——别试着自己解 homogeneous.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems">§3.6 Problems</h2>
+
+      <p>本节 5 题分两类：前 3 题（#3, 4, 8）是<em>常系数</em> ODE + 用 variation of parameters（不能用 undetermined coefficients 因为 forcing 形式不许）；后 2 题（#10, 12）是<em>变系数</em> ODE，题目给出 $y_1, y_2$.</p>
+
+      <h3 id="p3-6-3">§3.6 #3 — $4y'' - 4y' + y = 16 e^{t/2}$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-6-3">→ 完整解</a></h3>
+      <p><strong>策略：</strong>分母 $4r^2 - 4r + 1 = (2r - 1)^2$ 是 repeated root $r = 1/2$, 所以 $y_1 = e^{t/2}, y_2 = t e^{t/2}$. Forcing $16 e^{t/2}$ 是 $y_1$ 的倍数（resonant case），undetermined coefficients 需要乘 $t^2$，比较繁琐. Variation of parameters 干净利落. 化标准形除以 4 后 $g = 4 e^{t/2}$. 套公式 $y_p = $ 一些 $t^2 e^{t/2}$ 项.</p>
+
+      <h3 id="p3-6-4">§3.6 #4 — $y'' + y = \tan t$, $0 < t < \pi/2$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-6-4">→ 完整解</a></h3>
+      <p><strong>策略：</strong>这是 §3.6 的<em>经典</em> 题——forcing $\tan t$ 不在 undetermined coefficients 范围内. Homogeneous: $r^2 + 1 = 0 \Rightarrow y_1 = \cos t, y_2 = \sin t$. $W = 1$. 套公式得 $y_p = -\cos t\,\ln|\sec t + \tan t|$. 这道题"非 elementary forcing 必须用 variation of parameters" 的标杆.</p>
+
+      <h3 id="p3-6-8">§3.6 #8 — $y'' - 2y' + y = \dfrac{e^t}{1 + t^2}$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-6-8">→ 完整解</a></h3>
+      <p><strong>策略：</strong>Homogeneous: $r^2 - 2r + 1 = (r-1)^2$, repeated root, $y_1 = e^t, y_2 = t e^t$. $W = e^{2t}$. 套公式得积分 $\int \dfrac{t}{1+t^2} dt = \dfrac{1}{2}\ln(1 + t^2)$ 和 $\int \dfrac{1}{1+t^2} dt = \arctan t$. 所以 $y_p = -e^t \cdot \tfrac{1}{2} \ln(1+t^2) + t e^t \arctan t$（化简后）。这道题练 fraction 形式 forcing 下 variation of parameters 的标准操作.</p>
+
+      <h3 id="p3-6-10">§3.6 #10 — Variable coeff: $t^2 y'' - 2y = 3t^2 - 1$ with $y_1 = t^2, y_2 = t^{-1}$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-6-10">→ 完整解</a></h3>
+      <p><strong>策略：</strong>变系数，但 $y_1, y_2$ 已给. <strong>关键：化标准形！</strong>除以 $t^2$ 得 $y'' - \tfrac{2}{t^2} y = \tfrac{3t^2 - 1}{t^2} = 3 - \tfrac{1}{t^2}$. 然后用<em>这个</em> $g(t) = 3 - 1/t^2$ 配 $W[y_1, y_2] = \det\begin{pmatrix} t^2 & t^{-1} \\ 2t & -t^{-2} \end{pmatrix} = -3$. 套公式，注意符号.</p>
+
+      <h3 id="p3-6-12">§3.6 #12 — Variable coeff: $ty'' - (1+t)y' + y = t^2 e^{2t}$ with $y_1 = 1+t, y_2 = e^t$ &nbsp;·&nbsp; <a href="../mt2-01-secondorder.html#prob-3-6-12">→ 完整解</a></h3>
+      <p><strong>策略：</strong>同 #10 但 $y_1, y_2$ 更"奇怪". 标准形除以 $t$ 后 $g = t e^{2t}$. $W[y_1, y_2] = (1+t) e^t - 1 \cdot e^t = t e^t$. 套公式后两个积分要做 integration by parts. 这道题考<em>所有</em> §3.6 工具的综合.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="pipeline">通用解题 pipeline</h3>
+      <ol>
+        <li><strong>化标准形</strong> $y'' + p(t) y' + q(t) y = g(t)$（除以 leading coefficient）. $g(t)$ 必须是除完后的右边.</li>
+        <li><strong>求 homogeneous fundamental set</strong> $\{y_1, y_2\}$：常系数用 characteristic equation；变系数题目会<em>给</em>你.</li>
+        <li><strong>算 Wronskian</strong> $W[y_1, y_2] = y_1 y_2' - y_2 y_1'$. 应该不为零（否则 $y_1, y_2$ 不 LI）.</li>
+        <li><strong>套公式</strong>:
+          $$y_p(t) = -y_1(t)\int \frac{y_2 g}{W} dt + y_2(t)\int \frac{y_1 g}{W} dt.$$
+          积分可能需要 integration by parts、partial fractions、$\arctan$、$\ln$ 等技巧.
+        </li>
+        <li><strong>General solution</strong> $y = c_1 y_1 + c_2 y_2 + y_p$. IC 题目应用 IC 解 $c_1, c_2$.</li>
+      </ol>
+
+      <h3 id="undetermined-vs-variation">何时用 undetermined coefficients (§3.5) vs variation of parameters (§3.6)</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>条件</th><th>用哪个</th><th>理由</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>常系数 + forcing 是 polynomial / $e^{at}$ / $\sin / \cos$ / 它们的乘积</td><td>§3.5</td><td>更快，只需猜 ansatz + 解线性系统</td></tr>
+          <tr><td>变系数（$p$ 或 $q$ 含 $t$）</td><td>§3.6</td><td>§3.5 完全不适用</td></tr>
+          <tr><td>常系数但 forcing 是 $\tan t, \sec t, \ln t, 1/t, 1/(1+t^2)$ 等</td><td>§3.6</td><td>§3.5 没法 cover 这些 forcing</td></tr>
+          <tr><td>常系数 + forcing 是 resonant（属于 homogeneous solution 空间）</td><td>两种都行</td><td>§3.5 要乘 $t$ 或 $t^2$，§3.6 自动处理</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Variation of parameters formula</strong>: $y_p = -y_1 \int \dfrac{y_2 g}{W} dt + y_2 \int \dfrac{y_1 g}{W} dt$. → <a href="../04-nonhomog-second-order.html#variation-of-parameters">File 04 §variation-of-parameters</a></li>
+        <li><strong>Wronskian</strong>: $W[y_1, y_2] = y_1 y_2' - y_2 y_1'$.</li>
+        <li><strong>Standard form</strong>: $y'' + p y' + q y = g$（$y''$ 系数为 1）.</li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW4 完成后，second-order linear ODEs (Ch 3) 的所有 lectured 内容就走完了。<a href="hw5.html">HW5</a> 进入 Ch 7 (systems)——题量翻 4 倍（20 题），但每题独立性高，按 phase portrait 类型分组练.
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

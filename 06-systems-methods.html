@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>06. Systems of ODEs · Solution Methods · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        // Private browsing / blocked storage — fall through to system pref.
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">06. Systems of ODEs · Solution Methods</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>06. Systems of ODEs · Solution Methods</h1>
+    <p class="note">Textbook sections 7.5 &amp; 7.6 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="notation">Notation</h2>
+
+      <p>
+        本文件延续 File 05（Sec 7.1–7.4）建立的 systems 语言，独立变量是 $t$，所有 prime 表示对 $t$ 求导。核心对象是 <strong>homogeneous linear system with constant coefficients</strong>，用矩阵-向量形式简洁地写成：
+        $$\mathbf{x}' = A\mathbf{x}$$
+        其中 $A$ 是 $n \times n$ constant matrix，$\mathbf{x}(t)$ 是 $n$ 维 vector-valued function（column vector）。我们的目标是求出 $\mathbf{x}(t)$ 的 general solution。
+      </p>
+
+      <p>
+        在 File 05 里，我们建立了这类 system 的理论框架：Wronskian、fundamental set of solutions、linearity 与 superposition。这些理论告诉我们 general solution 应该是 $n$ 个 linearly independent solutions 的 linear combination，但没有告诉我们怎么找这 $n$ 个 solutions。本文件的核心任务，就是给出一套系统化的算法——<strong>eigenvalue method</strong>——来实际构造这些 solutions，并通过 <strong>phase portrait</strong> 从几何角度理解解的 long-time behavior。
+      </p>
+
+      <p>
+        本文件使用的 notation 约定：
+      </p>
+      <ul>
+        <li>$\mathbf{x}(t)$：state vector，在 $2 \times 2$ 情形下通常记作 $\mathbf{x}(t) = \begin{pmatrix}x(t)\\y(t)\end{pmatrix}$，在 $n \times n$ 情形下记作 $\begin{pmatrix}x_1(t)\\\vdots\\x_n(t)\end{pmatrix}$。注意 $x(t)$ 和 $y(t)$ 在这里是 state variables，而不是坐标轴——当我们画 phase portrait 时，才用它们作为坐标。</li>
+        <li>$\lambda$（希腊字母 lambda）：eigenvalue of $A$；$\mathbf{v}$（prof notes 里有时也写作 $\vec{x}_i$）：对应的 eigenvector。一旦找到一对 $(\lambda_i, \mathbf{v}_i)$，就立即得到一个 solution $e^{\lambda_i t}\mathbf{v}_i$——这是本文件最核心的 fact。</li>
+        <li>$\alpha, \beta \in \mathbb{R}$：complex eigenvalue $\lambda = \alpha + i\beta$ 的实部（real part）和虚部（imaginary part）。$\alpha$ 决定 exponential growth（若 $\alpha > 0$）或 decay（若 $\alpha < 0$），$\beta$ 决定 oscillation 的角频率。</li>
+        <li>$\vec{a}, \vec{b} \in \mathbb{R}^n$：complex eigenvector $\mathbf{v} = \vec{a} + i\vec{b}$ 的实部和虚部。这两个 real vectors 将用来通过 Euler 公式构造两个 real-valued solutions（Sec 7.6 的主要技术）。</li>
+        <li>Fundamental set of solutions：$n$ 个 linearly independent solutions $\{\mathbf{x}_1(t), \ldots, \mathbf{x}_n(t)\}$，其 linear combination $c_1\mathbf{x}_1 + \cdots + c_n\mathbf{x}_n$ 给出 general solution。Arbitrary constants $c_1, \ldots, c_n$ 由 initial condition $\mathbf{x}(t_0) = \mathbf{x}_0$ 唯一确定。</li>
+        <li>Phase plane（相平面）：$2 \times 2$ 情形下，以 $x(t)$ 为横轴、$y(t)$ 为纵轴的平面。Solution curve $(x(t), y(t))$ 在 phase plane 里称为 <strong>trajectory</strong>（轨迹）。Phase plane 上一组有代表性的 trajectories 合起来称为 <strong>phase portrait</strong>（相图），是本文件最重要的可视化工具，可以在不求 explicit formula 的情况下直接看出系统的 long-time behavior。</li>
+      </ul>
+
+      <p>
+        和 File 05 一样，本文件中 $A$ 始终是 real-valued matrix。在 Sec 7.6 处理 complex eigenvalues 时，中间计算过程会涉及复数——complex eigenvectors、complex exponentials——但最终的 general solution 仍然是 real-valued 的，因为物理系统的状态必须是实数。
+      </p>
+
+      <p>
+        还需要强调：$\mathbf{x}' = A\mathbf{x}$（$A$ 是 constant matrix）是一个 <strong>autonomous system</strong>——右边的函数 $A\mathbf{x}$ 不显含 $t$，只依赖当前 state $\mathbf{x}$。对于 autonomous system，phase portrait 是"时间无关"的：整张图不随 $t$ 改变，每条 trajectory 只取决于初始 position $\mathbf{x}(t_0)$，而不取决于从哪个时刻 $t_0$ 出发。这一性质让 phase portrait 成为分析 autonomous systems 最直接有效的工具。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="real-eigenvalues">7.5 — Real Eigenvalues: 求解方法与 Phase Portraits</h2>
+
+      <h3 id="solution-ansatz">Ansatz: 为什么猜测 $\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$</h3>
+
+      <p>
+        在 File 05 里，我们已经知道 $\mathbf{x}' = A\mathbf{x}$ 的 general solution 应该是 $n$ 个 linearly independent solutions 的 linear combination，但理论并没有告诉我们怎么找这些 solutions。现在，Sec 7.5 给出了一套具体的算法：<strong>eigenvalue method</strong>。
+      </p>
+
+      <p>
+        出发点是一个简单但深刻的 <strong>ansatz</strong>（猜测解的形式）。回忆 scalar ODE $x' = ax$ 的解是 $x(t) = Ce^{at}$——一个指数函数。对于 matrix ODE $\mathbf{x}' = A\mathbf{x}$，最自然的推广是猜测解也有指数形式：
+        $$\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$$
+        其中 $\lambda$ 是待定的常数（scalar），$\mathbf{v}$ 是待定的 constant vector。注意这和 scalar 情形的 $x(t) = Ce^{at}$ 是一样的结构，只是 $C$ 换成了向量 $\mathbf{v}$，$a$ 换成了待定的 $\lambda$。现在代入方程 $\mathbf{x}' = A\mathbf{x}$，看 $\lambda$ 和 $\mathbf{v}$ 必须满足什么条件：
+      </p>
+      $$\begin{aligned}
+      \text{左边：}\quad \mathbf{x}' &= \lambda e^{\lambda t}\mathbf{v} \\
+      \text{右边：}\quad A\mathbf{x} &= e^{\lambda t}A\mathbf{v}
+      \end{aligned}$$
+      <p>
+        两边都有公因子 $e^{\lambda t}$，由于 $e^{\lambda t} \neq 0$ 对所有 $t$ 成立，可以把它约掉，得到：
+        $$A\mathbf{v} = \lambda\mathbf{v}$$
+        这正是 <strong>eigenvalue-eigenvector equation</strong>！结论非常清晰：$\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$ 是 $\mathbf{x}' = A\mathbf{x}$ 的 solution，当且仅当 $\lambda$ 是矩阵 $A$ 的 eigenvalue，$\mathbf{v}$ 是对应的 eigenvector。每找到一对 $(\lambda_i, \mathbf{v}_i)$，就自动得到一个 solution $e^{\lambda_i t}\mathbf{v}_i$。
+      </p>
+
+      <p>
+        这是 Sec 7.5 的核心 insight：求 $\mathbf{x}' = A\mathbf{x}$ 的 solutions，完全等价于求矩阵 $A$ 的 eigenvalues 和 eigenvectors，而后者是纯粹的 linear algebra 问题。这把一个 differential equations 问题转化成了一个 linear algebra 问题——这也是为什么 File 05 要花大量篇幅复习 linear algebra（矩阵、行列式、特征多项式、homogeneous linear system 求解）的原因。学 File 05 的 linear algebra，就是为这里的 eigenvalue method 铺路。
+      </p>
+
+      <p>
+        一旦有了 $n$ 对 $(\lambda_i, \mathbf{v}_i)$，对应的 $n$ 个 solutions $e^{\lambda_1 t}\mathbf{v}_1, \ldots, e^{\lambda_n t}\mathbf{v}_n$ 是否 linearly independent 呢？答案是肯定的——只要 eigenvalues $\lambda_1, \ldots, \lambda_n$ 互不相同（distinct），则对应的 $n$ 个 solutions 自动 linearly independent（这是 File 05 里 Wronskian 和 fundamental matrix 理论保证的）。因此，distinct eigenvalues 的情形最简单：找到 $n$ 对就完成了 general solution 的构造，没有额外的 linear independence 验证负担。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (general solution, distinct real eigenvalues).</span>
+        设 $A$ 是 $n \times n$ constant matrix，有 $n$ 个 distinct real eigenvalues $\lambda_1, \ldots, \lambda_n$，对应的 eigenvectors 为 $\mathbf{v}_1, \ldots, \mathbf{v}_n$（linearly independent）。则 $\mathbf{x}' = A\mathbf{x}$ 的 <strong>general solution</strong> 是：
+        $$\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1 + c_2 e^{\lambda_2 t}\mathbf{v}_2 + \cdots + c_n e^{\lambda_n t}\mathbf{v}_n$$
+        其中 $c_1, \ldots, c_n \in \mathbb{R}$ 是 arbitrary constants，由 initial condition $\mathbf{x}(t_0) = \mathbf{x}_0$ 唯一确定。
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Eigenvectors 是 system 的"自然坐标轴"</p>
+        <p>
+          为什么说 eigenvectors 是"自然"的方向？想象把 $\mathbf{x}' = A\mathbf{x}$ 的解看成一个质点在 $\mathbb{R}^n$ 里随时间演化的轨迹。如果初始条件恰好在某个 eigenvector 方向上，即 $\mathbf{x}(0) = c_1 \mathbf{v}_1$，那么整条 trajectory 就沿这个方向演化：$\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1$。这意味着方向永远不变，只有大小在变（以 $e^{\lambda_1 t}$ 的速率指数变化）。质点始终沿 $\mathbf{v}_1$ 这个方向运动，不会"转弯"。<br><br>
+          这是因为 eigenvector 的定义就是"$A$ 作用在它上面只 scale（缩放），不 rotate（旋转）"：$A\mathbf{v}_1 = \lambda_1 \mathbf{v}_1$，方向保持，大小乘以 $\lambda_1$。而对于一般的向量 $\mathbf{w}$，$A\mathbf{w}$ 通常既改变大小又改变方向。<br><br>
+          因此，如果我们用 $\{\mathbf{v}_1, \ldots, \mathbf{v}_n\}$ 作为新坐标轴，整个 dynamics 就完全解耦了：在 $\mathbf{v}_i$ 方向上的分量 $\xi_i(t)$ 满足 $\xi_i' = \lambda_i \xi_i$，各方向独立演化，互不影响。这是线性代数 diagonalization 的精髓：在 eigenbasis 下，矩阵变成对角阵，coupled system 变成 uncoupled 的 scalar ODEs，可以各自独立求解。<br><br>
+          一般的 initial condition $\mathbf{x}(0) = \mathbf{x}_0$ 先分解到 eigenbasis：$\mathbf{x}_0 = c_1\mathbf{v}_1 + \cdots + c_n\mathbf{v}_n$，各分量独立演化，再叠加就是 general solution——superposition principle 的威力正在于此。从这个角度看，eigenvalue method 其实就是"找到一个好的坐标系（eigenbasis），在这个坐标系里方程变得最简单，然后求解"——这是数学里解决问题的普遍策略：选择合适的坐标系化简问题。
+        </p>
+      </div>
+
+      <h3 id="eigenvalue-method">四步求解流程（Eigenvalue Method）</h3>
+
+      <p>
+        根据上面的分析，求解 $\mathbf{x}' = A\mathbf{x}$ 的算法可以整理成标准的四步流程。这套流程在 prof notes 里被明确列出，对 $n \times n$ 的情形通用。每一步对应的数学操作都是我们在 linear algebra 里已经做过的事情——这套流程的新意不在于引入新的数学，而在于用一种有条理的方式把 eigenvalue/eigenvector computation 和 ODE solution 的构造对接起来。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (eigenvalue method for $\mathbf{x}' = A\mathbf{x}$).</span>
+        设 $A$ 是 $n \times n$ constant matrix。按如下四步求 general solution：<br><br>
+        <strong>Step 1.</strong> 求 characteristic polynomial，令 $\det(A - \lambda I) = 0$。展开行列式，得到关于 $\lambda$ 的多项式方程。<br><br>
+        <strong>Step 2.</strong> 解上面的方程，求出所有 eigenvalues $\{\lambda_1, \ldots, \lambda_n\}$。注意 eigenvalues 可能有重复（algebraic multiplicity $> 1$），也可能是 complex 的（Sec 7.6 处理）。<br><br>
+        <strong>Step 3.</strong> 对每个 $\lambda_i$，解 homogeneous linear system $(A - \lambda_i I)\mathbf{v} = \vec{0}$，找到对应的 eigenvectors。目标是找到 $n$ 个 linearly independent eigenvectors $\{\mathbf{v}_1, \ldots, \mathbf{v}_n\}$。注意：这并非总是可能的（见 ⚠️ Warning）。<br><br>
+        <strong>Step 4.</strong> 组成 fundamental set $\{e^{\lambda_1 t}\mathbf{v}_1, \ldots, e^{\lambda_n t}\mathbf{v}_n\}$，general solution 即为它们的 linear combination：
+        $$\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1 + \cdots + c_n e^{\lambda_n t}\mathbf{v}_n$$
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Geometric Multiplicity vs Algebraic Multiplicity</p>
+        <p>
+          这是 Step 3 里最容易出错的地方。对一个 eigenvalue $\lambda$：
+          <ul>
+            <li><strong>Algebraic multiplicity</strong>：$\lambda$ 作为 characteristic polynomial $\det(A - \lambda I) = 0$ 的根的重数（即 $(\lambda - \lambda_i)^k$ 里的 $k$）。</li>
+            <li><strong>Geometric multiplicity</strong>：eigenspace $\ker(A - \lambda I)$ 的维数，也就是对这个 $\lambda$ 能找到的 linearly independent eigenvectors 的个数。</li>
+          </ul>
+          永远有：$1 \leq \text{geometric multiplicity} \leq \text{algebraic multiplicity}$。这个不等式说明：至少能找到一个 eigenvector（geometric $\geq 1$），但找到的 eigenvectors 数量可能比 algebraic multiplicity 少（geometric $\leq$ algebraic）。<br><br>
+          <strong>本课（Sec 7.5）只考虑</strong> geometric multiplicity = algebraic multiplicity 的情形——也就是每个 eigenvalue 都有"足够多"的 linearly independent eigenvectors，能凑出完整的 $n$ 个。换句话说，我们只考虑矩阵 $A$ 可以 diagonalize（可对角化）的情形。在 Example 7.5.3 里，$\lambda = 1$ 的 algebraic multiplicity 是 2，其 eigenspace 也是二维的（geometric multiplicity = 2），满足条件。<br><br>
+          实际上，对于大多数"随机"矩阵（entries 没有特殊关系），eigenvalues 往往是 distinct 的，geometric = algebraic = 1 自动成立，不需要担心这个问题。只有当矩阵有特殊结构（如对称性、特殊 pattern）时，才容易出现 repeated eigenvalues，这时需要检查 multiplicity 是否相等。考试里，如果见到 repeated eigenvalue，先检查 eigenspace 的维数，再判断走普通流程还是需要 generalized eigenvectors（后者在本课考纲外）。<br><br>
+          若 geometric multiplicity $<$ algebraic multiplicity（defective case），就需要引入 <em>generalized eigenvectors</em>——那种情形超出本课考纲，见下面的 📖 Deeper box。
+        </p>
+      </div>
+
+      <h3 id="phase-plane">Phase Plane 与 Phase Portrait</h3>
+
+      <p>
+        在处理 $2 \times 2$ system 时，除了写出 explicit formula，还有一个非常强大的几何工具：<strong>phase portrait</strong>。它让我们不需要 explicit formula 就能直观地理解系统的 long-time behavior——比如，所有 trajectories 最终是趋向原点（stable）还是逃向无穷（unstable）？在哪个方向上？这种定性信息对工程和物理应用极为重要，而且往往比 explicit formula 更容易从一眼看出来。
+      </p>
+
+      <p>
+        在 phase portrait 里，我们把 $\mathbf{x}(t) = \begin{pmatrix}x(t)\\y(t)\end{pmatrix}$ 的参数曲线画在 $xy$-平面上，$t$ 作为参数（不显示在坐标轴上），箭头方向表示 $t$ 增大的方向。不同初始条件对应不同的 trajectories——每换一个 $(c_1, c_2)$，就得到一条新的 trajectory。把一组有代表性的 trajectories 画在同一张图上，就是 phase portrait。
+      </p>
+
+      <p>
+        注意 phase portrait 里没有时间轴——时间 $t$ 已经被"消除"了，只剩下 state space 里的几何结构。这对于理解 long-time behavior 很有用：从 phase portrait 里可以一眼看出，从某个初始点出发，系统最终会"飘向"哪个方向，而不需要追踪 $t$ 的具体值。对于 autonomous system，这种几何视角特别清晰。
+      </p>
+
+      <p>
+        画 phase portrait 的时候，还可以同时画 $x(t)$ 在 $xt$-plane 上的图以及 $y(t)$ 在 $yt$-plane 上的图。这两张时域图与 phase portrait 互补：phase portrait 告诉你 trajectories 在 state space 里的形状（不含时间信息），时域图告诉你每个分量怎么随时间演化（指数 growth/decay，是否振荡，多快收敛/发散）。三张图合在一起，才是对 solution 行为最完整的描述。考试里有时只问 phase portrait，有时只问时域图，有时两者都问——要能灵活切换。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (phase plane, trajectory, phase portrait).</span>
+        考虑 $2 \times 2$ autonomous system $\mathbf{x}' = A\mathbf{x}$，$\mathbf{x}(t) = \begin{pmatrix}x(t)\\y(t)\end{pmatrix}$。
+        <ul>
+          <li>在 $xy$-plane 上，参数曲线 $(x(t), y(t))$（带有方向箭头，表示 $t$ 增大的方向）称为一条 <strong>trajectory</strong>（轨迹）。</li>
+          <li>$xy$-plane 本身称为 <strong>phase plane</strong>（相平面）。</li>
+          <li>在 phase plane 里画出一组有代表性的 trajectories，就得到 <strong>phase portrait</strong>（相图）。Phase portrait 直观地展示了对不同 initial conditions，解的 long-time behavior。</li>
+          <li>除了 phase portrait，还可以分别画 $x(t)$ 在 $xt$-plane 上的图以及 $y(t)$ 在 $yt$-plane 上的图，更直观地看每个 component 随时间的演化。</li>
+        </ul>
+      </div>
+
+      <p>
+        注：系统 $\mathbf{x}' = A\mathbf{x}$（$A$ 是 constant matrix）是 autonomous 的——right-hand side 不显含 $t$，只依赖当前 state $\mathbf{x}$。这意味着 phase portrait 是"时间无关"的：整张图不随 $t$ 变化，每条 trajectory 只取决于它的 initial position，而不取决于从哪个时刻出发。这一性质让 phase portrait 成为分析 autonomous systems 的最直接工具。Phase portrait 可以看作 File 01 里 direction field 概念的高维推广：direction field 是一阶 scalar ODE 在一维 state space（$y$-axis）上的可视化工具，phase portrait 则是 $2 \times 2$ system 在二维 state space（$xy$-plane）上的对应工具，原理完全类似。
+      </p>
+
+      <p>
+        如何读 phase portrait？标准流程如下：
+      </p>
+      <ol>
+        <li><strong>找"骨架"（eigenvector 直线）</strong>：先令 $c_2 = 0$，写出 $\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1$，消去 $t$ 得 trajectory 的方程——这是一条直线，沿 $\mathbf{v}_1$ 方向；再令 $c_1 = 0$，同样处理，得到沿 $\mathbf{v}_2$ 方向的直线。这两条直线是 phase portrait 的"骨架"。</li>
+        <li><strong>判断方向</strong>：在每条骨架线上，根据 eigenvalue 的符号判断质点运动的方向：$\lambda_i < 0$ 则 as $t \to \infty$ 趋向原点（画箭头指向原点）；$\lambda_i > 0$ 则远离原点（箭头背离原点）。</li>
+        <li><strong>判断 dominant 方向</strong>：对一般 trajectory（$c_1 \neq 0$，$c_2 \neq 0$），as $t \to \infty$，哪个分量的 exponential 衰减最慢（或增长最快），就是 long-time behavior 的主导方向。若 $\lambda_1 < \lambda_2 < 0$，则 $e^{\lambda_1 t}$ 衰减更快（因为 $|\lambda_1| > |\lambda_2|$），所以 $c_2 e^{\lambda_2 t}\mathbf{v}_2$ 主导，一般 trajectory 渐近 $\mathbf{v}_2$ 方向。</li>
+        <li><strong>画出一般 trajectory 的形状</strong>：从远处（或从 $t \to -\infty$）沿一个方向进来，随时间演化被 dominant 方向"拉走"，形成特定的曲线形状。</li>
+      </ol>
+      <p>
+        下面通过具体 examples 逐步练习这个流程。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Eigenvector 方向：Phase Portrait 的"骨架线"</p>
+        <p>
+          在 phase portrait 里，沿着 eigenvector 方向的 trajectories 是最特殊、最"干净"的：它们是过原点的直线，质点永远沿这个方向运动，不会转弯。可以这样理解：<br><br>
+          若初始 $\mathbf{x}(0) = c_i \mathbf{v}_i$（只有一个分量），则 $\mathbf{x}(t) = c_i e^{\lambda_i t}\mathbf{v}_i$。$x/y$ 的比值是 $\mathbf{v}_i$ 的分量比，永远不变——trajectory 就是那条过原点的直线。随时间 $t$ 增大，质点沿此直线：若 $\lambda_i < 0$ 则趋向原点，若 $\lambda_i > 0$ 则远离原点。<br><br>
+          而对一般的初始条件（$\mathbf{x}(0) = c_1\mathbf{v}_1 + c_2\mathbf{v}_2$），trajectory 是弯曲的。但是，当 $t \to \infty$ 时，哪个 component 衰减更慢（或增长更快），就决定了 trajectory 的渐近方向。比如若 $\lambda_1 < \lambda_2 < 0$，那么 as $t \to \infty$，$e^{\lambda_1 t} \ll e^{\lambda_2 t}$（$\lambda_1$ 更负，衰减更快），所以 $\mathbf{v}_2$ 方向的分量 $c_2 e^{\lambda_2 t}\mathbf{v}_2$ 主导，trajectory 渐近沿 $\mathbf{v}_2$ 趋向原点。<br><br>
+          这就是 prof notes 里多次说"$\vec{x}_2$ dominates as $t \to \infty$ since $e^{\lambda_1 t} \ll e^{\lambda_2 t}$"的含义。记住口诀：<em>指数衰减最慢的方向，是 long-time behavior 的主导方向。</em><br><br>
+          这种 dominant direction 的概念，解释了为什么在 phase portrait 里，除了两条骨架直线之外的所有 trajectories 都"渐近"某一条骨架线。虽然数学上精确说应该是"渐近 $\mathbf{v}_2$ 的方向"（而不是沿 $\mathbf{v}_2$ 的那条具体直线），但直觉上就是：as $t \to \infty$，trajectory 越来越像沿 $\mathbf{v}_2$ 的骨架线，最终它们在远处几乎无法区分。
+        </p>
+      </div>
+
+      <h3 id="node-saddle-classification">节点与鞍点：Phase Portrait 的拓扑分类</h3>
+
+      <p>
+        对 $2 \times 2$ system，当两个 eigenvalues 都是 real（且不重复）时，根据符号不同，phase portrait 呈现三种在拓扑上完全不同的结构。这三种结构之间有本质区别，不仅仅是"稳定还是不稳定"——它们的 trajectory 形状、渐近行为、对初始条件的敏感性都有根本差异。先给出分类表，再通过 examples 逐一深入分析。
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>Eigenvalues 的符号</th>
+          <th>平衡点类型</th>
+          <th>稳定性</th>
+          <th>Phase portrait 主要特征</th>
+        </tr>
+        <tr>
+          <td>$\lambda_1 < \lambda_2 < 0$（同号，均为负）</td>
+          <td>Stable node（稳定节点）</td>
+          <td>Asymptotically stable</td>
+          <td>所有 trajectories 趋向原点；渐近 $\mathbf{v}_2$（较慢衰减）方向</td>
+        </tr>
+        <tr>
+          <td>$0 < \lambda_1 < \lambda_2$（同号，均为正）</td>
+          <td>Unstable node（不稳定节点）</td>
+          <td>Unstable</td>
+          <td>所有 trajectories 远离原点；渐近 $\mathbf{v}_2$（较快增长）方向</td>
+        </tr>
+        <tr>
+          <td>$\lambda_1 < 0 < \lambda_2$（异号）</td>
+          <td>Saddle point（鞍点）</td>
+          <td>Always unstable</td>
+          <td>沿 $\mathbf{v}_1$（$\lambda_1 < 0$）方向趋向原点；沿 $\mathbf{v}_2$（$\lambda_2 > 0$）方向远离；一般 trajectory 呈双曲线状</td>
+        </tr>
+      </table>
+
+      <p class="note">
+        注：上表中 $|\lambda_1| > |\lambda_2|$ 对 node 的情形意味着 $\mathbf{v}_2$ 对应较慢的指数变化（无论是衰减还是增长），因此是 dominant 方向。
+      </p>
+
+      <h3 id="examples-real">Examples — Distinct Real Eigenvalues</h3>
+
+      <p>
+        下面通过三个 examples 依次练习 eigenvalue method 的完整流程。Example 7.5.1 是 $2 \times 2$ stable node（两个负 eigenvalues），覆盖最完整的四步过程以及 phase portrait 的读法；Example 7.5.2 是 $2 \times 2$ saddle（opposite-sign eigenvalues），侧重理解 saddle 的几何特征；Example 7.5.3 是 $3 \times 3$ system，展示 repeated eigenvalue 且 geometric = algebraic multiplicity 的处理。三个 examples 合在一起覆盖了 Sec 7.5 的主要题型。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.5.1 — Stable node（两个负 eigenvalues）</p>
+        <p>
+          Given $\displaystyle\mathbf{x}' = \begin{pmatrix}-3 & 2 \\ 2 & -3\end{pmatrix}\mathbf{x}$，求 general solution 并画出 phase plane 里的若干 trajectories。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p><strong>Step 1: 求 characteristic polynomial。</strong>对 $2\times 2$ matrix，$\det(A-\lambda I)$ 展开为 $\lambda^2 - \text{tr}(A)\lambda + \det(A)$，其中 $\text{tr}(A) = -3+(-3) = -6$，$\det(A) = (-3)(-3) - 2\cdot2 = 9-4=5$。验算：</p>
+        $$\det(A - \lambda I) = \begin{vmatrix}-3-\lambda & 2 \\ 2 & -3-\lambda\end{vmatrix} = (-3-\lambda)^2 - 4 = \lambda^2 + 6\lambda + 5 = (\lambda+5)(\lambda+1) = 0$$
+        <p><strong>Step 2: 求 eigenvalues。</strong></p>
+        <p>$\lambda_1 = -5$，$\lambda_2 = -1$。两个 eigenvalues 均为负，故根据分类表预期 <strong>stable node</strong>（all trajectories 趋向原点）。$|\lambda_1| = 5 > |\lambda_2| = 1$，所以 $\lambda_1 = -5$ 对应的分量衰减更快（绝对值越大，衰减越快），long-time behavior 由 $\lambda_2 = -1$（较慢衰减，较"温和"）主导。</p>
+        <p><strong>Step 3: 求 eigenvectors。</strong></p>
+        <p>对 $\lambda_1 = -5$：$(A + 5I)\mathbf{v} = \vec{0}$，即</p>
+        $$\begin{pmatrix}2 & 2 \\ 2 & 2\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>两行相同，行化简（$-R_1 + R_2$）后只剩一个约束 $2x_1 + 2x_2 = 0$，即 $x_1 = -x_2$。取 $x_2 = -1$，得 $\mathbf{v}_1 = \begin{pmatrix}1\\-1\end{pmatrix}$。</p>
+        <p>对 $\lambda_2 = -1$：$(A + I)\mathbf{v} = \vec{0}$，即</p>
+        $$\begin{pmatrix}-2 & 2 \\ 2 & -2\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>行化简（$R_1 + R_2$）后约束 $-2x_1 + 2x_2 = 0$，即 $x_1 = x_2$。取 $x_2 = 1$，得 $\mathbf{v}_2 = \begin{pmatrix}1\\1\end{pmatrix}$。</p>
+        <p><strong>Step 4: 写出 general solution。</strong></p>
+        $$\mathbf{x}(t) = c_1 e^{-5t}\begin{pmatrix}1\\-1\end{pmatrix} + c_2 e^{-t}\begin{pmatrix}1\\1\end{pmatrix}$$
+        <p><strong>Phase portrait 分析：</strong></p>
+        <ul>
+          <li>当 $c_2 = 0$：$\mathbf{x}(t) = c_1 e^{-5t}\begin{pmatrix}1\\-1\end{pmatrix}$，故 $x(t)/y(t) = -1$，即 $x = -y$。Trajectory 是直线 $y = -x$，沿 $\mathbf{v}_1$ 方向 as $t \to \infty$ 趋向原点。</li>
+          <li>当 $c_1 = 0$：$\mathbf{x}(t) = c_2 e^{-t}\begin{pmatrix}1\\1\end{pmatrix}$，故 $x = y$。Trajectory 是直线 $y = x$，沿 $\mathbf{v}_2$ 方向趋向原点。</li>
+          <li>一般情形：as $t \to \infty$，$e^{-5t} \ll e^{-t}$（$-5 < -1$，$e^{-5t}$ 衰减更快），所以 $c_2 e^{-t}\mathbf{v}_2$ 主导，trajectory 渐近 $\mathbf{v}_2$（即 $y = x$）方向趋向原点。</li>
+          <li>As $t \to -\infty$：$e^{-t} \ll e^{-5t}$，故 $\mathbf{v}_1$ 主导。</li>
+        </ul>
+        <p>
+          理解这个 phase portrait 的关键是"two timescales"（两个时间尺度）：$e^{-5t}$ 衰减速度是 $e^{-t}$ 的五倍，所以 $\lambda_1 = -5$ 对应的那个分量几乎立刻就消失了，而 $\lambda_2 = -1$ 对应的分量才是 long-time behavior 的决定者。在实际 phase portrait 里，几乎所有 trajectory（除非初始条件精确地在 $c_2 = 0$ 这条线上）最终都沿 $\mathbf{v}_2$（即 $y = x$）方向趋向原点——因为 $c_1 e^{-5t}\mathbf{v}_1$ 远比 $c_2 e^{-t}\mathbf{v}_2$ 先消失。
+        </p>
+        <p class="note">
+          注：原点是 <strong>asymptotically stable node</strong>。若 eigenvalues 均为正（如 $\lambda_1 = 5, \lambda_2 = 1$），phase portrait 形状相同但方向反转（箭头全部朝外），变为 <strong>unstable node</strong>。两种 node 的 trajectory 形状是镜像的，只是时间方向相反。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.5.2 — Saddle point（opposite-sign eigenvalues）</p>
+        <p>
+          Given $\displaystyle\mathbf{x}' = \begin{pmatrix}0 & 2 \\ 2 & 0\end{pmatrix}\mathbf{x}$，已知 $\lambda_1 = 2$（eigenvector $\mathbf{v}_1 = \begin{pmatrix}1\\1\end{pmatrix}$）以及 $\lambda_2 = -2$（eigenvector $\mathbf{v}_2 = \begin{pmatrix}1\\-1\end{pmatrix}$）。求 general solution 并分析 phase portrait。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p><strong>General solution：</strong></p>
+        $$\mathbf{x}(t) = c_1 e^{2t}\begin{pmatrix}1\\1\end{pmatrix} + c_2 e^{-2t}\begin{pmatrix}1\\-1\end{pmatrix} = \begin{pmatrix}x(t)\\y(t)\end{pmatrix}$$
+        <p><strong>Phase portrait 分析：</strong></p>
+        <ul>
+          <li>当 $c_2 = 0$：$x(t) = c_1 e^{2t}$，$y(t) = c_1 e^{2t}$，所以 $x/y = 1$，即 $x = y$。As $t \to \infty$，$x, y \to \pm\infty$（依 $c_1$ 的符号），沿 $y = x$ 这条线发散。</li>
+          <li>当 $c_1 = 0$：$x(t) = c_2 e^{-2t}$，$y(t) = -c_2 e^{-2t}$，所以 $x/y = -1$，即 $y = -x$。As $t \to \infty$，沿 $y = -x$ 这条线趋向原点。</li>
+          <li>一般情形：as $t \to \infty$，$e^{-2t} \ll e^{2t}$，故 $c_1 e^{2t}\mathbf{v}_1$ 主导，trajectory 渐近 $\mathbf{v}_1$（即 $y = x$）方向向无穷发散。</li>
+          <li>As $t \to -\infty$：$e^{2t} \ll e^{-2t}$，故 $\mathbf{v}_2$ 主导。</li>
+        </ul>
+        <p>
+          这就是 <strong>saddle point</strong>，始终是 unstable 的。Phase portrait 里有两条"骨架线"（$y = x$ 和 $y = -x$）：$y = x$ 是 trajectories 远离原点的方向（对应 $\lambda_1 = 2 > 0$ 的 unstable 方向，称为 unstable manifold），$y = -x$ 是 trajectories 趋向原点的方向（对应 $\lambda_2 = -2 < 0$ 的 stable 方向，称为 stable manifold）。
+        </p>
+        <p>
+          所有其他 trajectories 的行为可以这样理解：as $t \to \infty$，$c_1 e^{2t}\mathbf{v}_1$ 主导（因为 $e^{2t}$ 以正指数增长，$e^{-2t}$ 衰减），所以所有一般 trajectory 最终渐近 unstable manifold（$y = x$）向无穷发散；as $t \to -\infty$，$c_2 e^{-2t}\mathbf{v}_2$ 主导（因为时间倒退时 $e^{-2t}$ 增大），所以 trajectories 从 $y = -x$ 方向"来"。由此产生了典型的双曲线状轨迹。
+        </p>
+        <p class="note">
+          注：Saddle point 在 phase portrait 里看起来就像两组箭头：一组沿 $y = -x$ 从远处进入并靠近原点，另一组沿 $y = x$ 从原点附近出发并远离——但这两组不是连续的，真实 trajectory 是介于两者之间的双曲线。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Saddle Point 的几何：进出各一条"骨架线"</p>
+        <p>
+          Saddle point 的名字来自马鞍的形状：从一个方向看是"山谷"（向下收敛），从垂直方向看是"山脊"（向上发散）。在 phase plane 里：<br><br>
+          沿 stable eigenvector（$\lambda < 0$ 方向）的 trajectory 趋向原点——这是"进入"方向（stable manifold）；沿 unstable eigenvector（$\lambda > 0$ 方向）的 trajectory 远离原点——这是"离开"方向（unstable manifold）。<br><br>
+          关键：<strong>只有初始条件恰好在 stable manifold 上的 trajectory 才会趋向原点</strong>。任何偏离 stable manifold 的初始条件（哪怕是微小的偏差），最终都会被 unstable 方向"甩走"。这就是为什么 saddle point <em>始终</em> unstable：从稳定角度看，它的 stable manifold 是一条一维的线，在二维 phase plane 里"measure zero"——随机取个初始条件，几乎不可能恰好落在这条线上。<br><br>
+          物理比喻：把小球放在真实马鞍的最低点（马鞍中央）。在一个精确方向上（沿马鞍的"低谷"方向），小球可以沿这条低谷滑向中心；但任何一点横向偏移都会让它从侧边滑落，无法回来。这种对初始条件的极度敏感性，正是 unstable equilibrium 的本质。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.5.3 — 3×3 system，repeated eigenvalue（geometric = algebraic）</p>
+        <p>
+          Given $\displaystyle\mathbf{x}' = \begin{pmatrix}4 & -3 & 0 \\ 2 & -1 & 0 \\ 1 & -1 & 1\end{pmatrix}\mathbf{x}$，求 general solution。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p><strong>Step 1: 求 characteristic polynomial。</strong>注意矩阵第三列除了第三行其余都是 0，沿第三列展开 $\det(A - \lambda I)$：</p>
+        $$\det(A - \lambda I) = \begin{vmatrix}4-\lambda & -3 & 0 \\ 2 & -1-\lambda & 0 \\ 1 & -1 & 1-\lambda\end{vmatrix}$$
+        <p>沿第三列展开（只有 $(1-\lambda)$ 这一项不为零），得：</p>
+        $$= (1-\lambda)\bigl[(4-\lambda)(-1-\lambda) + 6\bigr] = (1-\lambda)(\lambda^2 - 3\lambda + 2) = (1-\lambda)(\lambda-2)(\lambda-1) = 0$$
+        <p><strong>Step 2: 求 eigenvalues。</strong>$\lambda_1 = 1$（algebraic multiplicity 2），$\lambda_2 = 2$（multiplicity 1）。</p>
+        <p><strong>Step 3: 求 eigenvectors。</strong></p>
+        <p>对 $\lambda_1 = 1$：$(A - I)\mathbf{v} = \vec{0}$，增广矩阵为</p>
+        $$\begin{pmatrix}3 & -3 & 0 \\ 2 & -2 & 0 \\ 1 & -1 & 0\end{pmatrix}$$
+        <p>三行都有因子 $x_1 - x_2 = 0$（第一行 $\div 3$，第二行 $\div 2$，第三行直接），它们是同一个约束的倍数，行化简后只剩一个有效约束：$x_1 = x_2$，$x_3$ 没有约束（完全自由）。因此有两个 free variables（$x_2$ 和 $x_3$），意味着 eigenspace 是二维的，geometric multiplicity = 2 = algebraic multiplicity，满足本课的"可对角化"条件。注意这里 $x_3$ 是自由的，说明 eigenspace 里有一个方向完全"指向" $z$-轴——这是因为矩阵第三列除了 $(A_{33} - \lambda)$ 之外都是零，所以 $z$-方向天然是 eigenvector。取两个 basis vectors：</p>
+        $$\mathbf{v}_1 = \begin{pmatrix}1\\1\\0\end{pmatrix}, \quad \mathbf{v}_2 = \begin{pmatrix}0\\0\\1\end{pmatrix}$$
+        <p>对 $\lambda_2 = 2$：$(A - 2I)\mathbf{v} = \vec{0}$，增广矩阵为</p>
+        $$\begin{pmatrix}2 & -3 & 0 \\ 2 & -3 & 0 \\ 1 & -1 & -1\end{pmatrix}$$
+        <p>行化简（消去第二行，对第一、三行做 row reduction）得到：</p>
+        $$\begin{pmatrix}0 & 0 & 0 \\ 1 & -\tfrac{3}{2} & 0 \\ 0 & \tfrac{1}{2} & -1\end{pmatrix}$$
+        <p>由第三行：$x_3^2 = 2x_3^3$；由第二行：$x_3^1 = \tfrac{3}{2}x_3^2 = 3x_3^3$。取 $x_3^3 = 1$，得 $\mathbf{v}_3 = \begin{pmatrix}3\\2\\1\end{pmatrix}$。</p>
+        <p>对 $\lambda_2 = 2$，行化简的关键观察：前两行相同（都是 $[2, -3, 0]$），消去第二行；第三行与第一行不平行（有 $-1$ 在第三列），可以联立求解。展开后得到联立系统（$x_3^3 = 1$，$x_3^2 = 2$，$x_3^1 = 3$），这说明 eigenvalue 2 的 eigenspace 是一维的（geometric = algebraic = 1），有唯一方向（up to scaling）。</p>
+        <p><strong>Step 4: General solution：</strong></p>
+        $$\mathbf{x}(t) = c_1 e^{t}\begin{pmatrix}1\\1\\0\end{pmatrix} + c_2 e^{t}\begin{pmatrix}0\\0\\1\end{pmatrix} + c_3 e^{2t}\begin{pmatrix}3\\2\\1\end{pmatrix}$$
+        <p class="note">
+          注：$c_1$ 和 $c_2$ 对应的两项都是 $e^t$ 乘以不同 eigenvector，可以合并写成 $e^t(c_1\mathbf{v}_1 + c_2\mathbf{v}_2)$，其中括号内是 eigenvalue 1 的 eigenspace 内的任意向量。由于 $\lambda_1 = 1$ 的 eigenspace 是二维的，对应 $e^t$ 这个指数因子的"coefficient"可以是这个二维空间里的任意向量，不是固定的。这和一维 eigenspace（只有一个 eigenvector）的情形不同——那时 coefficient 是 $c_1\mathbf{v}_1$，只有一个自由度。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 当 Geometric Multiplicity &lt; Algebraic Multiplicity 时：Generalized Eigenvectors</p>
+        <p>
+          本课只考虑 geometric = algebraic multiplicity 的情形，但为了完整性，值得了解当二者不相等时会发生什么。<br><br>
+          考虑一个简单例子：$A = \begin{pmatrix}1 & 1 \\ 0 & 1\end{pmatrix}$。Characteristic polynomial 是 $(\lambda-1)^2 = 0$，algebraic multiplicity 为 2。但 $(A-I) = \begin{pmatrix}0&1\\0&0\end{pmatrix}$，null space 只有 $\mathbf{v}_1 = (1, 0)^T$ 这一个方向，geometric multiplicity = 1 $<$ 2。<br><br>
+          仅凭一个 eigenvector 只能写出 $e^t\mathbf{v}_1$——还需要第二个 linearly independent solution。解法是引入 <strong>generalized eigenvector</strong> $\mathbf{w}$，定义为满足 $(A - \lambda I)\mathbf{w} = \mathbf{v}_1$（而不是 $\vec{0}$）的向量（本例中 $\mathbf{w} = (0, 1)^T$）。则第二个 solution 是 $e^t(t\mathbf{v}_1 + \mathbf{w}) = e^t\begin{pmatrix}t\\1\end{pmatrix}$。<br><br>
+          注意到 $te^t$ 这一项：这和 scalar ODE 的 repeated root 情形完全类比——特征方程有 double root $r_1$ 时，两个 linearly independent solutions 是 $e^{r_1 t}$ 和 $te^{r_1 t}$。矩阵情形的 generalized eigenvector 扮演的角色就类似于 scalar 情形引入"额外的 $t$"。这说明 scalar ODE 和 systems ODE 在数学结构上有深刻类比，repetition/defectiveness 在两者里都导致多项式乘以指数（polynomial times exponential）的形式出现。<br><br>
+          这种情形的矩阵称为 <strong>defective matrix</strong>（亏矩阵），对应的平衡点类型称为 <strong>improper node</strong>（退化节点）。它的 phase portrait 形状比普通 node 更复杂，有一条沿 eigenvector 方向的直线 trajectory，其他 trajectory 的渐近方向是这条直线，但运动过程被 $t$ 乘以指数项"扭曲"。在考试里遇到 repeated eigenvalue 时，可以先检查是否有足够多的 eigenvectors（本课情形），若有则按普通流程处理；若没有（defective），这通常超出考纲，但了解其原因有助于理解本课为什么总是先验证能否找到 $n$ 个 linearly independent eigenvectors。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="complex-eigenvalues">7.6 — Complex Eigenvalues: Spirals 与 Centers</h2>
+
+      <h3 id="complex-conjugate-pairs">Complex Eigenvalues 成共轭对出现</h3>
+
+      <p>
+        在 Sec 7.5 里，我们假设所有 eigenvalues 都是 real 的。然而，一个 $n \times n$ real matrix 的 characteristic polynomial 的 roots 完全可以是 complex 的——比如 $\lambda^2 + 1 = 0$ 的根 $\lambda = \pm i$，或者 $\lambda^2 - 2\lambda + 5 = 0$ 的根 $\lambda = 1 \pm 2i$。当 characteristic polynomial 有 complex roots 时，Sec 7.5 的流程（直接写 $e^{\lambda t}\mathbf{v}$）仍然成立，但 solutions 变成 complex-valued，需要额外的处理才能得到 real-valued solutions。Sec 7.6 解决这个问题。
+      </p>
+
+      <p>
+        关键观察：当我们处理 $\mathbf{x}' = A\mathbf{x}$（$A$ 是 real-valued matrix），characteristic polynomial $\det(A - \lambda I)$ 是关于 $\lambda$ 的多项式，其所有 coefficients 都是 real（因为 $A$ 是 real matrix）。由实系数多项式的复根定理，complex roots 必然成 <strong>conjugate pairs</strong> 出现：若 $\lambda_1 = \alpha + i\beta$（$\beta \neq 0$）是 eigenvalue，则 $\lambda_2 = \alpha - i\beta$ 也必然是 eigenvalue。这个性质对 $2 \times 2$、$3 \times 3$、任意 $n \times n$ real matrix 都成立。
+      </p>
+
+      <p>
+        更进一步，对应的 eigenvectors 也成共轭对。这意味着我们只需要处理 $\lambda_1 = \alpha + i\beta$ 这一个——$\lambda_2$ 对应的 eigenvector 是 $\lambda_1$ 对应的 eigenvector 的 componentwise complex conjugate，用 Euler 公式展开后给出的 $\vec{u}_1, \vec{u}_2$ 与处理 $\lambda_1$ 时完全相同。所以不需要重复计算。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (complex eigenvalue conjugate pair).</span>
+        设 $A$ 是 real-valued constant $n \times n$ matrix。若 $\lambda_1 = \alpha + i\beta$（$\alpha, \beta \in \mathbb{R}$，$\beta \neq 0$）是 $A$ 的 eigenvalue，对应 eigenvector $\mathbf{v}_1 = \vec{a} + i\vec{b}$（$\vec{a}, \vec{b} \in \mathbb{R}^n$），则：
+        <ul>
+          <li>$\lambda_2 = \alpha - i\beta = \overline{\lambda_1}$ 也是 eigenvalue（conjugate）。</li>
+          <li>$\mathbf{v}_2 = \vec{a} - i\vec{b} = \overline{\mathbf{v}_1}$ 是 $\lambda_2$ 对应的 eigenvector（componentwise conjugate）。</li>
+        </ul>
+        因此，只需处理其中一个 complex eigenvalue（如 $\lambda_1$）就够了——另一个给出的 solutions 是相同的。
+      </div>
+
+      <p>
+        从这两个 complex eigenvalues 出发，形式上可以写出两个 complex-valued solutions：$e^{(\alpha+i\beta)t}(\vec{a}+i\vec{b})$ 和 $e^{(\alpha-i\beta)t}(\vec{a}-i\vec{b})$。它们确实都是 $\mathbf{x}' = A\mathbf{x}$ 的 solutions（代入验证即可），但它们是 complex-valued 的。物理问题要求 solutions 是 real-valued 的——比如，弹簧的位移不可能是 complex number。
+      </p>
+
+      <p>
+        好消息是：从一对 complex-conjugate solutions，我们可以通过取实部和虚部来提取两个 real-valued solutions。由于方程 $\mathbf{x}' = A\mathbf{x}$ 是 linear，且 $A$ 是 real，若 $\mathbf{z}(t) = \vec{u}_1(t) + i\vec{u}_2(t)$ 是 complex solution，则其 real part $\vec{u}_1(t)$ 和 imaginary part $\vec{u}_2(t)$ 也分别是 solutions。这就是 real-valued solutions 的来源，具体通过 Euler 公式展开实现。
+      </p>
+
+      <h3 id="euler-real-solutions">用 Euler 公式分离实部与虚部</h3>
+
+      <p>
+        考虑 $\lambda_1 = \alpha + i\beta$ 对应的 complex solution：
+        $$e^{(\alpha+i\beta)t}(\vec{a}+i\vec{b})$$
+        用 Euler 公式 $e^{i\beta t} = \cos\beta t + i\sin\beta t$ 展开：
+        $$= e^{\alpha t}(\cos\beta t + i\sin\beta t)(\vec{a}+i\vec{b})$$
+        展开乘积，分离实部（real part）和虚部（imaginary part）：
+        $$= e^{\alpha t}\underbrace{(\vec{a}\cos\beta t - \vec{b}\sin\beta t)}_{\vec{u}_1(t)} + i\,e^{\alpha t}\underbrace{(\vec{b}\cos\beta t + \vec{a}\sin\beta t)}_{\vec{u}_2(t)}$$
+        简记为 $\vec{u}_1(t) + i\vec{u}_2(t)$，其中 $\vec{u}_1, \vec{u}_2$ 均是 real-valued vector functions。
+      </p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (real-valued fundamental set from complex eigenvalues).</span>
+        设 $\lambda = \alpha + i\beta$（$\beta \neq 0$）是 real matrix $A$ 的 eigenvalue，$\mathbf{v} = \vec{a} + i\vec{b}$ 是对应的 eigenvector（$\vec{a}, \vec{b} \in \mathbb{R}^n$）。定义：
+        $$\vec{u}_1(t) = e^{\alpha t}(\vec{a}\cos\beta t - \vec{b}\sin\beta t), \qquad \vec{u}_2(t) = e^{\alpha t}(\vec{b}\cos\beta t + \vec{a}\sin\beta t)$$
+        则：（1）$\vec{u}_1$ 和 $\vec{u}_2$ 都是 real-valued；（2）$\vec{u}_1$ 和 $\vec{u}_2$ 都是 $\mathbf{x}' = A\mathbf{x}$ 的 solutions；（3）$\vec{u}_1$ 和 $\vec{u}_2$ linearly independent（当 $\beta \neq 0$ 时）。
+        <br><br>
+        因此，$\{\vec{u}_1, \vec{u}_2\}$ 是对应这对 complex eigenvalues 的 real-valued fundamental set，用于构造 general solution 的两项：
+        $$c_1\vec{u}_1(t) + c_2\vec{u}_2(t)$$
+        <br>
+        <em>Proof sketch.</em> 由于 $A$ 是 real matrix，$\mathbf{x}' = A\mathbf{x}$ 对 complex solutions 的 linearity 允许我们分别取实部和虚部：若 $\mathbf{z}(t)$ 满足 $\mathbf{z}' = A\mathbf{z}$，则 $\text{Re}(\mathbf{z})$ 和 $\text{Im}(\mathbf{z})$ 也分别满足同一方程。Linear independence 由 $\beta \neq 0$ 保证（当 $\beta = 0$ 时 $\vec{u}_1 = e^{\alpha t}\vec{a}$，$\vec{u}_2 = 0$，退化为 real eigenvalue 的情形）。$\square$
+      </div>
+
+      <p>
+        实际操作中，不需要背公式 $\vec{u}_1 = e^{\alpha t}(\vec{a}\cos\beta t - \vec{b}\sin\beta t)$、$\vec{u}_2 = e^{\alpha t}(\vec{b}\cos\beta t + \vec{a}\sin\beta t)$。只需记住流程：对 $\lambda = \alpha + i\beta$ 对应的 complex solution $e^{\lambda t}\mathbf{v}$，用 Euler 公式 $e^{i\beta t} = \cos\beta t + i\sin\beta t$ 展开，乘开所有括号，然后把 real part（不含 $i$ 的部分）取出来作为 $\vec{u}_1$，imaginary part（$i$ 的系数）取出来作为 $\vec{u}_2$，就自动得到了两个 real-valued solutions。每次展开，每次分离，不需要记公式。
+      </p>
+
+      <p>
+        这一步骤在 Examples 7.6.1、7.6.2、7.6.3 里会重复练习，每次都是同样的流程：展开 $e^{\alpha t}(\cos\beta t + i\sin\beta t)(\vec{a} + i\vec{b})$，收集 real 和 imaginary 部分。经过几次练习后，这个步骤会变得非常机械。
+      </p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Complex Eigenvalue = 旋转 + 缩放</p>
+        <p>
+          Complex eigenvalue $\lambda = \alpha + i\beta$ 把两种效应叠加在一起，在 phase plane 里产生螺旋运动：
+          <ul>
+            <li><strong>$i\beta$ 部分（纯虚数）</strong>：产生旋转（oscillation）。两个 solutions $\vec{u}_1, \vec{u}_2$ 里的 $\cos\beta t$ 和 $\sin\beta t$ 就是旋转的体现——这两个函数合在一起在平面上画圆。</li>
+            <li><strong>$\alpha$ 部分（real part）</strong>：产生指数缩放。$e^{\alpha t}$ 因子决定旋转的"半径"是缩小还是扩大。</li>
+          </ul>
+          两者的叠加：
+          <ul>
+            <li>$\alpha < 0$：旋转 + 收缩 → <strong>stable spiral（稳定螺旋点）</strong>，trajectory 螺旋趋向原点，radius $\to 0$。</li>
+            <li>$\alpha > 0$：旋转 + 扩张 → <strong>unstable spiral（不稳定螺旋点）</strong>，trajectory 螺旋远离原点，radius $\to \infty$。</li>
+            <li>$\alpha = 0$：纯旋转，半径恒定 → <strong>center（中心）</strong>，trajectory 是闭合的椭圆（或圆），永远循环。</li>
+          </ul>
+          口诀：<em>$\text{Re}(\lambda)$ 决定"进"还是"出"，$\text{Im}(\lambda) = \beta$ 决定旋转频率（快还是慢）。</em><br><br>
+          注意：complex eigenvalue 的情形下，phase plane 里没有"骨架直线"（因为没有 real eigenvectors），trajectory 全部是螺旋线或椭圆，不存在沿某个特定方向的直线 trajectory。这和 real eigenvalue 的情形（有两条骨架直线）明显不同，是 complex eigenvalue 特有的几何特征。换句话说，对于 spiral 和 center，从任意初始点出发的 trajectory 都是曲线——没有任何直线轨道。所有轨道都在旋转中逼近（stable spiral）、远离（unstable spiral）或循环（center）原点。<br><br>
+          另一个有趣的点：对于 stable spiral（$\alpha < 0$），从时域图（$x(t)$ vs $t$）来看，$x(t) = e^{\alpha t}(\text{oscillatory terms})$，是一个幅度指数衰减的振荡——类似于 Ch 3 里 under-damped harmonic oscillator 的解 $y(t) = e^{-\gamma t}(\cos\omega t + \cdots)$。事实上，这不是巧合：under-damped harmonic oscillator（$my'' + cy' + ky = 0$，$c^2 - 4mk < 0$）可以改写成 $2 \times 2$ system（令 $x_1 = y$，$x_2 = y'$），其 eigenvalues 正好是 $\lambda = \frac{-c \pm \sqrt{c^2-4mk}}{2m}$，当 under-damped 时为 complex pair with negative real part，对应 stable spiral。
+        </p>
+      </div>
+
+      <h3 id="method-complex">处理 Complex Eigenvalues 的四步流程</h3>
+
+      <p>
+        现在把 Sec 7.6 的方法整理成一个完整的四步流程，方便直接在题目里套用。这个流程和 Sec 7.5 的流程结构一样，只是 Step 3 和 Step 4 针对 complex eigenvalues 做了调整。
+      </p>
+
+      <div class="def">
+        <span class="def-label">Definition (eigenvalue method with complex eigenvalues).</span>
+        <strong>Step 1.</strong> 求 eigenvalues。Complex eigenvalues 成 conjugate pairs $\lambda = \alpha \pm i\beta$ 出现；只需处理其中一个，比如 $\lambda_1 = \alpha + i\beta$。<br><br>
+        <strong>Step 2.</strong> 对 $\lambda_1 = \alpha + i\beta$，解 $(A - \lambda_1 I)\mathbf{v} = \vec{0}$，得到 complex eigenvector $\mathbf{v} = \vec{a} + i\vec{b}$（其中 $\vec{a}, \vec{b} \in \mathbb{R}^n$）。不需要再对 $\lambda_2 = \alpha - i\beta$ 重复计算，其 eigenvector 是 $\overline{\mathbf{v}} = \vec{a} - i\vec{b}$，给出同样的 $\vec{u}_1, \vec{u}_2$。<br><br>
+        <strong>Step 3.</strong> 用 Euler 公式展开 $e^{\lambda_1 t}\mathbf{v}$，分离实部 $\vec{u}_1(t)$ 和虚部 $\vec{u}_2(t)$（均 real-valued）。<br><br>
+        <strong>Step 4.</strong> Fundamental set 里，对应这对 complex eigenvalues 的两项就是 $\{\vec{u}_1, \vec{u}_2\}$（real-valued）。若 $A$ 还有其他（real 或 complex）eigenvalues，分别处理，最后合并成完整的 general solution。
+      </div>
+
+      <h3 id="spiral-center-classification">Spirals vs Centers：用 $\text{Re}(\lambda)$ 判断</h3>
+
+      <p>
+        从 Examples 7.6.1 和 7.6.2 可以清楚地看到，判断 spiral 的稳定性只需要看 $\text{Re}(\lambda) = \alpha$ 的符号。这里做一个完整的总结，以便在考试里快速判断。核心判据只有一个：$\alpha = \text{Re}(\lambda)$ 的符号。$\alpha$ 控制 $e^{\alpha t}$ 这个 envelope（包络函数），决定螺旋的半径是随时间收缩还是扩张；$\beta = \text{Im}(\lambda)$ 控制旋转速度（单位时间绕几弧度），与稳定性完全无关。
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>$\alpha = \text{Re}(\lambda)$</th>
+          <th>平衡点类型</th>
+          <th>稳定性</th>
+          <th>轨迹形状</th>
+        </tr>
+        <tr>
+          <td>$\alpha < 0$</td>
+          <td>Stable spiral（稳定螺旋点）</td>
+          <td>Asymptotically stable</td>
+          <td>螺旋收缩趋向原点，radius $\to 0$ as $t \to \infty$</td>
+        </tr>
+        <tr>
+          <td>$\alpha > 0$</td>
+          <td>Unstable spiral（不稳定螺旋点）</td>
+          <td>Unstable</td>
+          <td>螺旋发散远离原点，radius $\to \infty$ as $t \to \infty$</td>
+        </tr>
+        <tr>
+          <td>$\alpha = 0$</td>
+          <td>Center（中心）</td>
+          <td>Stable（非 asymptotically stable）</td>
+          <td>闭合椭圆（或圆），trajectories 永远循环，radius 恒定</td>
+        </tr>
+      </table>
+
+      <h3 id="examples-complex">Examples — Complex Eigenvalues</h3>
+
+      <p>
+        下面三个 examples 覆盖 Sec 7.6 的主要题型。Example 7.6.1 是从头开始的完整流程（从矩阵 $A$ 求出 eigenvalues、complex eigenvectors、再分离实虚部），展示 unstable spiral 的构造和 phase portrait 分析。Example 7.6.2 是"给定 eigenvalue 和 eigenvector，直接构造 fundamental set"的简化版——考试里有时会这样给信息，节省计算时间。Example 7.6.3 是 $3 \times 3$ IVP，matrix 同时有一个 real eigenvalue 和一对 complex conjugate eigenvalues，展示混合情形的处理以及如何代入 initial condition 求 particular solution。这三个 examples 对应 prof notes 7.6 里的全部例题，掌握这三种类型，Sec 7.6 的解题就基本没有盲点了。
+      </p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.6.1 — Unstable spiral（$\alpha > 0$，$2 \times 2$）</p>
+        <p>
+          Find the general solution of $\mathbf{x}' = A\mathbf{x}$ where $A = \begin{pmatrix}1 & 2 \\ -2 & 1\end{pmatrix}$。画出 phase plane 和若干 trajectories 在 $xt$-plane 上的图。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p><strong>Step 1: 求 eigenvalues。</strong></p>
+        $$\det(A - \lambda I) = \begin{vmatrix}1-\lambda & 2 \\ -2 & 1-\lambda\end{vmatrix} = (1-\lambda)^2 + 4 = \lambda^2 - 2\lambda + 5 = 0$$
+        $$\lambda = \frac{2 \pm \sqrt{4-20}}{2} = \frac{2 \pm \sqrt{-16}}{2} = 1 \pm 2i$$
+        <p>故 $\alpha = 1 > 0$，$\beta = 2$，根据分类表预期 <strong>unstable spiral</strong>（不稳定螺旋点）：trajectories 将以角频率 $\beta = 2$ 旋转，同时半径以 $e^t$ 的速率增大。由于 $A$ 是 real matrix，只需处理 $\lambda_1 = 1+2i$，不需要再单独处理 $\lambda_2 = 1-2i$。</p>
+        <p><strong>Step 2: 对 $\lambda_1 = 1+2i$ 求 eigenvector。</strong></p>
+        $$(A - (1+2i)I)\mathbf{v} = \vec{0} \implies \begin{pmatrix}-2i & 2 \\ -2 & -2i\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>行化简：对第一行 $\times i$ 加到第二行（$iR_1 + R_2$），得</p>
+        $$\begin{pmatrix}-2i & 2 \\ 0 & 0\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>由第一行：$-2ix_1 + 2x_2 = 0$，即 $x_2 = ix_1$。取 $x_1 = 1$，得 $\mathbf{v}_1 = \begin{pmatrix}1\\i\end{pmatrix}$。分离实部虚部：$\vec{a} = \begin{pmatrix}1\\0\end{pmatrix}$，$\vec{b} = \begin{pmatrix}0\\1\end{pmatrix}$。</p>
+        <p><strong>Step 3: 展开 $e^{\lambda_1 t}\mathbf{v}_1$，分离实部和虚部。</strong></p>
+        $$e^{(1+2i)t}\begin{pmatrix}1\\i\end{pmatrix} = e^t(\cos 2t + i\sin 2t)\begin{pmatrix}1\\i\end{pmatrix} = e^t\begin{pmatrix}\cos 2t + i\sin 2t\\i\cos 2t - \sin 2t\end{pmatrix}$$
+        $$= \underbrace{e^t\begin{pmatrix}\cos 2t\\-\sin 2t\end{pmatrix}}_{\vec{u}_1(t)} + i\,\underbrace{e^t\begin{pmatrix}\sin 2t\\\cos 2t\end{pmatrix}}_{\vec{u}_2(t)}$$
+        <p><strong>Step 4: General solution。</strong></p>
+        $$\mathbf{x}(t) = c_1 e^t\begin{pmatrix}\cos 2t\\-\sin 2t\end{pmatrix} + c_2 e^t\begin{pmatrix}\sin 2t\\\cos 2t\end{pmatrix}$$
+        <p><strong>Phase portrait 分析：</strong></p>
+        <ul>
+          <li>当 $c_2 = 0$：$(x, y) = (c_1 e^t\cos 2t,\, -c_1 e^t\sin 2t)$；这条曲线是半径 $= |c_1|e^t$（随时间增大）的 counterclockwise 螺旋。</li>
+          <li>当 $c_1 = 0$：$(x, y) = (c_2 e^t\sin 2t,\, c_2 e^t\cos 2t)$；同样是 counterclockwise 螺旋，radius 指数增大。</li>
+          <li>As $t \to \infty$：radius $= \sqrt{x^2+y^2} \propto e^t \to \infty$，所有 trajectories 螺旋外扩。</li>
+        </ul>
+        <p class="note">
+          注：旋转方向（此例为 counterclockwise）由 prof notes 从参数曲线形式判断：当 $c_2 = 0$ 时 $(x,y) = (c_1e^t\cos 2t,\, -c_1e^t\sin 2t)$，$t$ 增大时 $y$ 先变负（从 $(c_1, 0)$ 出发，$y = -c_1 e^t \sin 2t$，$t = 0^+$ 时 $y < 0$，即向下运动），这是 clockwise。具体方向需查实际参数，见 ⚠️ Warning box。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.6.2 — Stable spiral（given $\lambda$ 和 $\mathbf{v}$，直接构造 fundamental set）</p>
+        <p>
+          Find a fundamental set of real solutions to $\mathbf{x}' = A\mathbf{x}$，其中 $A$ 是 real-valued constant $2 \times 2$ matrix，已知 $\lambda = -1+2i$ 及对应 eigenvector $\mathbf{v} = \begin{pmatrix}1\\2-2i\end{pmatrix}$。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p>首先分离 eigenvector 的实部和虚部：</p>
+        $$\mathbf{v} = \begin{pmatrix}1\\2\end{pmatrix} + i\begin{pmatrix}0\\-2\end{pmatrix}, \quad \vec{a} = \begin{pmatrix}1\\2\end{pmatrix}, \quad \vec{b} = \begin{pmatrix}0\\-2\end{pmatrix}$$
+        <p>然后展开 $e^{\lambda t}\mathbf{v} = e^{(-1+2i)t}\begin{pmatrix}1\\2-2i\end{pmatrix}$：</p>
+        $$= e^{-t}(\cos 2t + i\sin 2t)\left(\begin{pmatrix}1\\2\end{pmatrix} + i\begin{pmatrix}0\\-2\end{pmatrix}\right)$$
+        <p>展开乘积并分组（按 real 和 imaginary）：</p>
+        $$= e^{-t}\begin{pmatrix}\cos 2t\\2\cos 2t + 2\sin 2t\end{pmatrix} + i\,e^{-t}\begin{pmatrix}\sin 2t\\2\sin 2t - 2\cos 2t\end{pmatrix}$$
+        <p><strong>Fundamental set：</strong></p>
+        $$\left\{e^{-t}\begin{pmatrix}\cos 2t\\2\cos 2t + 2\sin 2t\end{pmatrix},\quad e^{-t}\begin{pmatrix}\sin 2t\\2\sin 2t - 2\cos 2t\end{pmatrix}\right\}$$
+        <p>
+          <strong>Phase portrait：</strong>$\alpha = -1 < 0$，故原点是 <strong>stable spiral</strong>（稳定螺旋点）。As $t \to \infty$，$e^{-t} \to 0$，所有 trajectories 螺旋收缩趋向原点，radius $\to 0$。这和 Example 7.6.1 的 unstable spiral（$\alpha = 1 > 0$，$e^t \to \infty$）恰好相反。
+        </p>
+        <p class="note">
+          注：这个 example 展示了一种在 HW 里常见的问法：已经给你了 eigenvalue 和 eigenvector，不需要你自己求——直接进行 Euler 公式展开和实虚部分离，构造 fundamental set 即可。这省去了 Step 1 和 Step 2，直接从 Step 3 开始。考试里有时也会这样给信息，节省计算时间。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 旋转方向（顺时针 vs 逆时针）必须代点验证</p>
+        <p>
+          Spiral 和 center 的旋转方向（clockwise 还是 counterclockwise）<strong>无法</strong>直接从 eigenvalue $\lambda = \alpha + i\beta$ 的符号读出——它取决于 matrix $A$ 的具体 entries，特别是 off-diagonal 元素。<br><br>
+          <strong>正确做法</strong>：取一个具体测试点，代入 $\mathbf{x}' = A\mathbf{x}$，计算速度向量：
+          <ul>
+            <li>取正 $x$-轴上的点 $\mathbf{x}_0 = (c, 0)^T$（$c > 0$），计算 $\mathbf{x}' = A\mathbf{x}_0$。</li>
+            <li>若 $y' > 0$（velocity 向上），则质点从正 $x$-轴出发向上运动 → <strong>counterclockwise</strong>（逆时针）。</li>
+            <li>若 $y' < 0$（velocity 向下），则 → <strong>clockwise</strong>（顺时针）。</li>
+          </ul>
+          <strong>Example 7.6.1 验证</strong>：取点 $(1, 0)^T$，$A\begin{pmatrix}1\\0\end{pmatrix} = \begin{pmatrix}1\cdot1+2\cdot0\\-2\cdot1+1\cdot0\end{pmatrix} = \begin{pmatrix}1\\-2\end{pmatrix}$，故 $y' = -2 < 0$，旋转方向为 <strong>clockwise</strong>（顺时针）。<br><br>
+          不要依赖 $\beta$ 的符号来判断旋转方向——$\beta$ 只决定旋转的角频率，不决定顺时针还是逆时针。另一个常见误区：以为 imaginary part 为正就是 counterclockwise、负就是 clockwise——这个直觉是错的，没有这样的普遍规律。唯一可靠的方法就是代点验证，每次遇到 spiral 或 center 的题目都要做这一步。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 7.6.3 — 3×3 IVP，混合 real 和 complex eigenvalues</p>
+        <p>
+          Solve the IVP: $\displaystyle\mathbf{x}' = \begin{pmatrix}1 & 0 & -1 \\ 0 & 2 & 0 \\ 1 & 0 & 1\end{pmatrix}\mathbf{x}$，$\mathbf{x}(0) = \begin{pmatrix}-2\\2\\-1\end{pmatrix}$。
+        </p>
+        <p><strong>Solution:</strong></p>
+        <p><strong>Step 1: 求 eigenvalues。</strong>注意矩阵第二行只有中间元素 $2-\lambda$ 非零（展开时沿第二行很简洁）：</p>
+        $$|A - \lambda I| = \begin{vmatrix}1-\lambda & 0 & -1 \\ 0 & 2-\lambda & 0 \\ 1 & 0 & 1-\lambda\end{vmatrix} = (2-\lambda)\begin{vmatrix}1-\lambda & -1 \\ 1 & 1-\lambda\end{vmatrix}$$
+        $$= (2-\lambda)\bigl[(1-\lambda)^2 + 1\bigr] = (2-\lambda)(\lambda^2 - 2\lambda + 2) = 0$$
+        <p>$\lambda_1 = 2$（real），$\lambda_{2,3} = \dfrac{2 \pm \sqrt{4-8}}{2} = 1 \pm i$（complex conjugate pair，$\alpha = 1, \beta = 1$）。</p>
+        <p><strong>Step 2: Eigenvectors。</strong></p>
+        <p>对 $\lambda_1 = 2$：$(A - 2I)\mathbf{v} = \vec{0}$，</p>
+        $$\begin{pmatrix}-1 & 0 & -1 \\ 0 & 0 & 0 \\ 1 & 0 & -1\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>由第一行：$-x_1 - x_3 = 0$，即 $x_1 = -x_3$；$x_2$ 自由；由第三行 $x_1 - x_3 = 0$（与第一行矛盾，除非 $x_1 = x_3 = 0$）。行化简后得 $x_1 = 0$，$x_3 = 0$，$x_2$ 自由。取 $x_2 = 1$：$\mathbf{v}_1 = [0, 1, 0]^T$。</p>
+        <p>对 $\lambda_2 = 1+i$：$(A - (1+i)I)\mathbf{v} = \vec{0}$，</p>
+        $$\begin{pmatrix}-i & 0 & -1 \\ 0 & 1-i & 0 \\ 1 & 0 & -i\end{pmatrix}\mathbf{v} = \vec{0}$$
+        <p>由第二行：$(1-i)x_2 = 0 \Rightarrow x_2 = 0$。由第一行和第三行（做 $-iR_1 + R_3$）：</p>
+        $$-iR_1 + R_3: \quad i^2 x_1 + 0 + ix_3 - ix_3 = 0 \implies -x_1 - ix_3 + x_1 - ix_3 \to \text{取第三行}\ x_1 - ix_3 = 0 \implies x_1 = ix_3$$
+        <p>取 $x_3 = -i$：$x_1 = i\cdot(-i) = 1$，$x_2 = 0$。故 $\mathbf{v}_2 = \begin{pmatrix}1\\0\\-i\end{pmatrix} = \begin{pmatrix}1\\0\\0\end{pmatrix} + i\begin{pmatrix}0\\0\\-1\end{pmatrix}$，即 $\vec{a} = (1,0,0)^T$，$\vec{b} = (0,0,-1)^T$。</p>
+        <p><strong>Step 3: 展开 $e^{(1+i)t}\mathbf{v}_2$，分离实部虚部。</strong></p>
+        $$e^{(1+i)t}\begin{pmatrix}1\\0\\-i\end{pmatrix} = e^t(\cos t + i\sin t)\begin{pmatrix}1\\0\\-i\end{pmatrix} = e^t\begin{pmatrix}\cos t\\0\\\sin t\end{pmatrix} + i\,e^t\begin{pmatrix}\sin t\\0\\-\cos t\end{pmatrix}$$
+        <p>故 $\vec{u}_1 = e^t\begin{pmatrix}\cos t\\0\\\sin t\end{pmatrix}$，$\vec{u}_2 = e^t\begin{pmatrix}\sin t\\0\\-\cos t\end{pmatrix}$。</p>
+        <p><strong>Step 4: General solution。</strong></p>
+        $$\mathbf{x}(t) = c_1 e^{2t}\begin{pmatrix}0\\1\\0\end{pmatrix} + c_2 e^t\begin{pmatrix}\cos t\\0\\\sin t\end{pmatrix} + c_3 e^t\begin{pmatrix}\sin t\\0\\-\cos t\end{pmatrix}$$
+        <p><strong>Apply initial condition</strong> $\mathbf{x}(0) = (-2, 2, -1)^T$：</p>
+        $$c_1\begin{pmatrix}0\\1\\0\end{pmatrix} + c_2\begin{pmatrix}1\\0\\0\end{pmatrix} + c_3\begin{pmatrix}0\\0\\-1\end{pmatrix} = \begin{pmatrix}-2\\2\\-1\end{pmatrix}$$
+        <p>这里 initial condition 的代入非常顺畅：由于 $t = 0$ 时 $e^{2t} = 1$，$\cos t = 1$，$\sin t = 0$，三个 basis vectors 在 $t = 0$ 的取值恰好是 $(0,1,0)^T$、$(1,0,0)^T$、$(0,0,-1)^T$，彼此 linearly independent，构成 $\mathbb{R}^3$ 的一组基——因此 $c_1, c_2, c_3$ 可以对比各分量直接读出，不需要解线性系统。</p>
+        <p>对比各分量：$c_2 = -2$（from $x$-component），$c_1 = 2$（from $y$-component），$-c_3 = -1 \Rightarrow c_3 = 1$（from $z$-component）。</p>
+        <p><strong>Particular solution：</strong></p>
+        $$\mathbf{x}(t) = 2e^{2t}\begin{pmatrix}0\\1\\0\end{pmatrix} - 2e^t\begin{pmatrix}\cos t\\0\\\sin t\end{pmatrix} + e^t\begin{pmatrix}\sin t\\0\\-\cos t\end{pmatrix}$$
+        <p>
+          这道 example 展示了 $3 \times 3$ system 的完整解法：一个 real eigenvalue $\lambda_1 = 2$（贡献一项 $c_1 e^{2t}\mathbf{v}_1$）加上一对 complex conjugate eigenvalues $\lambda_{2,3} = 1 \pm i$（贡献两项 $c_2\vec{u}_1 + c_3\vec{u}_2$），合计三个 linearly independent solutions，构成完整的 fundamental set。注意第二分量 $y(t)$ 只由 $c_1 e^{2t}$ 控制（因为 $\mathbf{v}_1 = (0,1,0)^T$ 且 $\vec{u}_1, \vec{u}_2$ 的第二分量均为零），而第一、三分量则由 complex eigenvalue 的 $e^t\cos t$ 和 $e^t\sin t$ 主导。这种"各分量由不同 eigenvalues 控制"的分离，是 autonomous linear systems 的一个优美性质。
+        </p>
+      </div>
+
+      <h3 id="full-classification">完整分类：$2 \times 2$ Real-Coefficient System 的平衡点</h3>
+
+      <p>
+        把 Sec 7.5 的 real eigenvalue 分类和 Sec 7.6 的 complex eigenvalue 分类合并，就得到 $2 \times 2$ real-coefficient system 的完整 phase plane 分类。Prof notes（7.6 p.4）明确列出了本课需要掌握的四种情形。这张分类表非常重要：在实际解题时，一旦求出 eigenvalues，立即查表确定平衡点类型，不需要进一步求解 general solution 就能回答"稳定吗？什么类型的平衡点？"这些问题。
+      </p>
+
+      <p>
+        具体来说，面对一个 $2 \times 2$ real-coefficient system，判断流程是：先求 eigenvalues（解 characteristic equation $\lambda^2 - \text{tr}(A)\lambda + \det(A) = 0$，其中 $\text{tr}(A) = a_{11} + a_{22}$ 是 trace，$\det(A)$ 是行列式）；看 discriminant $\Delta = \text{tr}(A)^2 - 4\det(A)$：
+      </p>
+      <ul>
+        <li>$\Delta > 0$：两个 distinct real eigenvalues → node 或 saddle（看符号是否相同）。</li>
+        <li>$\Delta < 0$：complex conjugate eigenvalues → spiral 或 center（看 $\text{tr}(A)$ 是否为零）。</li>
+        <li>$\Delta = 0$：repeated real eigenvalue → 可能是 node（如果 geometric multiplicity = 2）或 improper node（超出本课考纲）。</li>
+      </ul>
+      <p>
+        这个"先看 discriminant，再看 trace"的流程，比逐步求解 eigenvalues 快得多，在考试里很实用。
+      </p>
+
+      <table class="data-table">
+        <tr>
+          <th>Eigenvalue 情况</th>
+          <th>平衡点类型</th>
+          <th>稳定性</th>
+        </tr>
+        <tr>
+          <td>Real, opposite signs（$\lambda_1 < 0 < \lambda_2$）</td>
+          <td>Saddle point</td>
+          <td>Always unstable</td>
+        </tr>
+        <tr>
+          <td>Real, same sign, unequal</td>
+          <td>Node（stable 若均负，unstable 若均正）</td>
+          <td>Asymptotically stable（负）或 Unstable（正）</td>
+        </tr>
+        <tr>
+          <td>Complex, $\text{Re}(\lambda) \neq 0$（即 $\alpha \neq 0$）</td>
+          <td>Spiral point</td>
+          <td>Asymptotically stable（$\alpha < 0$）或 Unstable（$\alpha > 0$）</td>
+        </tr>
+        <tr>
+          <td>Purely imaginary（$\lambda = \pm i\beta$，$\alpha = 0$）</td>
+          <td>Center</td>
+          <td>Stable（非 asymptotically stable）</td>
+        </tr>
+      </table>
+
+      <p class="note">
+        Prof notes 明确说明：以上四种情形是本课考纲，其他 cases（如 repeated eigenvalues with defect、zero eigenvalue 等）不在考试要求内。记住这张表，在任何 $2 \times 2$ system 的 eigenvalue 求出来之后，立即就能判断平衡点类型，不需要继续求解。
+      </p>
+
+      <p>
+        这张分类表背后有一个统一的逻辑，值得理解而不是死记硬背：eigenvalue 的 real part 控制稳定性（负→stable，正→unstable）；imaginary part 控制振荡（有 imaginary part →旋转（spiral 或 center），没有 imaginary part →沿直线运动（node 或 saddle））。Saddle 是唯一一种 eigenvalues 符号相反的情形，它永远是 unstable 的——因为无论初始条件怎么选，总有一个 growing 分量（$\lambda > 0$）最终主导。Node 和 spiral 都可以是 stable 或 unstable，取决于 real part 的符号。Center 是"临界"状态：$\text{Re}(\lambda) = 0$，既不是 asymptotically stable，也不是 unstable，是一种不增不减的振荡。
+      </p>
+
+      <p>
+        从另一个角度看：如果你对矩阵 $A$ 的 entries 做一个微小扰动，node 和 saddle 的 qualitative behavior 不变（仍然是 node 或 saddle，稳定性不变），但 center 却会变成 spiral——因为 $\alpha = 0$ 的条件对 entries 的扰动极度敏感。这意味着 center 是一种"结构不稳定"的平衡点，在实际应用中很罕见。
+      </p>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Center 的稳定性：stable 但非 asymptotically stable，以及它的脆弱性</p>
+        <p>
+          Center 在稳定性分类上有一个微妙之处，值得单独解释。<br><br>
+          <strong>Stable（Lyapunov stable）</strong>的定义是：对任意 $\epsilon > 0$，存在 $\delta > 0$，使得当初始条件满足 $\|\mathbf{x}(0)\| < \delta$ 时，对所有 $t \geq 0$ 都有 $\|\mathbf{x}(t)\| < \epsilon$。Center 满足这一定义：由于 trajectories 是闭合椭圆，初始条件足够小则 trajectory 始终在一个小圆内循环，不会逃离。<br><br>
+          <strong>Asymptotically stable</strong> 的额外要求是：$\|\mathbf{x}(t)\| \to 0$ as $t \to \infty$。Center 不满足这一点——trajectory 永远在椭圆上循环，半径不趋向零。<br><br>
+          因此，center 是 stable 但非 asymptotically stable。这在物理上对应 <em>无摩擦的保守系统</em>：比如理想的弹簧-质点系统（无阻尼）。一旦系统开始振荡（如轻推小球），它会永远振荡下去，能量守恒，幅度不变。加入任何一点阻尼（$\alpha < 0$），就变成 stable spiral（能量逐渐耗散）；任何能量输入（$\alpha > 0$）就变成 unstable spiral（能量持续增加）。<br><br>
+          <strong>参数敏感性</strong>：center 对 $\alpha$ 的扰动极度敏感——$\alpha$ 从 $0$ 稍微变为正或负，平衡点类型就从 center 变成 spiral。这意味着，在真实物理系统（总有某些摩擦或阻尼）里，理想的 center 几乎不存在。Center 只出现在完全理想化的数学模型里，是一种"测量零集"上的边界情形。
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>本文件覆盖了 Sec 7.5（real eigenvalues 的 eigenvalue method + phase portraits）和 Sec 7.6（complex eigenvalues + spirals/centers）。这两节合在一起给出了求解 $\mathbf{x}' = A\mathbf{x}$ 的完整算法，以及对 $2 \times 2$ system 的 phase portrait 的完整分类。以下是核心内容的系统总结：</p>
+
+      <ul>
+        <li>
+          <strong>Eigenvalue method（Sec 7.5，四步流程）</strong>：对 constant $n \times n$ matrix $A$，求 $\mathbf{x}' = A\mathbf{x}$ 的 general solution：
+          <ol>
+            <li>求 characteristic polynomial $\det(A - \lambda I) = 0$，展开行列式，得到关于 $\lambda$ 的多项式方程。</li>
+            <li>解方程，得所有 eigenvalues $\{\lambda_i\}$（可能有重复，可能有 complex）。</li>
+            <li>对每个 $\lambda_i$，解 $(A - \lambda_i I)\mathbf{v} = \vec{0}$，得 eigenvectors $\mathbf{v}_i$。目标是找到 $n$ 个 linearly independent eigenvectors（本课只考虑能做到这一点的情形）。</li>
+            <li>General solution = $c_1 e^{\lambda_1 t}\mathbf{v}_1 + \cdots + c_n e^{\lambda_n t}\mathbf{v}_n$。</li>
+          </ol>
+        </li>
+        <li>
+          <strong>Multiplicity 注意事项</strong>：对一个 eigenvalue $\lambda$，geometric multiplicity（能找到的 linearly independent eigenvectors 的个数）$\leq$ algebraic multiplicity（$\lambda$ 作为 characteristic polynomial 根的重数）。本课只考虑二者相等的情形，确保能找到完整的 $n$ 个 eigenvectors。若不相等，需 generalized eigenvectors——超出本课考纲。
+        </li>
+        <li>
+          <strong>Phase portrait 读法（real eigenvalues，$2 \times 2$）</strong>：
+          <ul>
+            <li>找两条"骨架直线"：对 $c_2 = 0$ 和 $c_1 = 0$ 分别写出解，消去 $t$ 得直线方程。</li>
+            <li>Dominant 方向：$t \to \infty$ 时，绝对值较小的 $|\lambda_i|$ 对应的 eigenvector 主导（衰减最慢/增长最快）；$t \to -\infty$ 时，绝对值较大的主导。</li>
+            <li>分类：同号负 → stable node；同号正 → unstable node；异号 → saddle（always unstable）。</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Complex eigenvalues（Sec 7.6）的处理</strong>：$A$ real $\Rightarrow$ complex eigenvalues 成共轭对 $\lambda = \alpha \pm i\beta$（$\beta \neq 0$）。只处理 $\lambda_1 = \alpha + i\beta$：
+          <ul>
+            <li>求 complex eigenvector $\mathbf{v} = \vec{a} + i\vec{b}$（$\vec{a}, \vec{b} \in \mathbb{R}^n$）。</li>
+            <li>展开 $e^{(\alpha+i\beta)t}(\vec{a}+i\vec{b})$（用 Euler 公式），分离 real part $\vec{u}_1$ 和 imaginary part $\vec{u}_2$（均 real-valued）。</li>
+            <li>Fundamental set 对应这对 complex eigenvalues 的两项：$\{c_1\vec{u}_1 + c_2\vec{u}_2\}$。</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Phase portrait 分类（complex eigenvalues，$2 \times 2$）</strong>：唯一判据是 $\alpha = \text{Re}(\lambda)$ 的符号：
+          <ul>
+            <li>$\alpha < 0$ → stable spiral（asymptotically stable），trajectory 螺旋收缩趋向原点。</li>
+            <li>$\alpha > 0$ → unstable spiral，trajectory 螺旋扩张远离原点。</li>
+            <li>$\alpha = 0$ → center（stable 但非 asymptotically stable），trajectory 是闭合椭圆，永远循环。</li>
+          </ul>
+          旋转方向（CW 还是 CCW）不能从 $\lambda$ 推断，需取测试点代入 $A\mathbf{x}$ 检查 $y'$ 的符号。
+        </li>
+        <li>
+          <strong>完整分类（$2 \times 2$ real $A$，本课考纲内）</strong>：saddle（real，异号）、node（real，同号，stable 或 unstable）、spiral（complex，$\alpha \neq 0$，stable 或 unstable）、center（complex，$\alpha = 0$）。共四种，覆盖所有考试可能遇到的情形。
+        </li>
+      </ul>
+
+      <p>
+        回顾一下整个 Ch 7 的学习路径（Files 05 + 06）：File 05 建立了 systems 的语言和理论基础（matrix form、Wronskian、existence-uniqueness、fundamental matrices），本文件给出了具体的求解算法（eigenvalue method）和几何理解（phase portraits）。二者结合，构成了一套完整的工具，用于处理 homogeneous constant-coefficient linear systems，适用于任意 $n \times n$ 的情形（只要 eigenvalue-eigenvector 条件满足，即 geometric multiplicity = algebraic multiplicity）。
+      </p>
+
+      <p>
+        需要注意的是，本文件的所有内容都是针对 <strong>homogeneous</strong> system $\mathbf{x}' = A\mathbf{x}$——没有 forcing term（右边为零）。如果有 nonhomogeneous term（即 $\mathbf{x}' = A\mathbf{x} + \mathbf{g}(t)$，$\mathbf{g}(t) \neq \vec{0}$），就需要先求 homogeneous system 的 general solution（用本文件的方法），再加上 particular solution（类似 Ch 3 的 undetermined coefficients 或 variation of parameters）。但这类 nonhomogeneous systems 在本课考纲里不是重点——本课对 systems 部分的考察基本限于 homogeneous 情形。
+      </p>
+
+      <h3 id="looking-ahead">Looking Ahead — Laplace Transforms (File 07)</h3>
+
+      <p>
+        完成了 Ch 7（Systems of ODEs）的全部内容（File 05 覆盖理论基础，本文件覆盖求解方法与 phase portrait 分类），接下来转入 Ch 6：<strong>Laplace Transforms</strong>。课程在讲完 systems 后转向 Laplace transform，是因为二者互相独立、各有侧重，先掌握 systems 的矩阵-eigenvector 视角，再学 Laplace transform 的频域-代数视角，能帮助建立对 ODE 求解方法的全貌认识。下一个文件是 <a href="07-laplace-basics.html">File 07. Laplace Transforms — Basics</a>，覆盖 Sec 6.1 和 6.2。
+      </p>
+      <p>
+        Laplace transform 提供了一种完全不同的解 ODE 的视角：把时域（$t$-domain）的微分和积分运算，变换成频域（$s$-domain）的代数乘除运算。具体来说：
+      </p>
+      <ul>
+        <li><strong>Sec 6.1</strong>：Laplace transform 的定义 $\mathcal{L}\{f\}(s) = \displaystyle\int_0^\infty e^{-st}f(t)\,dt$，existence conditions（piecewise continuous + exponential order），以及基本 transform table（$\mathcal{L}\{e^{at}\}$，$\mathcal{L}\{t^n\}$，$\mathcal{L}\{\sin\omega t\}$，$\mathcal{L}\{\cos\omega t\}$ 等）。</li>
+        <li><strong>Sec 6.2</strong>：用 Laplace transform 解 IVP——通过 $\mathcal{L}\{y'\} = s\mathcal{L}\{y\} - y(0)$ 把 ODE 变成关于 $Y(s) = \mathcal{L}\{y\}$ 的代数方程，解出 $Y(s)$ 后再用 inverse Laplace transform（通常借助 partial fractions）还原 $y(t)$。</li>
+      </ul>
+      <p>
+        Laplace transforms 的优势在于：初始条件 $y(0), y'(0)$ 等自动并入变换过程，不需要像 eigenvalue method 那样先求 general solution 再解 $n \times n$ 线性系统定 constants。特别适合处理含 <strong>discontinuous forcing</strong>（如 step functions $u_c(t)$、impulses $\delta(t-c)$）的 IVPs——这是 File 08 的主题，也是 Laplace transform 区别于所有 Ch 3 方法的最大优势。
+      </p>
+
+      <p>
+        从整个课程的角度来看，学完 Ch 7（Files 05–06）和 Ch 6（Files 07–08）之后，你就掌握了解 linear ODEs 的两套主流工具：<strong>eigenvalue method</strong>（适合 homogeneous systems，直接给出 closed-form formula，几何理解最直观）和 <strong>Laplace transform</strong>（适合 IVP，不管 homogeneous 还是 nonhomogeneous，处理 discontinuous forcing 特别有力）。这两套方法在不同场景各有优势，考试里需要根据题型灵活选择。一个常见策略：若题目是 IVP 且有 discontinuous forcing 或 $\delta$ impulse，优先考虑 Laplace transform；若是求 general solution 或分析 phase portrait，优先考虑 eigenvalue method。
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

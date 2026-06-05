@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MT2 Review · Part 2 — Systems of First-Order Linear ODEs · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">MT2 Review · Part 2 — Systems</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>MT2 Review · Part 2 — Systems of First-Order Linear ODEs (§7.1, 7.3–7.6)</h1>
+    <p class="note">UCSD MATH 20D Spring 2026 · MT2 = §3.5 → §6.4 · 本文件覆盖 §7.1 (Intro), §7.3 (Eigenvalues), §7.4 (Theory), §7.5 (Real Eigenvalues), §7.6 (Complex Eigenvalues)</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="scope">Scope</h2>
+      <p>
+        Systems 是 MT2 最大的板块，覆盖 25 道 HW 题。核心方法是 eigenvalue/eigenvector，本质上把"找指数解 $e^{rt}$"从 scalar 推广到 vector。
+      </p>
+      <ul>
+        <li><a href="mt2-01-secondorder.html">Part 1</a>：§3.5, §3.6 — 13 题</li>
+        <li><strong>Part 2（本文件）</strong>：§7.x — 25 题</li>
+        <li><a href="mt2-03-laplace.html">Part 3</a>：§6.1–6.4 — 24 题</li>
+      </ul>
+      <p class="note">
+        概念性的讲解见 <a href="05-systems-theory.html">File 05</a>（§7.1–7.4）和 <a href="06-systems-methods.html">File 06</a>（§7.5–7.6）。
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="cheat-sheet">Cheat sheet — Systems 必备公式</h2>
+
+      <h3 id="matrix-form">Matrix form &amp; setup</h3>
+      <p>
+        $n$ 个 first-order linear ODE 写成 $\mathbf{x}' = P(t)\mathbf{x} + \mathbf{g}(t)$，其中 $\mathbf{x}, \mathbf{g}$ 是 $n$-维 vector，$P(t)$ 是 $n \times n$ matrix。Homogeneous + constant coefficient 的特例：$\mathbf{x}' = A\mathbf{x}$。这是 MT2 的主要研究对象。
+      </p>
+      <div class="def">
+        <span class="def-label">$n$-th order ODE → system.</span>
+        给定 $y^{(n)} = F(t, y, y', \ldots, y^{(n-1)})$，令 $x_1 = y, x_2 = y', \ldots, x_n = y^{(n-1)}$。则 $x_i' = x_{i+1}$（for $i < n$）且 $x_n' = F(t, x_1, \ldots, x_n)$。
+      </div>
+
+      <h3 id="eigenvalue-method">Eigenvalue method（核心）</h3>
+      <p>
+        对 $\mathbf{x}' = A\mathbf{x}$（constant $A$），猜 $\mathbf{x} = \boldsymbol{\xi} e^{rt}$。代入得 $r\boldsymbol{\xi} e^{rt} = A\boldsymbol{\xi} e^{rt}$，即 $A\boldsymbol{\xi} = r\boldsymbol{\xi}$ — $r$ 是 eigenvalue，$\boldsymbol{\xi}$ 是 eigenvector。
+      </p>
+      <ol>
+        <li><strong>Step 1</strong>：解 characteristic equation $\det(A - rI) = 0$ 得 eigenvalues $r_1, r_2, \ldots, r_n$。</li>
+        <li><strong>Step 2</strong>：对每个 $r_i$，解 $(A - r_i I)\boldsymbol{\xi} = 0$ 得 eigenvector $\boldsymbol{\xi}^{(i)}$。</li>
+        <li><strong>Step 3</strong>：每个 eigenpair 给一个解 $\mathbf{x}^{(i)}(t) = \boldsymbol{\xi}^{(i)} e^{r_i t}$。</li>
+        <li><strong>Step 4</strong>：general solution = $c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)} + \cdots + c_n \mathbf{x}^{(n)}$。</li>
+      </ol>
+
+      <h3 id="three-cases">三种 eigenvalue case</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Eigenvalues</th><th>Phase portrait（$2 \times 2$）</th><th>稳定性</th><th>方法</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Real, distinct, same sign（都正或都负）</td><td>Node（结点）</td><td>负 = stable, 正 = unstable</td><td>§7.5 直接用 eigenvector</td></tr>
+          <tr><td>Real, distinct, opposite signs（一正一负）</td><td>Saddle point（鞍点）</td><td>Unstable</td><td>§7.5</td></tr>
+          <tr><td>Complex conjugate $r = \lambda \pm i\mu$</td><td>Spiral（$\lambda \neq 0$）或 center（$\lambda = 0$）</td><td>$\lambda < 0$ stable, $\lambda > 0$ unstable, $\lambda = 0$ neutral</td><td>§7.6（取 real/imaginary parts）</td></tr>
+          <tr><td>Real, repeated</td><td>Improper node / star</td><td>—</td><td>§7.8（MT2 不考？范围到 6.4）</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        MT2 范围是 §3.5 → §6.4，但其实顺序是 §3.5, §3.6, §7.1, §7.3, §7.4, §7.5, §7.6, §6.1, §6.2, §6.3, §6.4 —— §7.8 (repeated eigenvalues) 在 §7.6 之后，<strong>不在 MT2 范围内</strong>。所以只要掌握 real distinct + complex 这两种情况即可。
+      </p>
+
+      <h3 id="complex-formula">§7.6 Complex eigenvalues — 公式</h3>
+      <p>
+        如果 $r_1 = \lambda + i\mu$（$\mu \neq 0$），eigenvector $\boldsymbol{\xi}^{(1)} = \mathbf{a} + i\mathbf{b}$（real vectors $\mathbf{a}, \mathbf{b}$），则 $r_2 = \overline{r_1} = \lambda - i\mu$，$\boldsymbol{\xi}^{(2)} = \overline{\boldsymbol{\xi}^{(1)}} = \mathbf{a} - i\mathbf{b}$。一对 real-valued solutions：
+      </p>
+      <div class="thm">
+        <span class="thm-label">Theorem (Real solutions from complex eigenvalues).</span>
+        $$\mathbf{u}(t) = e^{\lambda t}(\mathbf{a}\cos(\mu t) - \mathbf{b}\sin(\mu t)), \qquad \mathbf{v}(t) = e^{\lambda t}(\mathbf{a}\sin(\mu t) + \mathbf{b}\cos(\mu t)).$$
+        General solution: $\mathbf{x}(t) = c_1 \mathbf{u}(t) + c_2 \mathbf{v}(t)$.
+      </div>
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 记法</p>
+        <p>
+          $\mathbf{u}(t)$ 是 $\boldsymbol{\xi}^{(1)} e^{r_1 t}$ 的 real part，$\mathbf{v}(t)$ 是 imaginary part。展开 $(\mathbf{a} + i\mathbf{b})\cdot e^{\lambda t}(\cos(\mu t) + i\sin(\mu t))$，分实部 + 虚部，就是上面这两个 vector。<br><br>
+          实操：算出 $\boldsymbol{\xi}^{(1)} = \mathbf{a} + i\mathbf{b}$（一个 complex eigenvector 就够，<strong>不用算 $\boldsymbol{\xi}^{(2)}$</strong>，因为它就是 conjugate）。把 $\boldsymbol{\xi}^{(1)} e^{r_1 t}$ 展开，分离 real/imaginary parts 即可。
+        </p>
+      </div>
+
+      <h3 id="phase-portrait">Phase portrait 速查</h3>
+      <ul>
+        <li><strong>Real distinct, same sign（都负）</strong>：Stable node，trajectories 顺着两条 eigenvector lines 趋近原点，主导方向是 dominant eigenvector（较慢趋零的那条）。</li>
+        <li><strong>Real distinct, same sign（都正）</strong>：Unstable node，方向反过来。</li>
+        <li><strong>Real distinct, opposite signs</strong>：Saddle point，沿正 eigenvalue 方向远离，沿负 eigenvalue 方向趋近。</li>
+        <li><strong>Complex, $\lambda < 0$</strong>：Stable spiral，顺/逆时针螺旋趋近原点。方向（顺/逆时针）由在某点的 tangent vector $A\mathbf{x}$ 决定。</li>
+        <li><strong>Complex, $\lambda > 0$</strong>：Unstable spiral，远离原点的螺旋。</li>
+        <li><strong>Complex, $\lambda = 0$</strong>：Center，闭合椭圆轨迹（无穷不衰减振荡）。</li>
+        <li><strong>Zero eigenvalue（$r = 0$ 和 $r \neq 0$）</strong>：一整条 line of equilibrium points（沿 $r=0$ 的 eigenvector 方向）。</li>
+      </ul>
+
+      <h3 id="linear-indep">Linear independence of vector functions</h3>
+      <p>
+        给定 vector functions $\mathbf{x}^{(1)}(t), \ldots, \mathbf{x}^{(n)}(t)$，定义 Wronskian
+        $$W[\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(n)}](t) = \det\!\big(\mathbf{x}^{(1)}(t) \mid \mathbf{x}^{(2)}(t) \mid \cdots \mid \mathbf{x}^{(n)}(t)\big).$$
+        如果 $W(t_0) \neq 0$ 在某一点，则它们 linearly independent 在整个 interval 上（前提：它们都是 $\mathbf{x}' = P(t)\mathbf{x}$ 的 solutions，Abel's theorem）。否则要单独检查每个点。
+      </p>
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 函数 vs 数值的 linear independence</p>
+        <p>
+          Vector functions 的 linear dependence at <strong>each point</strong> ≠ linear dependence as <strong>functions on an interval</strong>。后者要求<strong>同一组</strong> constants $c_1, \ldots, c_n$ 在<strong>整个 interval 上</strong>都让 $c_1 \mathbf{x}^{(1)}(t) + \cdots = 0$。前者只要每个 $t$ 找<strong>一组（可不同）</strong> constants 即可。HW §7.3 #13 就在测试这个 subtlety。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="decision-flowchart">决策树 — 看到 systems 题怎么做</h2>
+      <div class="box deeper">
+        <p class="box-title">📖 Workflow</p>
+        <p><strong>问题 1</strong>：是单一 $n$-th order ODE 还是已经是 system？</p>
+        <ul>
+          <li>单一 $n$-th order → 用 $x_1 = y, x_2 = y', \ldots$ 转成 system（§7.1 题）</li>
+          <li>已是 system → 继续</li>
+        </ul>
+        <p><strong>问题 2</strong>：是 $\mathbf{x}' = A\mathbf{x}$ (constant coefficient)，还是 $\mathbf{x}' = P(t)\mathbf{x}$ (variable)？</p>
+        <ul>
+          <li>Variable coefficient → MT2 不考解题，只考 verify solution / Wronskian（§7.4 题型）</li>
+          <li>Constant → eigenvalue method（继续）</li>
+        </ul>
+        <p><strong>问题 3</strong>：算 $\det(A - rI) = 0$，看 eigenvalues 是哪种 case？</p>
+        <ul>
+          <li>Real distinct → §7.5 方法（找两个 eigenvectors，写 $\mathbf{x} = c_1 \boldsymbol{\xi}^{(1)} e^{r_1 t} + c_2 \boldsymbol{\xi}^{(2)} e^{r_2 t}$）</li>
+          <li>Complex conjugate → §7.6 方法（找<strong>一个</strong> complex eigenvector，拆 real/imaginary parts）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="graphing-guide">Graphing Guide — 考试画图技巧</h2>
+      <p>
+        MT2 范围内主要四种 graphing 题：phase portrait（最常见）、trajectory through specific point、component plots ($x_i$ vs $t$)、piecewise functions。前三种属于 §7.x，本节展开；第四种（piecewise step function 图）见 <a href="mt2-03-laplace.html#problems-63">Part 3 §6.3</a>.
+      </p>
+
+      <h3 id="phase-portrait">Phase portrait — 4 步流程</h3>
+
+      <p><strong>Step 1：由 eigenvalues 判类型。</strong></p>
+      <table class="data-table">
+        <thead><tr><th>Eigenvalues</th><th>类型</th><th>稳定性</th></tr></thead>
+        <tbody>
+          <tr><td>Real, opposite signs</td><td>Saddle point（鞍点）</td><td>Unstable</td></tr>
+          <tr><td>Real, same sign（都正）</td><td>Unstable node</td><td>Unstable</td></tr>
+          <tr><td>Real, same sign（都负）</td><td>Stable node</td><td>Asymptotically stable</td></tr>
+          <tr><td>Complex $\lambda \pm i\mu$，$\lambda > 0$</td><td>Unstable spiral</td><td>Unstable</td></tr>
+          <tr><td>Complex，$\lambda < 0$</td><td>Stable spiral</td><td>Asymptotically stable</td></tr>
+          <tr><td>Complex，$\lambda = 0$（pure imaginary）</td><td>Center（中心）</td><td>Stable，但不 asymptotic</td></tr>
+          <tr><td>Zero eigenvalue + nonzero</td><td>Line of equilibria</td><td>沿 line 方向都是 fixed points</td></tr>
+        </tbody>
+      </table>
+
+      <p><strong>Step 2：画 eigenvector lines（仅 real eigenvalues case）。</strong></p>
+      <p>
+        两条 eigenvector 方向各画一条过原点的直线（即过 $(0,0)$ 和 $(\xi_1, \xi_2)$ 两点）。在每条 line 上加箭头：
+      </p>
+      <ul>
+        <li>eigenvalue $> 0$ → 箭头<strong>远离</strong>原点（指向 $\boldsymbol{\xi}$ 和 $-\boldsymbol{\xi}$ 两方向）</li>
+        <li>eigenvalue $< 0$ → 箭头<strong>指向</strong>原点</li>
+      </ul>
+      <p>
+        Complex case 跳过 Step 2（complex eigenvectors 没有实平面上的"line"意义）.
+      </p>
+
+      <p><strong>Step 3：加 3-5 条 typical trajectories。</strong></p>
+      <ul>
+        <li><strong>Saddle</strong>：双曲线状的弯曲曲线。从负 eigenvalue 那条 line 附近出发（沿它接近原点），中途拐弯，沿正 eigenvalue 那条 line 远离。Trajectories <strong>永远不穿过</strong> eigenvector lines.</li>
+        <li><strong>Node</strong>：所有 trajectories（除沿 fast eigenvector 那条 line）都"切向于" <strong>slower eigenvector</strong>（$|r|$ 较小那个）— slow 方向主导 long-term behavior。
+          <ul>
+            <li>Stable node（都负）：trajectories 趋于原点，<strong>切向</strong>于较慢方向</li>
+            <li>Unstable node（都正）：trajectories 远离原点，仍切向于慢方向（在 backward $t$ 时）</li>
+          </ul>
+        </li>
+        <li><strong>Spiral</strong>：螺旋绕原点。$\lambda < 0$ 趋近，$\lambda > 0$ 远离。</li>
+        <li><strong>Center</strong>：闭合椭圆/圆绕原点，永不衰减.</li>
+      </ul>
+
+      <p><strong>Step 4：spiral / center 的旋转方向（顺/逆时针）。</strong></p>
+      <p>
+        选一个 specific point，比如 $(1, 0)$。算 $A \begin{pmatrix} 1 \\ 0 \end{pmatrix}$（就是矩阵 $A$ 的<strong>第一列</strong>）。这就是该点的 tangent vector $\mathbf{x}'$。
+      </p>
+      <ul>
+        <li>Tangent vector 的 $x_2$ 分量 $> 0$ → 从 $(1, 0)$ 出发向上 → <strong>逆时针</strong></li>
+        <li>Tangent vector 的 $x_2$ 分量 $< 0$ → 从 $(1, 0)$ 出发向下 → <strong>顺时针</strong></li>
+      </ul>
+
+      <div class="box example">
+        <p class="box-title">📝 示例 — §7.6 #1 的 phase portrait</p>
+        <p>$A = \begin{pmatrix} -1 & -4 \\ 1 & -1 \end{pmatrix}$，eigenvalues $r = -1 \pm 2i$.</p>
+        <p>
+          <em>Step 1：</em> Complex, $\lambda = -1 < 0$ ⟹ stable spiral.
+        </p>
+        <p>
+          <em>Step 2-3：</em> Complex case 跳过 eigenvector lines。直接画 spiral 趋于原点.
+        </p>
+        <p>
+          <em>Step 4（方向）：</em> 在 $(1, 0)$ 处，$A\begin{pmatrix} 1 \\ 0 \end{pmatrix} = \begin{pmatrix} -1 \\ 1 \end{pmatrix}$. $x_2$ 分量 $= 1 > 0$ ⟹ <strong>逆时针</strong>螺旋趋于原点.
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 一眼看出类型 — trace &amp; determinant trick</p>
+        <p>
+          给定 $2 \times 2$ matrix $A$，<strong>不用算 eigenvalues</strong> 就可以判类型，只需 $\det A$ 和 $\operatorname{tr} A$：
+        </p>
+        <ul>
+          <li>$\det A < 0$ → eigenvalues 反号 ⟹ <strong>saddle</strong>（永远 unstable）</li>
+          <li>$\det A > 0$ 且 $(\operatorname{tr} A)^2 > 4 \det A$ → real, same sign ⟹ <strong>node</strong>. $\operatorname{tr} A > 0$ unstable, $< 0$ stable.</li>
+          <li>$\det A > 0$ 且 $(\operatorname{tr} A)^2 < 4 \det A$ → complex ⟹ <strong>spiral</strong>（或 center if $\operatorname{tr} A = 0$）. $\operatorname{tr} A > 0$ unstable, $< 0$ stable, $= 0$ center.</li>
+          <li>$\det A = 0$ → zero eigenvalue ⟹ <strong>line of equilibria</strong></li>
+        </ul>
+        <p>
+          原理：char eq $r^2 - (\operatorname{tr} A) r + \det A = 0$，所以 $r = \dfrac{\operatorname{tr} \pm \sqrt{\operatorname{tr}^2 - 4\det}}{2}$. Discriminant 决定 real/complex，determinant 决定 same/opposite sign，trace 决定 stable/unstable。<br>
+          这个 trick 可以快速 sanity check：算完 eigenvalues 后看 trace/det 是否一致.
+        </p>
+      </div>
+
+      <h3 id="trajectory-specific-point">Trajectory through a specific point</h3>
+      <p>
+        题目可能让你"draw trajectory passing through $\mathbf{x}_0 = (a, b)$"（比如 §7.5 #17b, §7.6 #18b）— <strong>不是</strong>完整 phase portrait，只画<strong>一条</strong>曲线。流程：
+      </p>
+      <ol>
+        <li>用 $\mathbf{x}(0) = \mathbf{x}_0$ 算出 $c_1, c_2$（即把 $\mathbf{x}_0$ 当 IVP 来解）.</li>
+        <li>把 $(x_1(t), x_2(t))$ 当 parametric curve plot — 取几个 $t$ 值（比如 $t = 0, 0.5, 1, 2, 5$）算出对应坐标，描点连线.</li>
+        <li>在曲线上标箭头方向（$t$ 增大的方向）.</li>
+        <li>起点 $\mathbf{x}_0$ 用大圆点标清楚，写 "$t = 0$".</li>
+      </ol>
+      <p class="note">
+        如果该 trajectory 是 spiral，可以直接套 phase portrait 模板：以 $\mathbf{x}_0$ 为初始点，按 Step 4 决定的旋转方向螺旋（如果 $\lambda < 0$ 螺旋向内，$\lambda > 0$ 螺旋向外）.
+      </p>
+
+      <h3 id="component-plots">Component plots — $x_1$ vs $t$, $x_2$ vs $t$</h3>
+      <p>
+        把 $x_1(t), x_2(t)$ 当 1D functions 画，两个图分开（或叠在同一 $t$ 轴上用不同颜色）。
+      </p>
+      <ul>
+        <li><strong>Real distinct eigenvalues</strong>：$x_i(t)$ 是两个指数的 linear combo $c_1 \xi^{(1)}_i e^{r_1 t} + c_2 \xi^{(2)}_i e^{r_2 t}$。在 $t \to \infty$ 时较大 eigenvalue 主导；在 $t \to -\infty$ 时较小主导。画法：先画两个指数项，再加起来.</li>
+        <li><strong>Complex eigenvalues $r = \lambda \pm i\mu$</strong>：$x_i(t) = e^{\lambda t}[A_i \cos(\mu t) + B_i \sin(\mu t)]$ — sinusoid 乘 envelope $e^{\lambda t}$. 画法：
+          <ol>
+            <li>先画 dashed envelope $\pm R e^{\lambda t}$（$R = \sqrt{A_i^2 + B_i^2}$ 是振幅）.</li>
+            <li>在 envelope 之间画 sinusoid（period $T = 2\pi/\mu$）.</li>
+            <li>$\lambda < 0$: envelope 收缩 → decaying oscillation; $\lambda > 0$: envelope 扩张 → growing oscillation; $\lambda = 0$: envelope 是 horizontal lines → pure sinusoid.</li>
+          </ol>
+        </li>
+      </ul>
+
+      <h3 id="graph-pitfalls">Graphing pitfalls — 常见扣分点</h3>
+      <div class="box warning">
+        <p class="box-title">⚠️ 画图最容易扣分的地方</p>
+        <ul>
+          <li><strong>Trajectory 没标箭头</strong>：每条 trajectory 必须有箭头表示 $t$ 增大方向。没箭头 = 信息不全，扣分.</li>
+          <li><strong>方向画反</strong>：$r > 0$ 远离原点，$r < 0$ 趋近. 算完 eigenvector 一定要看 sign 再决定箭头方向.</li>
+          <li><strong>Node 的"切向"画错</strong>：trajectories 切向于 <strong>slower</strong> eigenvector ($|r|$ 较小)，不是 faster. 反着画 = 错.</li>
+          <li><strong>Saddle 的 trajectory 穿过 eigenvector line</strong>：永远不会穿过。Eigenvector lines 是 separatrices（分界线），轨迹只能在某一象限内.</li>
+          <li><strong>Spiral 漏判顺/逆时针</strong>：题目要 "qualitative phase portrait" 时旋转方向必给。用 $(1, 0)$ tangent vector 算.</li>
+          <li><strong>Center 画成 spiral</strong>：$\lambda = 0$ 时是<strong>闭合椭圆</strong>，<strong>不</strong>螺旋. 检查 $\operatorname{tr} A = 0$（且 eigenvalues complex）⟹ 必是 center.</li>
+          <li><strong>Eigenvector lines 没标 label</strong>：画完两条 line 应该标 "$\boldsymbol{\xi}^{(1)}$" 和 "$\boldsymbol{\xi}^{(2)}$"，并注明对应的 eigenvalue.</li>
+          <li><strong>Axes 标错</strong>：用 $x_1, x_2$（与题目 notation 一致），不是 $x, y$.</li>
+          <li><strong>Component plot 忘画 envelope</strong>：spiral 的 $x_i(t)$ 必须有 dashed envelope 指示振幅变化趋势.</li>
+          <li><strong>Zero eigenvalue case 画成 normal node</strong>：$\det A = 0$ 时整条 eigenvector line 上都是 equilibria（不是单一点）；trajectories 不趋于原点，而是趋于 line 上某点.</li>
+        </ul>
+      </div>
+
+      <h3 id="graph-tips">实战 tips</h3>
+      <ol>
+        <li><strong>不需要精确</strong>：qualitative 对就行（类型对，方向对，"切向"对）.</li>
+        <li><strong>5-7 条 trajectories 足够</strong>：每个象限 1-2 条 + 沿 eigenvector lines 几条。不要画 20 条让自己累.</li>
+        <li><strong>先打草稿</strong>：先在 scratch paper 上算清楚 eigenvalues、eigenvectors、方向，再在 answer paper 上画.</li>
+        <li><strong>对称性</strong>：很多 phase portraits 对原点对称（因为 $\mathbf{x}' = A\mathbf{x}$ 是 odd 的）。画一条 trajectory 后镜像复制可以加速.</li>
+        <li><strong>留白别挤</strong>：图至少占 1/4 页空间，标记不会挤在一起.</li>
+        <li><strong>checklist：</strong>(1) eigenvalue 类型, (2) eigenvector lines + labels, (3) 箭头方向, (4) 3-5 条 trajectories, (5) 坐标轴 + 原点 label.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-71">§7.1 HW Problems (5 题)</h2>
+      <p>HW 列表：#1, #3, #4, #8, #9。前 3 题是把高阶 ODE 转成 system，后 2 题是 verify systems。</p>
+
+      <h3 id="prob-7-1-1">§7.1 #1 — Convert $u'' + 0.5 u' + 2u = 0$ to a system</h3>
+      <div class="box example">
+        <p class="box-title">📝 Convert 2nd-order ODE → first-order system</p>
+        <p><strong>Problem.</strong> Transform the given equation into a system of first-order equations: $u'' + 0.5 u' + 2u = 0$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>令 $x_1 = u, x_2 = u'$。则
+        $$x_1' = u' = x_2.$$
+        从原方程 $u'' = -0.5 u' - 2u$，所以
+        $$x_2' = u'' = -0.5 x_2 - 2 x_1.$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\begin{cases} x_1' = x_2 \\ x_2' = -2 x_1 - 0.5 x_2 \end{cases} \quad \text{或} \quad \mathbf{x}' = \begin{pmatrix} 0 & 1 \\ -2 & -0.5 \end{pmatrix} \mathbf{x}\,}$$
+        </p>
+        <p class="note">💡 一般规律：$u^{(n)} + a_{n-1} u^{(n-1)} + \cdots + a_0 u = 0$ 的 companion matrix 形如下三角（最后一行装系数，正负号要正确）。</p>
+      </div>
+
+      <h3 id="prob-7-1-3">§7.1 #3 — Convert $u^{(4)} - u = 0$ to a system</h3>
+      <div class="box example">
+        <p class="box-title">📝 Convert 4th-order ODE → first-order system</p>
+        <p><strong>Problem.</strong> Transform $u^{(4)} - u = 0$ into a system.</p>
+        <p><strong>Solution.</strong> 令 $x_1 = u, x_2 = u', x_3 = u'', x_4 = u'''$。则
+        $$\begin{aligned} x_1' &= x_2 \\ x_2' &= x_3 \\ x_3' &= x_4 \\ x_4' &= u^{(4)} = u = x_1. \end{aligned}$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}' = \begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ 1 & 0 & 0 & 0 \end{pmatrix} \mathbf{x}\,}$$
+        </p>
+      </div>
+
+      <h3 id="prob-7-1-4">§7.1 #4 — IVP $u'' + 0.25 u' + 4u = 2\cos(3t)$, $u(0)=1, u'(0)=-2$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Convert IVP to system</p>
+        <p><strong>Problem.</strong> Transform the IVP $u'' + 0.25 u' + 4u = 2\cos(3t)$, $u(0) = 1, u'(0) = -2$ into a system with initial conditions.</p>
+        <p><strong>Solution.</strong> $x_1 = u, x_2 = u'$. 则 $x_1' = x_2$，$x_2' = u'' = -4u - 0.25 u' + 2\cos(3t) = -4 x_1 - 0.25 x_2 + 2\cos(3t)$.
+        IC: $x_1(0) = u(0) = 1$，$x_2(0) = u'(0) = -2$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}' = \begin{pmatrix} 0 & 1 \\ -4 & -0.25 \end{pmatrix} \mathbf{x} + \begin{pmatrix} 0 \\ 2\cos(3t) \end{pmatrix}, \quad \mathbf{x}(0) = \begin{pmatrix} 1 \\ -2 \end{pmatrix}\,}$$
+        </p>
+        <p class="note">⚠️ Pitfall：forcing function $2\cos(3t)$ 是 nonhomogeneous，要进 $\mathbf{g}(t)$ vector 的第二个分量（不是第一）— 因为它对应于 $u''$ 的方程。</p>
+      </div>
+
+      <h3 id="prob-7-1-8">§7.1 #8 — Verify a system with IVP</h3>
+      <div class="box example">
+        <p class="box-title">📝 Find $x_1, x_2$ satisfying given IVPs</p>
+        <p><strong>Problem.</strong> Find $x_1, x_2$ satisfying $x_1' = 2 x_2$, $x_1(0) = 3$; $x_2' = -2 x_1$, $x_2(0) = \tfrac{1}{2}$.</p>
+        <p><strong>Setup.</strong> 这题 system 已经写好。可以直接解；也可以转成单一 2nd-order ODE。两种方法都可行。</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Method 1（消元转 2nd-order）：</em> 从 $x_1' = 2 x_2$ 得 $x_2 = \tfrac{1}{2} x_1'$. 求导：$x_2' = \tfrac{1}{2} x_1''$. 代入 $x_2' = -2 x_1$:
+          $$\tfrac{1}{2} x_1'' = -2 x_1 \Longrightarrow x_1'' + 4 x_1 = 0.$$
+          这是 simple harmonic，$x_1(t) = A\cos(2t) + B\sin(2t)$。$x_1'(t) = -2A\sin(2t) + 2B\cos(2t)$，所以 $x_2 = \tfrac{1}{2} x_1' = -A\sin(2t) + B\cos(2t)$.
+        </p>
+        <p>
+          <em>Apply IC：</em> $x_1(0) = A = 3$. $x_2(0) = B = \tfrac{1}{2}$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,x_1(t) = 3\cos(2t) + \tfrac{1}{2}\sin(2t), \quad x_2(t) = -3\sin(2t) + \tfrac{1}{2}\cos(2t)\,}$$
+        </p>
+        <p class="note">💡 也可以直接走 §7.5 eigenvalue 方法。矩阵 $A = \begin{pmatrix} 0 & 2 \\ -2 & 0 \end{pmatrix}$，char eq $r^2 + 4 = 0$，$r = \pm 2i$，complex case → §7.6 方法，结果一样。</p>
+      </div>
+
+      <h3 id="prob-7-1-9">§7.1 #9 — $x_1' = -\tfrac{1}{2} x_1 + 2 x_2$, $x_2' = -2 x_1 - \tfrac{1}{2} x_2$, IC $(x_1(0), x_2(0)) = (-2, 2)$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Find $x_1, x_2$ from system with IC</p>
+        <p><strong>Problem.</strong> Find $x_1, x_2$ satisfying $x_1' = -\tfrac{1}{2} x_1 + 2 x_2$, $x_1(0) = -2$; $x_2' = -2 x_1 - \tfrac{1}{2} x_2$, $x_2(0) = 2$.</p>
+        <p><strong>Setup.</strong> 矩阵 $A = \begin{pmatrix} -\tfrac{1}{2} & 2 \\ -2 & -\tfrac{1}{2} \end{pmatrix}$. Char eq: $(r + \tfrac{1}{2})^2 + 4 = 0$, $r = -\tfrac{1}{2} \pm 2i$ — complex case ⟹ §7.6.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvector for $r_1 = -\tfrac{1}{2} + 2i$:</em> 解 $(A - r_1 I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -2i & 2 \\ -2 & -2i \end{pmatrix}\boldsymbol{\xi} = 0.$$
+          第一行 $-2i \xi_1 + 2 \xi_2 = 0 \Rightarrow \xi_2 = i \xi_1$. 取 $\xi_1 = 1$，$\boldsymbol{\xi}^{(1)} = \begin{pmatrix} 1 \\ i \end{pmatrix} = \mathbf{a} + i\mathbf{b}$，其中 $\mathbf{a} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}$，$\mathbf{b} = \begin{pmatrix} 0 \\ 1 \end{pmatrix}$.
+        </p>
+        <p>
+          <em>Real-valued solutions：</em> $\lambda = -\tfrac{1}{2}, \mu = 2$.
+          $$\begin{aligned}
+          \mathbf{u}(t) &= e^{-t/2}\big(\mathbf{a}\cos(2t) - \mathbf{b}\sin(2t)\big) = e^{-t/2}\begin{pmatrix} \cos(2t) \\ -\sin(2t) \end{pmatrix}, \\
+          \mathbf{v}(t) &= e^{-t/2}\big(\mathbf{a}\sin(2t) + \mathbf{b}\cos(2t)\big) = e^{-t/2}\begin{pmatrix} \sin(2t) \\ \cos(2t) \end{pmatrix}.
+          \end{aligned}$$
+        </p>
+        <p>
+          <em>General solution:</em>
+          $$\mathbf{x}(t) = c_1 e^{-t/2}\begin{pmatrix} \cos(2t) \\ -\sin(2t) \end{pmatrix} + c_2 e^{-t/2}\begin{pmatrix} \sin(2t) \\ \cos(2t) \end{pmatrix}.$$
+        </p>
+        <p>
+          <em>Apply IC：</em> $\mathbf{x}(0) = c_1 \begin{pmatrix} 1 \\ 0 \end{pmatrix} + c_2 \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \begin{pmatrix} -2 \\ 2 \end{pmatrix}$. 所以 $c_1 = -2, c_2 = 2$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = e^{-t/2}\begin{pmatrix} -2\cos(2t) + 2\sin(2t) \\ 2\sin(2t) + 2\cos(2t) \end{pmatrix}\,}$$
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-73">§7.3 HW Problems (6 题)</h2>
+      <p>HW 列表：#6, #7, #11, #12, #13, #18。前 4 题是 linear independence (Wronskian/determinant)，#13 是 subtle linear dependence vs independence on interval，#18 是 eigenvalue 计算。</p>
+
+      <h3 id="prob-7-3-6">§7.3 #6 — Linear independence of three vectors in $\mathbb{R}^3$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Linear independence (constant vectors)</p>
+        <p><strong>Problem.</strong> Determine whether $\mathbf{x}^{(1)} = (1, 1, 0)^T$, $\mathbf{x}^{(2)} = (0, 1, 1)^T$, $\mathbf{x}^{(3)} = (1, 0, 1)^T$ are linearly independent or dependent. If dependent, find a linear relation among them.</p>
+        <p><strong>Solution.</strong> 算 determinant：
+          $$\det\!\begin{pmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \\ 0 & 1 & 1 \end{pmatrix} = 1 \cdot (1 \cdot 1 - 0 \cdot 1) - 0 + 1 \cdot (1 \cdot 1 - 1 \cdot 0) = 1 + 1 = 2 \neq 0.$$
+          所以 linearly <strong>independent</strong>.
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\text{Linearly independent}\,}$</p>
+      </div>
+
+      <h3 id="prob-7-3-7">§7.3 #7 — Linear dependence of three vectors</h3>
+      <div class="box example">
+        <p class="box-title">📝 Linear dependence, find relation</p>
+        <p><strong>Problem.</strong> Determine linear independence of $\mathbf{x}^{(1)} = (2, 1, 0)^T$, $\mathbf{x}^{(2)} = (0, 1, 0)^T$, $\mathbf{x}^{(3)} = (-1, 2, 0)^T$.</p>
+        <p><strong>Solution.</strong> Determinant of matrix with these columns 的第三行全是 0，所以 $\det = 0$ ⟹ linearly <strong>dependent</strong>.
+        </p>
+        <p>
+          找 linear relation：设 $c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)} + c_3 \mathbf{x}^{(3)} = \mathbf{0}$。
+          $$\begin{cases} 2 c_1 - c_3 = 0 \\ c_1 + c_2 + 2 c_3 = 0 \\ 0 = 0 \end{cases}$$
+          第一式 $c_3 = 2 c_1$。代入第二式：$c_1 + c_2 + 4 c_1 = 0 \Rightarrow c_2 = -5 c_1$. 取 $c_1 = 1$：$c_2 = -5, c_3 = 2$.
+        </p>
+        <p><strong>Answer.</strong> 一个 relation: $\boxed{\,\mathbf{x}^{(1)} - 5\mathbf{x}^{(2)} + 2\mathbf{x}^{(3)} = \mathbf{0}\,}$ — 检查：$(2 - 0 - 2, 1 - 5 + 4, 0 - 0 + 0) = (0, 0, 0)$ ✓.</p>
+      </div>
+
+      <h3 id="prob-7-3-11">§7.3 #11 — Linear dep/indep of vector functions</h3>
+      <div class="box example">
+        <p class="box-title">📝 Vector functions, find relation if dependent</p>
+        <p><strong>Problem.</strong> Determine whether $\mathbf{x}^{(1)}(t) = (e^{-t}, 2e^{-t})^T$, $\mathbf{x}^{(2)}(t) = (e^{-t}, e^{-t})^T$, $\mathbf{x}^{(3)}(t) = (3e^{-t}, 0)^T$ are linearly independent on $-\infty < t < \infty$.</p>
+        <p><strong>Setup.</strong> 三个 2-component vectors，所以必然 linearly dependent 在 $\mathbb{R}^2$ 里（最多两个 lin. indep. 向量）。直接找 relation。</p>
+        <p><strong>Solution.</strong> 注意所有 vector 都有共同因子 $e^{-t}$，所以可以 factor 出来 — relation 是在 vectors $(1, 2), (1, 1), (3, 0)$ 之间。
+        $$c_1 \begin{pmatrix} 1 \\ 2 \end{pmatrix} + c_2 \begin{pmatrix} 1 \\ 1 \end{pmatrix} + c_3 \begin{pmatrix} 3 \\ 0 \end{pmatrix} = \mathbf{0} \Rightarrow \begin{cases} c_1 + c_2 + 3 c_3 = 0 \\ 2 c_1 + c_2 = 0 \end{cases}$$
+        第二式 $c_2 = -2 c_1$. 代入第一式：$c_1 - 2 c_1 + 3 c_3 = 0 \Rightarrow c_3 = \tfrac{c_1}{3}$. 取 $c_1 = 3$：$c_2 = -6, c_3 = 1$.
+        </p>
+        <p><strong>Answer.</strong> Linearly dependent. Relation: $\boxed{\,3 \mathbf{x}^{(1)} - 6 \mathbf{x}^{(2)} + \mathbf{x}^{(3)} = \mathbf{0}\,}$ 对所有 $t$ 都成立。</p>
+      </div>
+
+      <h3 id="prob-7-3-12">§7.3 #12 — Vector functions, parallel multiples</h3>
+      <div class="box example">
+        <p class="box-title">📝 Vector functions, $2 \times 1$ vectors</p>
+        <p><strong>Problem.</strong> Determine whether $\mathbf{x}^{(1)}(t) = (2\sin t, \sin t)^T$ and $\mathbf{x}^{(2)}(t) = (\sin t, 2\sin t)^T$ are linearly independent for $-\infty < t < \infty$.</p>
+        <p><strong>Setup.</strong> 两个 functions。看 Wronskian 即可。</p>
+        <p><strong>Solution.</strong>
+        $$W = \det\!\begin{pmatrix} 2\sin t & \sin t \\ \sin t & 2\sin t \end{pmatrix} = 4\sin^2 t - \sin^2 t = 3\sin^2 t.$$
+        在 $t = \pi$ 处，$W(\pi) = 0$；但在 $t = \pi/2$ 处，$W(\pi/2) = 3 \neq 0$. 既然有一点 $W \neq 0$，所以 linearly <strong>independent</strong> as functions on $(-\infty, \infty)$.
+        </p>
+        <p><strong>Answer.</strong> $\boxed{\,\text{Linearly independent}\,}$ (因为 $W$ 不恒为零).</p>
+        <p class="note">⚠️ Pitfall：每个具体 $t$ 处两个 vectors 都<strong>平行</strong>（都是 $\sin t \cdot (\text{const vec})$ 的形式），看起来好像 dependent。但 linear dependence as functions 要求<strong>同一组</strong> $c_1, c_2$ 在所有 $t$ 上成立。这里在 $t = \pi/2$ 处需要 $c_1(2,1) + c_2(1,2) = 0$，得 $c_1 = c_2 = 0$ — 所以 functions 是 independent。</p>
+      </div>
+
+      <h3 id="prob-7-3-13">§7.3 #13 — Subtle: dependent at each point but independent as functions</h3>
+      <div class="box example">
+        <p class="box-title">📝 Demonstrate the subtle distinction</p>
+        <p><strong>Problem.</strong> Let $\mathbf{x}^{(1)}(t) = \begin{pmatrix} e^t \\ t e^t \end{pmatrix}$ and $\mathbf{x}^{(2)}(t) = \begin{pmatrix} 1 \\ t \end{pmatrix}$. Show that $\mathbf{x}^{(1)}(t)$ and $\mathbf{x}^{(2)}(t)$ are linearly dependent at each point in $0 \leq t \leq 1$, but nevertheless are linearly independent on $0 \leq t \leq 1$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Part 1: Dependent at each point.</em> 在任意 fixed $t_0 \in [0, 1]$ 处，$\mathbf{x}^{(1)}(t_0) = e^{t_0} \cdot \begin{pmatrix} 1 \\ t_0 \end{pmatrix} = e^{t_0} \mathbf{x}^{(2)}(t_0)$。所以 $\mathbf{x}^{(1)}(t_0) - e^{t_0} \mathbf{x}^{(2)}(t_0) = \mathbf{0}$，即 $c_1 = 1, c_2 = -e^{t_0}$ 给出 linear relation at $t_0$。但 $c_2 = -e^{t_0}$ 依赖于 $t_0$！每个点不同。
+        </p>
+        <p>
+          <em>Part 2: Independent as functions.</em> 假设存在 constants $c_1, c_2$（不依赖 $t$）使得对所有 $t \in [0, 1]$：
+          $$c_1 \begin{pmatrix} e^t \\ t e^t \end{pmatrix} + c_2 \begin{pmatrix} 1 \\ t \end{pmatrix} = \mathbf{0}.$$
+          第一个分量：$c_1 e^t + c_2 = 0$ 对所有 $t$ 成立。在 $t = 0$：$c_1 + c_2 = 0$。在 $t = 1$：$c_1 e + c_2 = 0$。两式相减：$c_1(e - 1) = 0 \Rightarrow c_1 = 0 \Rightarrow c_2 = 0$.
+        </p>
+        <p>
+          因此 only solution 是 $c_1 = c_2 = 0$，所以 linearly <strong>independent</strong> as functions.
+        </p>
+        <p><strong>Answer.</strong> 证毕。这题展示 linearly dependent at each point ≠ linearly dependent as functions on an interval（关键：linear dependence as functions 要求 constants <strong>不依赖 $t$</strong>）。</p>
+        <p class="note">💡 这是 §7.3 最 conceptually subtle 的题。考试可能会问类似的 trap question。</p>
+      </div>
+
+      <h3 id="prob-7-3-18">§7.3 #18 — Find eigenvalues and eigenvectors of $\begin{pmatrix} 1 & 0 & 0 \\ 2 & 1 & -2 \\ 3 & 2 & 1 \end{pmatrix}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Eigenvalues + eigenvectors of $3 \times 3$ matrix</p>
+        <p><strong>Problem.</strong> Find all eigenvalues and eigenvectors of $A = \begin{pmatrix} 1 & 0 & 0 \\ 2 & 1 & -2 \\ 3 & 2 & 1 \end{pmatrix}$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Char poly：</em> $\det(A - rI) = \det\!\begin{pmatrix} 1-r & 0 & 0 \\ 2 & 1-r & -2 \\ 3 & 2 & 1-r \end{pmatrix}$. 按第一行展开（第一行只有 $(1-r)$ 非零）：
+          $$\det(A - rI) = (1 - r) \cdot \det\!\begin{pmatrix} 1 - r & -2 \\ 2 & 1 - r \end{pmatrix} = (1 - r)[(1-r)^2 + 4].$$
+          所以 char eq: $(1 - r)[(1 - r)^2 + 4] = 0$. Roots: $r_1 = 1$, $(1 - r)^2 = -4 \Rightarrow 1 - r = \pm 2i \Rightarrow r_{2,3} = 1 \mp 2i$.
+        </p>
+        <p>
+          <em>Eigenvector for $r_1 = 1$:</em> $(A - I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} 0 & 0 & 0 \\ 2 & 0 & -2 \\ 3 & 2 & 0 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0}.$$
+          第二行：$2 \xi_1 - 2 \xi_3 = 0 \Rightarrow \xi_3 = \xi_1$. 第三行：$3 \xi_1 + 2 \xi_2 = 0 \Rightarrow \xi_2 = -\tfrac{3}{2} \xi_1$. 取 $\xi_1 = 2$：$\boldsymbol{\xi}^{(1)} = (2, -3, 2)^T$.
+        </p>
+        <p>
+          <em>Eigenvector for $r_2 = 1 - 2i$:</em> $(A - (1-2i)I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} 2i & 0 & 0 \\ 2 & 2i & -2 \\ 3 & 2 & 2i \end{pmatrix}\boldsymbol{\xi} = \mathbf{0}.$$
+          第一行 $2i \xi_1 = 0 \Rightarrow \xi_1 = 0$. 第二行 $2 \cdot 0 + 2i \xi_2 - 2 \xi_3 = 0 \Rightarrow \xi_3 = i \xi_2$. 取 $\xi_2 = 1$：$\boldsymbol{\xi}^{(2)} = (0, 1, i)^T$.
+        </p>
+        <p>
+          <em>Eigenvector for $r_3 = 1 + 2i$:</em> 是 $r_2$ 的 conjugate，所以 $\boldsymbol{\xi}^{(3)} = \overline{\boldsymbol{\xi}^{(2)}} = (0, 1, -i)^T$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,r_1 = 1, \boldsymbol{\xi}^{(1)} = \begin{pmatrix} 2 \\ -3 \\ 2 \end{pmatrix}; \quad r_2 = 1 - 2i, \boldsymbol{\xi}^{(2)} = \begin{pmatrix} 0 \\ 1 \\ i \end{pmatrix}; \quad r_3 = 1 + 2i, \boldsymbol{\xi}^{(3)} = \begin{pmatrix} 0 \\ 1 \\ -i \end{pmatrix}\,}$$
+        </p>
+        <p class="note">💡 关于 $3 \times 3$ 的 determinant 展开：尽量沿着 0 多的行/列展开。这题第一行只有 $(1-r)$ 非零，所以 char poly 立刻 factor 出 $(1-r)$。</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-74">§7.4 HW Problems (4 题)</h2>
+      <p>HW 列表：#2a-e (skip f), #7, #11, #12。#2 是 verify-and-construct 系列（5 个 parts），#7 是 superposition proof，#11–12 是 IVP。</p>
+
+      <h3 id="prob-7-4-2">§7.4 #2 a–e — Verify, fundamental set, IVP, Wronskian</h3>
+      <div class="box example">
+        <p class="box-title">📝 Verify solutions and form general solution</p>
+        <p><strong>Problem.</strong> 给定 $\mathbf{x}' = \begin{pmatrix} 1 & 1 \\ 4 & -2 \end{pmatrix}\mathbf{x}$, $\mathbf{x}^{(1)} = \begin{pmatrix} -1 \\ 4 \end{pmatrix} e^{-3t}$, $\mathbf{x}^{(2)} = \begin{pmatrix} 1 \\ 1 \end{pmatrix} e^{2t}$. Do parts (a) verify solutions, (b) superposition, (c) fundamental set, (d) solve IVP with $\mathbf{x}(0) = (1, 2)^T$, (e) compute Wronskian.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>(a) Verify $\mathbf{x}^{(1)}$:</em>
+          $$\frac{d}{dt}\mathbf{x}^{(1)} = \begin{pmatrix} -1 \\ 4 \end{pmatrix}(-3) e^{-3t} = \begin{pmatrix} 3 \\ -12 \end{pmatrix} e^{-3t}.$$
+          $$A \mathbf{x}^{(1)} = \begin{pmatrix} 1 & 1 \\ 4 & -2 \end{pmatrix}\begin{pmatrix} -1 \\ 4 \end{pmatrix} e^{-3t} = \begin{pmatrix} -1 + 4 \\ -4 - 8 \end{pmatrix} e^{-3t} = \begin{pmatrix} 3 \\ -12 \end{pmatrix} e^{-3t}.$$
+          相等 ✓. 类似验证 $\mathbf{x}^{(2)}$:
+          $$\frac{d}{dt}\mathbf{x}^{(2)} = \begin{pmatrix} 2 \\ 2 \end{pmatrix} e^{2t}, \quad A\mathbf{x}^{(2)} = \begin{pmatrix} 1 + 1 \\ 4 - 2 \end{pmatrix} e^{2t} = \begin{pmatrix} 2 \\ 2 \end{pmatrix} e^{2t}. \checkmark$$
+        </p>
+        <p>
+          <em>(b) Superposition:</em> 因为 system 是 linear, $\mathbf{x} = c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)}$ 满足 $\mathbf{x}' = c_1 (\mathbf{x}^{(1)})' + c_2 (\mathbf{x}^{(2)})' = c_1 A \mathbf{x}^{(1)} + c_2 A \mathbf{x}^{(2)} = A(c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)}) = A \mathbf{x}$ ✓.
+        </p>
+        <p>
+          <em>(c) Fundamental set:</em> 算 Wronskian (part e 提前)：
+          $$W(t) = \det\!\begin{pmatrix} -e^{-3t} & e^{2t} \\ 4 e^{-3t} & e^{2t} \end{pmatrix} = -e^{-3t} \cdot e^{2t} - 4 e^{-3t} \cdot e^{2t} = -5 e^{-t}.$$
+          $W \neq 0$ everywhere ⟹ fundamental set ✓.
+        </p>
+        <p>
+          <em>(d) IVP $\mathbf{x}(0) = (1, 2)^T$:</em>
+          $$\mathbf{x}(0) = c_1 \begin{pmatrix} -1 \\ 4 \end{pmatrix} + c_2 \begin{pmatrix} 1 \\ 1 \end{pmatrix} = \begin{pmatrix} -c_1 + c_2 \\ 4 c_1 + c_2 \end{pmatrix} = \begin{pmatrix} 1 \\ 2 \end{pmatrix}.$$
+          $-c_1 + c_2 = 1$, $4 c_1 + c_2 = 2$. 相减：$5 c_1 = 1, c_1 = \tfrac{1}{5}$. $c_2 = 1 + \tfrac{1}{5} = \tfrac{6}{5}$.
+        </p>
+        <p><strong>Answer (d).</strong>
+          $$\boxed{\,\mathbf{x}(t) = \tfrac{1}{5}\begin{pmatrix} -1 \\ 4 \end{pmatrix} e^{-3t} + \tfrac{6}{5}\begin{pmatrix} 1 \\ 1 \end{pmatrix} e^{2t}\,}$$
+        </p>
+        <p><strong>Answer (e).</strong> $W(t) = -5 e^{-t}$.</p>
+      </div>
+
+      <h3 id="prob-7-4-7">§7.4 #7 — Proof of generalized superposition</h3>
+      <div class="box example">
+        <p class="box-title">📝 Theoretical: superposition for $k$ solutions</p>
+        <p><strong>Problem.</strong> Prove the generalization of Theorem 7.4.1: if $\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(k)}$ are solutions of $\mathbf{x}' = P(t)\mathbf{x}$, then for any constants $c_1, \ldots, c_k$,
+        $$\mathbf{x} = c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)} + \cdots + c_k \mathbf{x}^{(k)}$$
+        is also a solution.</p>
+        <p><strong>Proof.</strong> 算 $\mathbf{x}'$:
+        $$\mathbf{x}' = c_1 (\mathbf{x}^{(1)})' + c_2 (\mathbf{x}^{(2)})' + \cdots + c_k (\mathbf{x}^{(k)})'.$$
+        因每个 $\mathbf{x}^{(i)}$ 是 solution，$(\mathbf{x}^{(i)})' = P(t) \mathbf{x}^{(i)}$. 代入：
+        $$\mathbf{x}' = c_1 P(t) \mathbf{x}^{(1)} + \cdots + c_k P(t) \mathbf{x}^{(k)} = P(t)\big(c_1 \mathbf{x}^{(1)} + \cdots + c_k \mathbf{x}^{(k)}\big) = P(t) \mathbf{x}.$$
+        所以 $\mathbf{x}$ 也是 solution. $\square$
+        </p>
+        <p class="note">💡 这是 linear operator 的一般性质：$L[\mathbf{x}] = \mathbf{x}' - P(t)\mathbf{x}$ 是 linear（$L[c_1 \mathbf{x}^{(1)} + c_2 \mathbf{x}^{(2)}] = c_1 L[\mathbf{x}^{(1)}] + c_2 L[\mathbf{x}^{(2)}]$），所以 $L[\mathbf{x}^{(i)}] = 0$ for each $i$ ⟹ $L[\sum c_i \mathbf{x}^{(i)}] = 0$.</p>
+      </div>
+
+      <h3 id="prob-7-4-11">§7.4 #11 — IVP $\mathbf{x}' = \begin{pmatrix} -2 & 1 \\ -5 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = (1, 3)^T$</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP solution (real distinct eigenvalues)</p>
+        <p><strong>Problem.</strong> Solve $\mathbf{x}' = \begin{pmatrix} -2 & 1 \\ -5 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = \begin{pmatrix} 1 \\ 3 \end{pmatrix}$. Describe behavior as $t \to \infty$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det(A - rI) = (-2-r)(4-r) - (1)(-5) = r^2 - 2r - 8 + 5 = r^2 - 2r - 3 = (r-3)(r+1) = 0$. $r_1 = 3, r_2 = -1$ — real, opposite signs ⟹ saddle.
+        </p>
+        <p>
+          <em>Eigenvector for $r_1 = 3$:</em> $(A - 3I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -5 & 1 \\ -5 & 1 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0} \Rightarrow -5 \xi_1 + \xi_2 = 0 \Rightarrow \xi_2 = 5 \xi_1.$$
+          取 $\boldsymbol{\xi}^{(1)} = (1, 5)^T$.
+        </p>
+        <p>
+          <em>Eigenvector for $r_2 = -1$:</em> $(A + I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -1 & 1 \\ -5 & 5 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0} \Rightarrow -\xi_1 + \xi_2 = 0 \Rightarrow \xi_2 = \xi_1.$$
+          取 $\boldsymbol{\xi}^{(2)} = (1, 1)^T$.
+        </p>
+        <p>
+          <em>General solution:</em>
+          $$\mathbf{x}(t) = c_1 \begin{pmatrix} 1 \\ 5 \end{pmatrix} e^{3t} + c_2 \begin{pmatrix} 1 \\ 1 \end{pmatrix} e^{-t}.$$
+        </p>
+        <p>
+          <em>Apply IC:</em> $c_1 + c_2 = 1$, $5 c_1 + c_2 = 3$. 相减：$4 c_1 = 2, c_1 = \tfrac{1}{2}$. $c_2 = \tfrac{1}{2}$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = \tfrac{1}{2}\begin{pmatrix} 1 \\ 5 \end{pmatrix} e^{3t} + \tfrac{1}{2}\begin{pmatrix} 1 \\ 1 \end{pmatrix} e^{-t}\,}$$
+        </p>
+        <p>
+          <em>Behavior as $t \to \infty$:</em> $e^{3t}$ 项 dominate，$\mathbf{x}(t)$ 无界增长，方向趋于 eigenvector $(1, 5)^T$.
+        </p>
+      </div>
+
+      <h3 id="prob-7-4-12">§7.4 #12 — IVP $3 \times 3$ system</h3>
+      <div class="box example">
+        <p class="box-title">📝 IVP solution (3D system)</p>
+        <p><strong>Problem.</strong> Solve $\mathbf{x}' = \begin{pmatrix} 0 & 0 & -1 \\ 2 & 0 & 0 \\ -1 & 2 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = \begin{pmatrix} 7 \\ 5 \\ 5 \end{pmatrix}$. Describe behavior as $t \to \infty$.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Char poly:</em> $\det(A - rI) = \det\!\begin{pmatrix} -r & 0 & -1 \\ 2 & -r & 0 \\ -1 & 2 & 4-r \end{pmatrix}$. 按第一行展开：
+          $$= -r \det\!\begin{pmatrix} -r & 0 \\ 2 & 4-r \end{pmatrix} - 0 + (-1) \det\!\begin{pmatrix} 2 & -r \\ -1 & 2 \end{pmatrix}.$$
+          $$= -r \cdot (-r)(4-r) - (4 + (-r)(-1))^{-1} \ldots$$
+          算清楚：$\det\!\begin{pmatrix} -r & 0 \\ 2 & 4-r \end{pmatrix} = -r(4-r) - 0 = -r(4-r)$. $\det\!\begin{pmatrix} 2 & -r \\ -1 & 2 \end{pmatrix} = 4 + (-r)(-1) \cdot (-1)$ ... 等等小心。
+          标准展开：$\det\!\begin{pmatrix} a & b \\ c & d \end{pmatrix} = ad - bc$. 所以 $\det\!\begin{pmatrix} 2 & -r \\ -1 & 2 \end{pmatrix} = 2 \cdot 2 - (-r)(-1) = 4 - r$.
+          所以
+          $$\det(A - rI) = -r \cdot (-r)(4-r) - (4 - r) = r^2(4-r) - (4-r) = (4-r)(r^2 - 1) = (4 - r)(r - 1)(r + 1).$$
+          Roots: $r_1 = 4, r_2 = 1, r_3 = -1$. 全是 real distinct.
+        </p>
+        <p>
+          <em>Eigenvector for $r = 4$:</em> $(A - 4I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -4 & 0 & -1 \\ 2 & -4 & 0 \\ -1 & 2 & 0 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0}.$$
+          第二行 $2 \xi_1 - 4 \xi_2 = 0 \Rightarrow \xi_1 = 2 \xi_2$. 第一行 $-4 \xi_1 - \xi_3 = 0 \Rightarrow \xi_3 = -4 \xi_1 = -8 \xi_2$. 取 $\xi_2 = 1$：$\boldsymbol{\xi}^{(1)} = (2, 1, -8)^T$.
+        </p>
+        <p>
+          <em>Eigenvector for $r = 1$:</em> $(A - I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -1 & 0 & -1 \\ 2 & -1 & 0 \\ -1 & 2 & 3 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0}.$$
+          第一行 $-\xi_1 - \xi_3 = 0 \Rightarrow \xi_3 = -\xi_1$. 第二行 $2 \xi_1 - \xi_2 = 0 \Rightarrow \xi_2 = 2 \xi_1$. 取 $\xi_1 = 1$：$\boldsymbol{\xi}^{(2)} = (1, 2, -1)^T$.
+        </p>
+        <p>
+          <em>Eigenvector for $r = -1$:</em> $(A + I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} 1 & 0 & -1 \\ 2 & 1 & 0 \\ -1 & 2 & 5 \end{pmatrix}\boldsymbol{\xi} = \mathbf{0}.$$
+          第一行 $\xi_1 - \xi_3 = 0 \Rightarrow \xi_3 = \xi_1$. 第二行 $2 \xi_1 + \xi_2 = 0 \Rightarrow \xi_2 = -2 \xi_1$. 取 $\xi_1 = 1$：$\boldsymbol{\xi}^{(3)} = (1, -2, 1)^T$.
+        </p>
+        <p>
+          <em>General solution:</em>
+          $$\mathbf{x}(t) = c_1 \begin{pmatrix} 2 \\ 1 \\ -8 \end{pmatrix} e^{4t} + c_2 \begin{pmatrix} 1 \\ 2 \\ -1 \end{pmatrix} e^t + c_3 \begin{pmatrix} 1 \\ -2 \\ 1 \end{pmatrix} e^{-t}.$$
+        </p>
+        <p>
+          <em>Apply IC:</em>
+          $$\begin{cases} 2 c_1 + c_2 + c_3 = 7 \\ c_1 + 2 c_2 - 2 c_3 = 5 \\ -8 c_1 - c_2 + c_3 = 5 \end{cases}$$
+          相加第 1 和第 3：$-6 c_1 + 2 c_3 = 12 \Rightarrow c_3 = 3 c_1 + 6$. 把这代入第 1: $2 c_1 + c_2 + 3 c_1 + 6 = 7 \Rightarrow c_2 = 1 - 5 c_1$. 代入第 2: $c_1 + 2(1 - 5 c_1) - 2(3 c_1 + 6) = 5 \Rightarrow c_1 + 2 - 10 c_1 - 6 c_1 - 12 = 5 \Rightarrow -15 c_1 - 10 = 5 \Rightarrow c_1 = -1$. 然后 $c_2 = 1 - 5(-1) = 6$, $c_3 = 3(-1) + 6 = 3$.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = -\begin{pmatrix} 2 \\ 1 \\ -8 \end{pmatrix} e^{4t} + 6 \begin{pmatrix} 1 \\ 2 \\ -1 \end{pmatrix} e^t + 3 \begin{pmatrix} 1 \\ -2 \\ 1 \end{pmatrix} e^{-t}\,}$$
+        </p>
+        <p>
+          <em>Behavior as $t \to \infty$:</em> $e^{4t}$ dominates ⟹ $\mathbf{x}$ 无界增长，方向趋于 $-\boldsymbol{\xi}^{(1)} = (-2, -1, 8)^T$.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-75">§7.5 HW Problems (5 题)</h2>
+      <p>HW 列表：#1, #4, #5, #12, #23。前三题是 phase portrait & general solution（real distinct case），#12 是 3D IVP，#23 是 bifurcation 分析。</p>
+
+      <h3 id="prob-7-5-1">§7.5 #1 — $\mathbf{x}' = \begin{pmatrix} 3 & -2 \\ 2 & -2 \end{pmatrix}\mathbf{x}$ (saddle point)</h3>
+      <div class="box example">
+        <p class="box-title">📝 General solution + phase portrait</p>
+        <p><strong>Problem.</strong> Find general solution + describe behavior + trajectories.</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det\!\begin{pmatrix} 3-r & -2 \\ 2 & -2-r \end{pmatrix} = (3-r)(-2-r) + 4 = r^2 - r - 6 + 4 = r^2 - r - 2 = (r-2)(r+1) = 0$. $r_1 = 2, r_2 = -1$ — opposite signs ⟹ saddle point.
+        </p>
+        <p>
+          <em>Eigenvectors:</em>
+          <ul>
+            <li>$r = 2$: $\begin{pmatrix} 1 & -2 \\ 2 & -4 \end{pmatrix}\boldsymbol{\xi} = 0 \Rightarrow \xi_1 = 2 \xi_2$. $\boldsymbol{\xi}^{(1)} = (2, 1)^T$.</li>
+            <li>$r = -1$: $\begin{pmatrix} 4 & -2 \\ 2 & -1 \end{pmatrix}\boldsymbol{\xi} = 0 \Rightarrow 2 \xi_1 = \xi_2$. $\boldsymbol{\xi}^{(2)} = (1, 2)^T$.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 \begin{pmatrix} 2 \\ 1 \end{pmatrix} e^{2t} + c_2 \begin{pmatrix} 1 \\ 2 \end{pmatrix} e^{-t}\,}$$
+          As $t \to \infty$，$e^{2t}$ 项 dominate，trajectories 趋向 $(2, 1)$ 方向；as $t \to -\infty$，$e^{-t}$ dominate，趋向 $(1, 2)$ 方向。Saddle point — unstable.
+        </p>
+      </div>
+
+      <h3 id="prob-7-5-4">§7.5 #4 — $\mathbf{x}' = \begin{pmatrix} 5/4 & 3/4 \\ 3/4 & 5/4 \end{pmatrix}\mathbf{x}$ (unstable node)</h3>
+      <div class="box example">
+        <p class="box-title">📝 General solution + behavior</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det\!\begin{pmatrix} 5/4-r & 3/4 \\ 3/4 & 5/4-r \end{pmatrix} = (5/4 - r)^2 - 9/16$. 设 $u = 5/4 - r$，则 $u^2 = 9/16 \Rightarrow u = \pm 3/4 \Rightarrow r = 5/4 \mp 3/4$. $r_1 = 1/2, r_2 = 2$ — both positive ⟹ unstable node.
+        </p>
+        <p>
+          <em>Eigenvectors:</em>
+          <ul>
+            <li>$r = 1/2$: $\begin{pmatrix} 3/4 & 3/4 \\ 3/4 & 3/4 \end{pmatrix}\boldsymbol{\xi} = 0 \Rightarrow \xi_1 + \xi_2 = 0 \Rightarrow \xi_2 = -\xi_1$. $\boldsymbol{\xi}^{(1)} = (1, -1)^T$.</li>
+            <li>$r = 2$: $\begin{pmatrix} -3/4 & 3/4 \\ 3/4 & -3/4 \end{pmatrix}\boldsymbol{\xi} = 0 \Rightarrow \xi_2 = \xi_1$. $\boldsymbol{\xi}^{(2)} = (1, 1)^T$.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 \begin{pmatrix} 1 \\ -1 \end{pmatrix} e^{t/2} + c_2 \begin{pmatrix} 1 \\ 1 \end{pmatrix} e^{2t}\,}$$
+          As $t \to \infty$，$e^{2t}$ dominate，所有 trajectories（除 $c_2 = 0$ 那条线）趋于 $(1, 1)$ 方向。Unstable node.
+        </p>
+      </div>
+
+      <h3 id="prob-7-5-5">§7.5 #5 — $\mathbf{x}' = \begin{pmatrix} 4 & -3 \\ 8 & -6 \end{pmatrix}\mathbf{x}$ (zero eigenvalue)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Zero eigenvalue case</p>
+        <p><strong>Problem.</strong> Find general solution + draw trajectories. (One of the eigenvalues is zero — equilibrium points form a line.)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det\!\begin{pmatrix} 4-r & -3 \\ 8 & -6-r \end{pmatrix} = (4-r)(-6-r) + 24 = r^2 + 2r - 24 + 24 = r^2 + 2r = r(r+2) = 0$. $r_1 = 0, r_2 = -2$.
+        </p>
+        <p>
+          <em>Eigenvectors:</em>
+          <ul>
+            <li>$r = 0$: $\begin{pmatrix} 4 & -3 \\ 8 & -6 \end{pmatrix}\boldsymbol{\xi} = 0$. 第一行 $4 \xi_1 = 3 \xi_2 \Rightarrow \xi_2 = \tfrac{4}{3} \xi_1$. 取 $\xi_1 = 3$：$\boldsymbol{\xi}^{(1)} = (3, 4)^T$.</li>
+            <li>$r = -2$: $\begin{pmatrix} 6 & -3 \\ 8 & -4 \end{pmatrix}\boldsymbol{\xi} = 0$. 第一行 $2 \xi_1 = \xi_2$. $\boldsymbol{\xi}^{(2)} = (1, 2)^T$.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 \begin{pmatrix} 3 \\ 4 \end{pmatrix} + c_2 \begin{pmatrix} 1 \\ 2 \end{pmatrix} e^{-2t}\,}$$
+          As $t \to \infty$，$e^{-2t} \to 0$，$\mathbf{x}(t) \to c_1 (3, 4)^T$ — 每条 trajectory 趋于一个 equilibrium point on the line spanned by $(3, 4)^T$. 这条 line 是 line of equilibria（不是单一点）.
+        </p>
+        <p class="note">⚠️ Pitfall：zero eigenvalue case 的 phase portrait 有 $\boldsymbol{\xi}^{(1)} = (3, 4)$ 方向一整条 line 上每点都是 equilibrium；trajectory 不是螺旋或 node，而是从某点沿 $\boldsymbol{\xi}^{(2)} = (1, 2)$ 方向移到 line 上某点。</p>
+      </div>
+
+      <h3 id="prob-7-5-12">§7.5 #12 — IVP $\mathbf{x}' = \begin{pmatrix} 0 & 0 & -1 \\ 2 & 0 & 0 \\ -1 & 2 & 4 \end{pmatrix}\mathbf{x}$, $\mathbf{x}(0) = (7, 5, 5)^T$</h3>
+      <div class="box example">
+        <p class="box-title">📝 3D IVP — same as §7.4 #12</p>
+        <p><strong>Problem.</strong> 与 §7.4 #12 完全相同。</p>
+        <p>解参考 <a href="#prob-7-4-12">§7.4 #12</a>. 最终答案：
+          $$\mathbf{x}(t) = -\begin{pmatrix} 2 \\ 1 \\ -8 \end{pmatrix} e^{4t} + 6 \begin{pmatrix} 1 \\ 2 \\ -1 \end{pmatrix} e^t + 3 \begin{pmatrix} 1 \\ -2 \\ 1 \end{pmatrix} e^{-t}.$$
+        </p>
+      </div>
+
+      <h3 id="prob-7-5-23">§7.5 #23 — Bifurcation analysis $\mathbf{x}' = \begin{pmatrix} -1 & -1 \\ -\alpha & -1 \end{pmatrix}\mathbf{x}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Bifurcation with parameter $\alpha$</p>
+        <p><strong>Problem.</strong></p>
+        <ul>
+          <li>(a) Solve for $\alpha = 1/2$. Classify equilibrium.</li>
+          <li>(b) Solve for $\alpha = 2$. Classify equilibrium.</li>
+          <li>(c) Find eigenvalues in terms of $\alpha$. Find bifurcation value between 1/2 and 2.</li>
+        </ul>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>General eigenvalues:</em> $\det\!\begin{pmatrix} -1-r & -1 \\ -\alpha & -1-r \end{pmatrix} = (1+r)^2 - \alpha = 0 \Rightarrow 1 + r = \pm \sqrt{\alpha} \Rightarrow r = -1 \pm \sqrt{\alpha}$.
+        </p>
+        <p>
+          <em>(a) $\alpha = 1/2$:</em> $r = -1 \pm 1/\sqrt{2}$. 数值上 $1/\sqrt{2} \approx 0.707 < 1$，所以两个 eigenvalues 都<strong>负</strong>（$-1 + 0.707 = -0.293$, $-1 - 0.707 = -1.707$）. Real distinct, both negative ⟹ <strong>asymptotically stable node</strong>.
+        </p>
+        <p>
+          <em>(b) $\alpha = 2$:</em> $r = -1 \pm \sqrt{2}$. $\sqrt{2} \approx 1.414 > 1$，所以 $r_1 = -1 + 1.414 = 0.414 > 0$ 和 $r_2 = -1 - 1.414 = -2.414 < 0$. Real distinct, opposite signs ⟹ <strong>saddle point</strong>.
+        </p>
+        <p>
+          <em>(c) Bifurcation:</em> 转变在哪个 $\alpha$？当 $\alpha = 1$ 时，$r = -1 \pm 1$，所以 $r_1 = 0, r_2 = -2$. 一个 eigenvalue 是零 — 这是 stable node 与 saddle 之间的 transition。所以 <strong>$\alpha = 1$</strong> 是 bifurcation value.
+        </p>
+        <p>
+          <em>Solutions for (a), $\alpha = 1/2$:</em> 留作练习（按 §7.5 流程算 eigenvectors）.<br>
+          <em>Solutions for (b), $\alpha = 2$:</em>
+          <ul>
+            <li>$r = -1 + \sqrt{2}$: $(A - rI)\boldsymbol{\xi} = 0$，得 $\boldsymbol{\xi}^{(1)} = (-1, \sqrt{2})^T$（或类似）.</li>
+            <li>$r = -1 - \sqrt{2}$: $\boldsymbol{\xi}^{(2)} = (1, \sqrt{2})^T$（或类似）.</li>
+          </ul>
+        </p>
+        <p><strong>Answer.</strong>
+          <ul>
+            <li>(a) Eigenvalues $r = -1 \pm 1/\sqrt{2}$，asymptotically stable node.</li>
+            <li>(b) Eigenvalues $r = -1 \pm \sqrt{2}$，saddle point.</li>
+            <li>(c) Bifurcation at $\boxed{\,\alpha = 1\,}$（零 eigenvalue）.</li>
+          </ul>
+        </p>
+        <p class="note">💡 Bifurcation 通常发生在 (i) zero eigenvalue（saddle ↔ node）, (ii) eigenvalues 从 real distinct 变成 complex（node ↔ spiral，即 discriminant = 0）, (iii) complex eigenvalues 的 real part 变号（stable spiral ↔ unstable spiral）.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="problems-76">§7.6 HW Problems (5 题)</h2>
+      <p>HW 列表：#1, #4, #6, #11, #13。前 3 题求 real-valued general solution（complex eigenvalues），后 2 题是 bifurcation 分析。</p>
+
+      <h3 id="prob-7-6-1">§7.6 #1 — $\mathbf{x}' = \begin{pmatrix} -1 & -4 \\ 1 & -1 \end{pmatrix}\mathbf{x}$ (stable spiral)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Real-valued general solution (complex eigenvalues)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det\!\begin{pmatrix} -1-r & -4 \\ 1 & -1-r \end{pmatrix} = (1+r)^2 + 4 = 0 \Rightarrow 1 + r = \pm 2i \Rightarrow r = -1 \pm 2i$.
+        </p>
+        <p>
+          <em>Eigenvector for $r_1 = -1 + 2i$:</em> $(A - r_1 I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -2i & -4 \\ 1 & -2i \end{pmatrix}\boldsymbol{\xi} = 0.$$
+          第一行 $-2i \xi_1 - 4 \xi_2 = 0 \Rightarrow \xi_2 = -\dfrac{i}{2} \xi_1 \Rightarrow \xi_2 = -\dfrac{i \xi_1}{2}$.
+          取 $\xi_1 = 2$：$\boldsymbol{\xi}^{(1)} = (2, -i)^T = \begin{pmatrix} 2 \\ 0 \end{pmatrix} + i \begin{pmatrix} 0 \\ -1 \end{pmatrix}$.
+          所以 $\mathbf{a} = (2, 0)^T, \mathbf{b} = (0, -1)^T$.
+        </p>
+        <p>
+          <em>Real-valued solutions:</em> $\lambda = -1, \mu = 2$.
+          $$\begin{aligned}
+          \mathbf{u}(t) &= e^{-t}\big(\mathbf{a}\cos(2t) - \mathbf{b}\sin(2t)\big) = e^{-t}\!\begin{pmatrix} 2\cos(2t) \\ \sin(2t) \end{pmatrix}, \\
+          \mathbf{v}(t) &= e^{-t}\big(\mathbf{a}\sin(2t) + \mathbf{b}\cos(2t)\big) = e^{-t}\!\begin{pmatrix} 2\sin(2t) \\ -\cos(2t) \end{pmatrix}.
+          \end{aligned}$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 e^{-t}\!\begin{pmatrix} 2\cos(2t) \\ \sin(2t) \end{pmatrix} + c_2 e^{-t}\!\begin{pmatrix} 2\sin(2t) \\ -\cos(2t) \end{pmatrix}\,}$$
+        </p>
+        <p>
+          <em>Behavior:</em> $\lambda = -1 < 0$ ⟹ stable spiral（趋于原点的螺旋）。As $t \to \infty$, $\mathbf{x} \to \mathbf{0}$.
+        </p>
+      </div>
+
+      <h3 id="prob-7-6-4">§7.6 #4 — $\mathbf{x}' = \begin{pmatrix} 1 & 2 \\ -5 & -1 \end{pmatrix}\mathbf{x}$ (center)</h3>
+      <div class="box example">
+        <p class="box-title">📝 Pure imaginary eigenvalues → center</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Eigenvalues:</em> $\det\!\begin{pmatrix} 1-r & 2 \\ -5 & -1-r \end{pmatrix} = (1-r)(-1-r) + 10 = -(1-r)(1+r) + 10 = -(1 - r^2) + 10 = r^2 + 9 = 0$. $r = \pm 3i$ — pure imaginary ⟹ center.
+        </p>
+        <p>
+          <em>Eigenvector for $r_1 = 3i$:</em>
+          $$\begin{pmatrix} 1 - 3i & 2 \\ -5 & -1 - 3i \end{pmatrix}\boldsymbol{\xi} = 0.$$
+          第一行 $(1 - 3i)\xi_1 + 2 \xi_2 = 0 \Rightarrow \xi_2 = -\dfrac{1 - 3i}{2}\xi_1 = -\dfrac{1}{2} \xi_1 + \dfrac{3i}{2}\xi_1$. 取 $\xi_1 = 2$：$\xi_2 = -1 + 3i$.
+          $\boldsymbol{\xi}^{(1)} = (2, -1 + 3i)^T = \begin{pmatrix} 2 \\ -1 \end{pmatrix} + i \begin{pmatrix} 0 \\ 3 \end{pmatrix}$.
+          所以 $\mathbf{a} = (2, -1)^T, \mathbf{b} = (0, 3)^T$.
+        </p>
+        <p>
+          <em>Real-valued solutions:</em> $\lambda = 0, \mu = 3$.
+          $$\begin{aligned}
+          \mathbf{u}(t) &= \mathbf{a}\cos(3t) - \mathbf{b}\sin(3t) = \begin{pmatrix} 2\cos(3t) \\ -\cos(3t) - 3\sin(3t) \end{pmatrix}, \\
+          \mathbf{v}(t) &= \mathbf{a}\sin(3t) + \mathbf{b}\cos(3t) = \begin{pmatrix} 2\sin(3t) \\ -\sin(3t) + 3\cos(3t) \end{pmatrix}.
+          \end{aligned}$$
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\mathbf{x}(t) = c_1 \begin{pmatrix} 2\cos(3t) \\ -\cos(3t) - 3\sin(3t) \end{pmatrix} + c_2 \begin{pmatrix} 2\sin(3t) \\ -\sin(3t) + 3\cos(3t) \end{pmatrix}\,}$$
+        </p>
+        <p>
+          <em>Behavior:</em> $\lambda = 0$ ⟹ center，trajectories 是闭合椭圆，无衰减振荡。
+        </p>
+      </div>
+
+      <h3 id="prob-7-6-6">§7.6 #6 — $\mathbf{x}' = \begin{pmatrix} -3 & 0 & 2 \\ 1 & -1 & 0 \\ -2 & -1 & 0 \end{pmatrix}\mathbf{x}$ (3D, complex eigenvalues)</h3>
+      <div class="box example">
+        <p class="box-title">📝 3D system with complex eigenvalues</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>Char poly:</em>
+          $$\det\!\begin{pmatrix} -3-r & 0 & 2 \\ 1 & -1-r & 0 \\ -2 & -1 & -r \end{pmatrix}.$$
+          按第二列展开（有一个 0 在第一行）：
+          $$= -0 \cdot M_{12} + (-1-r)\det\!\begin{pmatrix} -3-r & 2 \\ -2 & -r \end{pmatrix} - (-1)\det\!\begin{pmatrix} -3-r & 2 \\ 1 & 0 \end{pmatrix}.$$
+          $\det\!\begin{pmatrix} -3-r & 2 \\ -2 & -r \end{pmatrix} = (-3-r)(-r) - (-4) = r(3+r) + 4 = r^2 + 3r + 4$.
+          $\det\!\begin{pmatrix} -3-r & 2 \\ 1 & 0 \end{pmatrix} = 0 - 2 = -2$.
+          所以
+          $$\det(A - rI) = (-1-r)(r^2 + 3r + 4) + (-2) = -(1+r)(r^2 + 3r + 4) - 2.$$
+          展开：$(1+r)(r^2 + 3r + 4) = r^2 + 3r + 4 + r^3 + 3r^2 + 4r = r^3 + 4r^2 + 7r + 4$.
+          所以 $\det = -(r^3 + 4r^2 + 7r + 4) - 2 = -(r^3 + 4r^2 + 7r + 6) = 0$, i.e., $r^3 + 4r^2 + 7r + 6 = 0$.
+          猜 root：$r = -2$: $-8 + 16 - 14 + 6 = 0$ ✓. 所以 $(r + 2)(r^2 + 2r + 3) = 0$. $r_1 = -2$, $r_{2,3} = (-2 \pm \sqrt{4 - 12})/2 = -1 \pm i\sqrt{2}$.
+        </p>
+        <p>
+          <em>Eigenvector for $r = -2$:</em> $(A + 2I)\boldsymbol{\xi} = 0$:
+          $$\begin{pmatrix} -1 & 0 & 2 \\ 1 & 1 & 0 \\ -2 & -1 & 2 \end{pmatrix}\boldsymbol{\xi} = 0.$$
+          第一行 $-\xi_1 + 2\xi_3 = 0 \Rightarrow \xi_1 = 2\xi_3$. 第二行 $\xi_1 + \xi_2 = 0 \Rightarrow \xi_2 = -\xi_1 = -2\xi_3$. 取 $\xi_3 = 1$：$\boldsymbol{\xi}^{(1)} = (2, -2, 1)^T$.
+        </p>
+        <p>
+          <em>Complex eigenvector for $r = -1 + i\sqrt{2}$:</em> 计算量较大，写成 $\boldsymbol{\xi}^{(2)} = \mathbf{a} + i\mathbf{b}$ 形式（详细 row reduction 略，最终结果应该给出 $\mathbf{a}, \mathbf{b}$ 两个 real vectors）。
+        </p>
+        <p>
+          <em>General solution:</em>
+          $$\mathbf{x}(t) = c_1 \boldsymbol{\xi}^{(1)} e^{-2t} + c_2 e^{-t}(\mathbf{a}\cos(\sqrt{2}\, t) - \mathbf{b}\sin(\sqrt{2}\, t)) + c_3 e^{-t}(\mathbf{a}\sin(\sqrt{2}\, t) + \mathbf{b}\cos(\sqrt{2}\, t)).$$
+        </p>
+        <p class="note">💡 这题代数较繁。考试遇到 3D 复杂题，先把 char poly 因式分解（猜 small integer roots），剩下的 quadratic 用求根公式。Real eigenvector 算清楚；complex eigenvector 算<strong>一个</strong>就够。</p>
+      </div>
+
+      <h3 id="prob-7-6-11">§7.6 #11 — Bifurcation $\mathbf{x}' = \begin{pmatrix} \alpha & 1 \\ -1 & \alpha \end{pmatrix}\mathbf{x}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Bifurcation analysis (spiral cases)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>(a) Eigenvalues:</em> $\det\!\begin{pmatrix} \alpha-r & 1 \\ -1 & \alpha-r \end{pmatrix} = (\alpha - r)^2 + 1 = 0 \Rightarrow \alpha - r = \pm i \Rightarrow r = \alpha \mp i$.
+          所以 $r = \alpha \pm i$ — 永远 complex（$\mu = 1 \neq 0$ for all $\alpha$）.
+        </p>
+        <p>
+          <em>(b) Bifurcation value:</em> Real part = $\alpha$. Transition 发生在 $\alpha = 0$（spiral ↔ center）.
+          <ul>
+            <li>$\alpha < 0$: stable spiral</li>
+            <li>$\alpha = 0$: center</li>
+            <li>$\alpha > 0$: unstable spiral</li>
+          </ul>
+          <strong>Bifurcation value: $\alpha = 0$</strong>.
+        </p>
+        <p><strong>Answer.</strong>
+          $$\boxed{\,\text{Eigenvalues: } r = \alpha \pm i; \text{ Bifurcation at } \alpha = 0\,}$$
+        </p>
+      </div>
+
+      <h3 id="prob-7-6-13">§7.6 #13 — Bifurcation $\mathbf{x}' = \begin{pmatrix} 5/4 & 3/4 \\ \alpha & 5/4 \end{pmatrix}\mathbf{x}$</h3>
+      <div class="box example">
+        <p class="box-title">📝 Bifurcation (real ↔ complex)</p>
+        <p><strong>Solution.</strong></p>
+        <p>
+          <em>(a) Eigenvalues:</em> $\det\!\begin{pmatrix} 5/4-r & 3/4 \\ \alpha & 5/4-r \end{pmatrix} = (5/4-r)^2 - \tfrac{3\alpha}{4} = 0$.
+          $$5/4 - r = \pm \sqrt{\tfrac{3\alpha}{4}} = \pm \tfrac{\sqrt{3\alpha}}{2} \Rightarrow r = \tfrac{5}{4} \mp \tfrac{\sqrt{3\alpha}}{2}.$$
+          $r$ 是 real 当 $\alpha \geq 0$（且 distinct 当 $\alpha > 0$），是 complex 当 $\alpha < 0$.
+        </p>
+        <p>
+          <em>(b) Bifurcation values:</em>
+          <ul>
+            <li>$\alpha < 0$: $r = 5/4 \pm i \tfrac{\sqrt{-3\alpha}}{2}$ — complex, $\lambda = 5/4 > 0$ ⟹ unstable spiral.</li>
+            <li>$\alpha = 0$: $r = 5/4$（double root, real）— degenerate node.</li>
+            <li>$\alpha > 0$: $r = 5/4 \pm \tfrac{\sqrt{3\alpha}}{2}$ — real distinct. Both positive iff $\tfrac{\sqrt{3\alpha}}{2} < 5/4$, i.e., $\sqrt{3\alpha} < 5/2$, i.e., $3\alpha < 25/4$, i.e., $\alpha < 25/12$. So for $0 < \alpha < 25/12$, two positive eigenvalues ⟹ unstable node. For $\alpha > 25/12$, one positive one negative ⟹ saddle point.</li>
+          </ul>
+          <strong>Bifurcation values: $\alpha = 0$ (complex ↔ real)</strong> 和 $\boxed{\,\alpha = 25/12\,}$ (node ↔ saddle, when smaller eigenvalue crosses zero).
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="pitfalls">Common pitfalls — Systems</h2>
+      <ol>
+        <li><strong>Eigenvector 算错符号</strong>：解 $(A - rI)\boldsymbol{\xi} = 0$ 时算术错误。<strong>始终回代检验</strong>：$A \boldsymbol{\xi} \stackrel{?}{=} r \boldsymbol{\xi}$.</li>
+        <li><strong>Complex case 算<strong>两个</strong> eigenvectors</strong>：完全没必要。算 $\boldsymbol{\xi}^{(1)}$ 一个就够，$\boldsymbol{\xi}^{(2)} = \overline{\boldsymbol{\xi}^{(1)}}$ 不写也行。然后用 $\mathbf{u}, \mathbf{v}$ 公式拆 real/imaginary parts。</li>
+        <li><strong>$\mathbf{u}, \mathbf{v}$ 公式记错</strong>：$\mathbf{u} = e^{\lambda t}(\mathbf{a}\cos - \mathbf{b}\sin)$，注意 minus sign 在 $\mathbf{b}\sin$ 之前。<strong>不是</strong> $\mathbf{a}\cos + \mathbf{b}\sin$.</li>
+        <li><strong>把 eigenvector $\boldsymbol{\xi} = (1, 2)^T$ 写成 $e^{rt}(1, 2)$</strong>：错位 — eigenvector 是 vector，要乘 $e^{rt}$ 得到 solution。两者不同。</li>
+        <li><strong>3D char poly 不会因式分解</strong>：先猜 small integer roots（$\pm 1, \pm 2, \pm 3$ 等），用 synthetic division 拆出 quadratic factor。Boyce 题目设计成会有 nice integer root。</li>
+        <li><strong>Zero eigenvalue 不识别</strong>：看到 $\det A = 0$（或 char eq 有 $r = 0$ root），要意识到这是 "line of equilibria" case — solution 含 constant term $c_1 \boldsymbol{\xi}^{(1)}$（无指数）.</li>
+        <li><strong>Bifurcation 题忘记考虑所有 transition</strong>：bifurcation 不只是 stable ↔ unstable，还包括 (i) complex ↔ real（discriminant = 0）、(ii) saddle ↔ node（eigenvalue passing through 0）、(iii) real part 变号. 仔细分类讨论。</li>
+        <li><strong>Phase portrait 方向（顺/逆时针）画反</strong>：在某 specific 点（比如 $(1, 0)$）算 $A\mathbf{x}$ 看 tangent vector 指向哪 — 这告诉你旋转方向。</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+      <h3 id="key-points">本节要点</h3>
+      <ul>
+        <li><strong>Systems = matrix eigenvalue 问题</strong>。Char eq $\det(A - rI) = 0$ 给 eigenvalues。每个 eigenvalue 找 eigenvector ⟹ 一个 fundamental solution $\boldsymbol{\xi} e^{rt}$.</li>
+        <li><strong>Real distinct</strong>: $\mathbf{x} = c_1 \boldsymbol{\xi}^{(1)} e^{r_1 t} + c_2 \boldsymbol{\xi}^{(2)} e^{r_2 t} + \cdots$.</li>
+        <li><strong>Complex conjugate</strong>: 算<strong>一个</strong> $\boldsymbol{\xi}^{(1)} = \mathbf{a} + i\mathbf{b}$，$\mathbf{u} = e^{\lambda t}(\mathbf{a}\cos\mu t - \mathbf{b}\sin\mu t)$, $\mathbf{v} = e^{\lambda t}(\mathbf{a}\sin\mu t + \mathbf{b}\cos\mu t)$, $\mathbf{x} = c_1 \mathbf{u} + c_2 \mathbf{v}$.</li>
+        <li><strong>Phase portrait</strong>: 由 eigenvalues 类型决定（node, saddle, spiral, center 等）。看一个 specific tangent vector 决定旋转方向.</li>
+        <li><strong>Bifurcation</strong>: parameter 变化导致 phase portrait 类型变化的临界值 — discriminant = 0, eigenvalue = 0, 或 real part = 0.</li>
+      </ul>
+
+      <h3 id="looking-ahead">Looking ahead</h3>
+      <p>
+        下一份 review 是 <a href="mt2-03-laplace.html">Part 3 — Laplace Transform (§6.1–6.4)</a>，覆盖 24 道 HW 题。Laplace 是 MT2 最后一个大块，方法上完全不同 — 把 ODE 通过 transform 化成 algebraic equation，解完再 inverse transform 回去。Concept walkthrough 见 <a href="07-laplace-basics.html">File 07</a> 和 <a href="08-laplace-discontinuous.html">File 08</a>.
+      </p>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

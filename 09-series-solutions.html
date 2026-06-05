@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>09. Series Solutions · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        // Private browsing / blocked storage — fall through to system pref.
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">09. Series Solutions</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>09. Series Solutions</h1>
+    <p class="note">Textbook sections 5.1, 5.2, 5.3 &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; Power series review, ordinary points, recurrence relations, radii of convergence</p>
+
+    <section>
+      <h2 id="notation">Notation</h2>
+      <p>本文件 dependent variable 记作 $y(x)$，independent variable 用 $x$（前面 Ch 6 / Ch 7 用 $t$ 是因为 Laplace transform / 系统问题里的"时间"约定；series solutions 章一般用 $x$，匹配 Boyce textbook 和 prof notes）。导数仍用 prime: $y'(x) = \dfrac{dy}{dx}$，$y''(x) = \dfrac{d^2 y}{dx^2}$。</p>
+      <p>展开中心点记作 $x_0$；power series 形如</p>
+      $$y(x) \;=\; \sum_{n=0}^{\infty} a_n\,(x - x_0)^n.$$
+      <p>系数 $a_n$ 是待定常数，最终由 ODE 的 recurrence relation 决定。$\rho$ 表示 radius of convergence。当 ODE 写成 standard form $y'' + p(x)y' + q(x)y = 0$ 时，$p$ 和 $q$ 是判定 ordinary / singular point 的对象。</p>
+      <p>关于 Wronskian 我们继续沿用 File 03 的 $W[y_1, y_2](x_0)$ 记号；当 $W[y_1, y_2](x_0) \ne 0$ 时 $\{y_1, y_2\}$ form a fundamental set of solutions。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="why-series">为什么需要 series solutions</h2>
+
+      <p>到 File 08 为止，我们对 second-order linear ODE 已经有了两套求解工具：constant-coefficient case 用 characteristic equation（File 03 / 04），任意 forcing 可用 variation of parameters 或 Laplace transform（File 04 / 07 / 08）。但当 coefficients 是<em>变量</em>（即 $p(x)$, $q(x)$ 不再是常数）且方程不能简单化简时，前两套方法都失效——比如</p>
+      $$y'' - xy = 0 \quad (\text{Airy's equation}), \qquad y'' - 2xy' + \lambda y = 0 \quad (\text{Hermite}).$$
+      <p>这些方程的解不是 elementary functions（exponentials, sines, polynomials），但它们在物理和工程中大量出现：量子力学、光学、振动理论、特殊函数等。Series solutions 给出第三条出路——<strong>假设</strong>解形如 $y(x) = \sum a_n (x - x_0)^n$，代入 ODE 后解出 recurrence relation，由此确定所有 $a_n$。</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Series 是"无限维多项式"</p>
+        <p>
+          Polynomial（多项式）只有有限项；power series 允许"无穷次方"。我们已经从微积分里熟悉 Taylor series：$\sin x = x - x^3/3! + x^5/5! - \cdots$。Series solution method 等于把这个想法倒过来用：<em>不</em>是"已知函数 → 求 Taylor 级数"，而是"已知函数满足某 ODE → 求它的级数表示"。当 ODE 不能用 elementary functions 求解时，这个 series 就成了"该函数的定义"——比如 Airy function $\text{Ai}(x)$ 就是这样被定义的。<br><br>
+          类比 File 07 的 Laplace transform："形式假设 → 代入 → 解出参数"是同一种数学策略：先<em>假设</em>解的形式，再让方程帮我们确定参数细节。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="power-series-review">5.1 Power series 复习</h2>
+
+      <p>Sec 5.1 是 textbook 单独的 review 章节，prof 没有专门讲义，但所有 series solution method 都建立在这些基础上。这里把考试用得到的几个工具梳理一遍。</p>
+
+      <h3 id="convergence-and-radius">Convergence 和 radius of convergence</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (power series, radius of convergence).</span>
+        Power series $\sum_{n=0}^{\infty} a_n (x - x_0)^n$ 在点 $x$ 处<strong>收敛</strong>当且仅当部分和 $S_N(x) = \sum_{n=0}^N a_n (x - x_0)^n$ 当 $N \to \infty$ 时存在有限极限。<strong>Radius of convergence</strong> 是满足"对一切 $|x - x_0| < \rho$ 都收敛"的最大 $\rho \in [0, \infty]$。
+      </div>
+
+      <p>判定 radius 最常用的工具是 <strong>ratio test</strong>：</p>
+      $$\lim_{n \to \infty} \left| \frac{a_{n+1}(x-x_0)^{n+1}}{a_n (x-x_0)^n} \right| = |x - x_0| \cdot \lim_{n \to \infty}\left|\frac{a_{n+1}}{a_n}\right| = |x - x_0| \cdot L.$$
+      <p>级数当 $|x - x_0| L < 1$ 时收敛，所以 $\rho = 1/L$（约定 $1/0 = \infty$）。</p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.1.1 — Radius of convergence of $\sum (x-3)^n$ (supplementary)</p>
+        <p>
+          <strong>Solution.</strong> $a_n = 1$ 对所有 $n$，所以 $\lim |a_{n+1}/a_n| = 1$. Ratio test 给出 $|x - 3| < 1$ 时收敛。$\boxed{\rho = 1}$。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.1.2 — Radius of convergence of $\sum \tfrac{n}{3^n}x^n$ (supplementary)</p>
+        <p>
+          <strong>Solution.</strong>
+          $$\lim_{n \to \infty}\left|\frac{(n+1)/3^{n+1}}{n/3^n}\right| = \lim \frac{n+1}{3n} = \frac{1}{3} \;\;\Longrightarrow\;\; \rho = 3.$$
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Radius of convergence 的几何意义</p>
+        <p>
+          $\sum a_n (x - x_0)^n$ 的收敛域永远是<em>对称</em>区间（除了端点行为不一定）：$|x - x_0| < \rho$ 就是 $x_0$ 为中心、$2\rho$ 为宽的区间。直觉上 $\rho$ 是"以 $x_0$ 为中心向外扩张，到第一个'信息断点'前能走多远"。<br><br>
+          在 series solutions 的语境下，这个"信息断点"就是 ODE 的 singular point——一旦扩张半径碰到 singular point，就再没法保证级数收敛。5.3 的核心定理正是把这个直觉<em>严格化</em>：series solution 的 radius 至少等于到最近 singular point 的距离。
+        </p>
+      </div>
+
+      <h3 id="analytic-functions">Analytic functions 和常用 Taylor 级数</h3>
+
+      <div class="def">
+        <span class="def-label">Definition (analytic at $x_0$).</span>
+        Function $f$ 在 $x_0$ 处 <strong>analytic</strong> 是指存在 $\rho > 0$ 使得 $f(x) = \sum_{n=0}^{\infty} a_n (x - x_0)^n$ 对一切 $|x - x_0| < \rho$ 成立。$f$ 在 $x_0$ analytic 时，必有 $a_n = f^{(n)}(x_0)/n!$，这就是 Taylor series。
+      </div>
+
+      <p>常用的 analytic functions 和它们以 $0$ 为中心的 Taylor 级数（prof 在 5.3 notes 里专门列了一张表）：</p>
+
+      <table class="data-table">
+        <tr>
+          <th>Function</th>
+          <th>Power series 展开</th>
+          <th>Convergent for</th>
+        </tr>
+        <tr>
+          <td>$\sin x$</td>
+          <td>$x - \dfrac{x^3}{3!} + \dfrac{x^5}{5!} - \cdots = \sum_{n=0}^{\infty} \dfrac{(-1)^n}{(2n+1)!}x^{2n+1}$</td>
+          <td>all $x$ ($\rho = \infty$)</td>
+        </tr>
+        <tr>
+          <td>$\cos x$</td>
+          <td>$1 - \dfrac{x^2}{2!} + \dfrac{x^4}{4!} - \cdots = \sum_{n=0}^{\infty} \dfrac{(-1)^n}{(2n)!}x^{2n}$</td>
+          <td>all $x$ ($\rho = \infty$)</td>
+        </tr>
+        <tr>
+          <td>$e^x$</td>
+          <td>$1 + x + \dfrac{x^2}{2!} + \dfrac{x^3}{3!} + \cdots = \sum_{n=0}^{\infty} \dfrac{x^n}{n!}$</td>
+          <td>all $x$ ($\rho = \infty$)</td>
+        </tr>
+        <tr>
+          <td>$\dfrac{1}{1-x}$</td>
+          <td>$1 + x + x^2 + x^3 + \cdots = \sum_{n=0}^{\infty} x^n$</td>
+          <td>$|x| < 1$ ($\rho = 1$)</td>
+        </tr>
+        <tr>
+          <td>Polynomials</td>
+          <td>自己就是 power series</td>
+          <td>all $x$ ($\rho = \infty$)</td>
+        </tr>
+      </table>
+
+      <p>对它们做有限次加、减、乘、除（分母不为零处）后仍然 analytic。这点会反复在判断"$p(x)$ 和 $q(x)$ 是否 analytic"时用到。</p>
+
+      <h3 id="index-shifting">Termwise differentiation 和 index shifting</h3>
+
+      <p>Series solution method 的核心代数操作只有两个："termwise 求导"和"shift summation index"。下面先列出导数公式：</p>
+
+      $$\begin{aligned}
+        y(x) &= \sum_{n=0}^{\infty} a_n (x - x_0)^n, \\
+        y'(x) &= \sum_{n=1}^{\infty} n\, a_n (x - x_0)^{n-1}, \\
+        y''(x) &= \sum_{n=2}^{\infty} n(n-1)\, a_n (x - x_0)^{n-2}.
+      \end{aligned}$$
+      <p>注意 $y'$ 求和从 $n=1$ 开始（$n=0$ 项导数为零被吞掉），$y''$ 从 $n=2$ 开始。这两个"起始 index"在后面凑系数时非常关键。</p>
+
+      <p>把 $y, y', y''$ 代入 ODE 后，每个 sum 的 power 不一样、起点也不一样——必须先<strong>统一</strong>，才能"按 power of $x$ 凑系数"。这就是 index shifting：</p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.1.3 — Index shifting of $\sum n(n-1) a_n x^{n-2}$ (supplementary)</p>
+        <p>
+          目标：把 $\sum_{n=2}^{\infty} n(n-1) a_n x^{n-2}$ 改写成 generic term 为 $x^n$ 的形式。<br><br>
+          <strong>Solution.</strong> 令 $k = n - 2$（即把 index 名字换一下，让 power of $x$ 直接是 $k$）。$n = 2$ 时 $k = 0$；$n = k + 2$. 代入：
+          $$\sum_{n=2}^{\infty} n(n-1) a_n x^{n-2} = \sum_{k=0}^{\infty} (k+2)(k+1)\,a_{k+2}\,x^{k}.$$
+          换回 $n$ 名字（dummy variable 怎么叫无所谓）：$\boxed{\sum_{n=0}^{\infty}(n+2)(n+1)\,a_{n+2}\,x^n}$。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Index shifting 的两个规律（prof 总结）</p>
+        <p>
+          Prof notes 把 index shifting 的"何时往上调、何时往下调"总结成一张小表，非常实用：
+        </p>
+        <table class="data-table">
+          <tr>
+            <th>问题</th>
+            <th>修正</th>
+            <th>例子</th>
+          </tr>
+          <tr>
+            <td>① Powers of $x$ 不一致</td>
+            <td>Sum 往上调 $\Rightarrow$ 公式往下调；反之亦然</td>
+            <td>$\sum_{n=1}^\infty n a_n x^{n-1} = \sum_{n=0}^\infty (n+1) a_{n+1} x^n$</td>
+          </tr>
+          <tr>
+            <td>② Sum 起点不对，但 power 对</td>
+            <td>把缺的几项手动拎出来加（或减）</td>
+            <td>$\sum_{n=0}^\infty (n+1) a_{n+1} x^n = a_0 \cdot 1 + \sum_{n=1}^\infty (n+1) a_{n+1} x^n$</td>
+          </tr>
+        </table>
+        <p>这两条几乎是 Sec 5.2 / 5.3 所有"凑 recurrence relation"步骤的<em>全部内容</em>。一旦掌握，剩下的就是有耐心做代数。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Index 名字是 dummy variable</p>
+        <p>
+          很多同学一开始对"为什么可以把 $n$ 换成 $k$ 再换回 $n$"觉得不安。这没有问题——summation index 是 dummy variable，就像积分变量 $\int_0^1 f(x)dx = \int_0^1 f(u)du$ 一样，名字随便取。所以 shifting 的本质是"把 power 写成 generic term $x^n$"，而不是"$n$ 这个字母代表了什么数"。<br><br>
+          一个常犯的错：shift 后<strong>忘记同步</strong>下界。$\sum_{n=2}^\infty n(n-1) a_n x^{n-2}$ 里 $n$ 起点是 2；换成 $k = n - 2$ 后 $k$ 起点必须是 0，不是 2。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="ordinary-points">5.2 Series solutions near an ordinary point (Part I)</h2>
+
+      <h3 id="standard-form-and-points">Standard form, ordinary points, singular points</h3>
+
+      <p>考虑 second-order linear homogeneous ODE</p>
+      $$a_2(x)\,y'' + a_1(x)\,y' + a_0(x)\,y = 0.$$
+      <p>除以 $a_2(x)$（在 $a_2 \ne 0$ 的区间上）得 <strong>standard form</strong>：</p>
+      $$\boxed{\;y'' + p(x)\,y' + q(x)\,y = 0, \qquad p(x) = \frac{a_1(x)}{a_2(x)}, \;\; q(x) = \frac{a_0(x)}{a_2(x)}.\;}$$
+
+      <div class="def">
+        <span class="def-label">Definition (ordinary point, singular point).</span>
+        点 $x_0$ 称为 standard form ODE 的 <strong>ordinary point</strong>，如果 $p(x)$ 和 $q(x)$ 都在 $x_0$ 处 analytic；否则称 $x_0$ 为 <strong>singular point</strong>。
+      </div>
+
+      <p>因为 $p, q$ 通常是 ratio of polynomials（即 rational functions），所以 singular point 就是<em>分母为 0、且分子分母 cancel 后<strong>仍然</strong>分母为 0</em> 的那些点。Cancel 这一步常被忽略——下面这个 prof 的例子就在强调这一点。</p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.2.1 — Singular points of $(1-x^2)y'' - 2(1-x)y' + x^3(1-x)y = 0$</p>
+        <p>
+          <strong>Solution.</strong> 化标准形：
+          $$y'' - \frac{2(1-x)}{(1+x)(1-x)}y' + \frac{x^3(1-x)}{(1+x)(1-x)}y = 0.$$
+          $p(x) = -\dfrac{2(1-x)}{(1+x)(1-x)}$ 里 $(1-x)$ 可以 cancel，化简后 $p(x) = -\dfrac{2}{1+x}$，只在 $x = -1$ 处出问题。$q(x) = \dfrac{x^3(1-x)}{(1+x)(1-x)} = \dfrac{x^3}{1+x}$，同样只在 $x = -1$ 处出问题。<br><br>
+          所以 <strong>singular point 只有 $x = -1$</strong>。$x = 1$ 不是 singular point——因为约分后分母不再含 $(1-x)$。<br><br>
+          <em>Remark.</em> 这就是为什么 prof notes 反复强调"$p, q$ 是 ratios of analytic functions，analytic everywhere except where denominator is 0 AND numerator $\ne 0$"。约分一定要做。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 不能直接看 $a_2(x)$ 的零点</p>
+        <p>
+          常见错误：看到 $(1-x^2)y'' + \cdots = 0$ 就立刻断言"$x = \pm 1$ 都是 singular point"。<strong>错</strong>——必须先约分。在上面的例子里 $x = 1$ 是<em>removable</em> 的（分子也有 $(1-x)$ 因子），所以 $x = 1$ 实际上是 ordinary point。<br><br>
+          换句话说：写成 $y'' + p(x)y' + q(x)y = 0$ 标准形后，<em>这时</em>分母真的为 0 的点才是 singular point。
+        </p>
+      </div>
+
+      <div class="thm">
+        <span class="thm-label">Fact (existence at ordinary points).</span>
+        若 $x_0$ 是 standard form ODE 的 ordinary point，则 ODE 在 $x_0$ 附近有 <strong>两个</strong> linearly independent analytic solutions，都可以写成 power series 形式 $y(x) = \sum_{n=0}^\infty a_n (x - x_0)^n$。
+      </div>
+
+      <p>（严格证明在 Sec 5.3 给出，并附 radius of convergence 的下界估计。这里先用结论。）</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么要除以 $a_2(x)$？</p>
+        <p>
+          课本和 prof 都坚持把 ODE 化成 standard form $y'' + py' + qy = 0$（即 $y''$ 系数为 1），看似只是"形式上"的归一化，其实有深层原因：series solution 的 existence 和 radius theorem 是按 $p, q$ 的奇异性<em>陈述</em>的，不是按 $a_0, a_1, a_2$。一个看似"在 $x_0$ 处出问题"的 $a_2(x_0) = 0$，可能在化标准形约分后就消失了（Example 5.2.1 里的 $x = 1$ 就是如此）。<br><br>
+          换句话说：<em>判定 ordinary / singular point 的对象是 $p, q$，不是 $a_0, a_1, a_2$</em>。化 standard form 这一步不能跳。
+        </p>
+      </div>
+
+      <h3 id="series-method">Series solution method (4-step procedure)</h3>
+
+      <p>Prof 把整个流程标准化为 4 步：</p>
+
+      <ol>
+        <li><strong>Check $x_0$ is an ordinary point.</strong> 验证 $p(x), q(x)$ 都在 $x_0$ analytic。如果 IC 在 $x = x_0$ 给定（即 $y(x_0), y'(x_0)$ 已知），一般都在该 $x_0$ 展开。</li>
+        <li><strong>Let $y(x) = \sum_{n=0}^\infty a_n (x - x_0)^n$</strong>，假设 $|x - x_0| < \rho$ 内收敛（$\rho > 0$）。求 $y', y''$ 并代入 ODE。</li>
+        <li><strong>Shift indices</strong> 让所有 sum 的 generic term 都是 $(x - x_0)^n$，再 group like terms。</li>
+        <li><strong>所有 $x^n$ 的系数必须为 $0$</strong>（power series 唯一性），由此得到 <em>recurrence relation</em>。从 $a_0, a_1$（自由参数）出发，递推所有其它 $a_n$。</li>
+      </ol>
+
+      <p>第 4 步后，由 $a_0$ 决定的项和由 $a_1$ 决定的项分别给出两个 linearly independent solutions $y_1, y_2$。Wronskian 自动满足 $W[y_1, y_2](x_0) = 1 \ne 0$（因为 $y_1(x_0) = 1, y_1'(x_0) = 0, y_2(x_0) = 0, y_2'(x_0) = 1$），所以 $\{y_1, y_2\}$ form a fundamental set。</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — $a_0$ 和 $a_1$ 是"两个 degrees of freedom"</p>
+        <p>
+          二阶 ODE 的 general solution 有 <em>两个</em> 任意常数（前面 File 03/04 是 $c_1, c_2$，通过 IC 确定）。Series method 里这两个常数自然地化身为 $a_0$ 和 $a_1$——recurrence relation <em>不</em>能决定它们（前两项是"种子"），但<em>能</em>用它们表示其它所有 $a_n$。<br><br>
+          再换个视角：把 series solution 看成"无穷维向量空间里的元素"，每个 $a_n$ 是一个坐标分量。Recurrence relation 是"约束方程"，它把 $a_2, a_3, \ldots$ 钉死在 $a_0, a_1$ 决定的两维子空间里。所以 solution space 恰好是 2 维，和 File 03 的 abstract theorem（二阶 linear ODE 的 solution space dim = 2）严格匹配。
+        </p>
+      </div>
+
+      <h3 id="example-y-plus-y">Example: $y'' + y = 0$ —— 重新发现 $\sin$ 和 $\cos$</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.2.2 — Series solution of $y'' + y = 0$ about $x_0 = 0$</p>
+        <p>
+          <strong>Solution.</strong>
+          <em>Step 1.</em> $p(x) = 0$, $q(x) = 1$，都是常数（analytic everywhere）。$x_0 = 0$ 是 ordinary point。<br><br>
+          <em>Step 2.</em> 令 $y = \sum_{n=0}^\infty a_n x^n$. 求导：
+          $$y' = \sum_{n=1}^\infty n a_n x^{n-1}, \qquad y'' = \sum_{n=2}^\infty n(n-1) a_n x^{n-2}.$$
+          代入：
+          $$\sum_{n=2}^\infty n(n-1) a_n x^{n-2} + \sum_{n=0}^\infty a_n x^n = 0.$$
+          <em>Step 3.</em> Shift 第一个 sum 用 $k = n - 2$:
+          $$\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n + \sum_{n=0}^\infty a_n x^n = 0$$
+          $$\Longrightarrow\;\; \sum_{n=0}^\infty \bigl[(n+2)(n+1) a_{n+2} + a_n\bigr] x^n = 0.$$
+          <em>Step 4.</em> 每个 $x^n$ 的系数为 0：
+          $$\boxed{\;a_{n+2} = -\frac{a_n}{(n+2)(n+1)}, \quad n = 0, 1, 2, \ldots\;}$$
+          这是 recurrence relation。它把所有 even-indexed $a$ 用 $a_0$ 表示，所有 odd-indexed $a$ 用 $a_1$ 表示：
+          $$\begin{aligned}
+            n=0:\;& a_2 = -\frac{a_0}{2 \cdot 1} = -\frac{a_0}{2!} \\
+            n=2:\;& a_4 = -\frac{a_2}{4 \cdot 3} = \frac{a_0}{4!} \\
+            n=4:\;& a_6 = -\frac{a_4}{6 \cdot 5} = -\frac{a_0}{6!} \\
+            &\;\vdots
+          \end{aligned}$$
+          一般地 $a_{2k} = \dfrac{(-1)^k a_0}{(2k)!}$. 类似地 $a_{2k+1} = \dfrac{(-1)^k a_1}{(2k+1)!}$.<br><br>
+          <em>Step 5 (series solution).</em>
+          $$y(x) = a_0\!\sum_{k=0}^\infty \frac{(-1)^k x^{2k}}{(2k)!} + a_1\!\sum_{k=0}^\infty \frac{(-1)^k x^{2k+1}}{(2k+1)!} = a_0 \cos x + a_1 \sin x.$$
+          所以 series method 重新发现了 $\cos$ 和 $\sin$！设 $y_1 = \cos x$, $y_2 = \sin x$. IC 给出 $y(0) = a_0$, $y'(0) = a_1$. Wronskian:
+          $$W[y_1, y_2](0) = \begin{vmatrix} 1 & 0 \\ 0 & 1 \end{vmatrix} = 1 \ne 0,$$
+          $\{\cos x, \sin x\}$ form a fundamental set. 这给我们一个 sanity check：series method 在已知答案的情形下是<em>对的</em>。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 even/odd index 自然分开</p>
+        <p>
+          $y'' + y = 0$ 的 recurrence $a_{n+2} = -a_n/[(n+2)(n+1)]$ 只把 $a_{n+2}$ 连到 $a_n$（差 2），不连到 $a_{n+1}$。所以从 $a_0$ 出发只能到 $a_2, a_4, a_6, \ldots$；从 $a_1$ 出发只能到 $a_3, a_5, a_7, \ldots$。这两条链彼此<em>独立</em>，正好对应两个 linearly independent solutions $y_1$（偶幂级数）和 $y_2$（奇幂级数）。<br><br>
+          这种"两条链"现象在 $p(x)$ 不带 $x$ 一次项、$q(x)$ 不带 $x$ 一次项的偶对称 ODE 里很常见。一旦 recurrence 把 $a_{n+2}$ 同时连到 $a_n$ <em>和</em> $a_{n+1}$（比如下一个例子，或者 5.3 的 $e^t y'$ 例子），偶/奇链就会"串味儿"。
+        </p>
+      </div>
+
+      <h3 id="example-y-xy-4y">Example: $y'' - xy' + 4y = 0$ —— terminating series</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.2.3 — First 6 nonzero terms of $y'' - xy' + 4y = 0$ about $x_0 = 0$</p>
+        <p>
+          <strong>Solution.</strong>
+          <em>Step 1.</em> $p(x) = -x$, $q(x) = 4$，都 analytic everywhere。$x_0 = 0$ 是 ordinary point。<br><br>
+          <em>Step 2.</em> 令 $y = \sum a_n x^n$，则 $-xy' = -x \sum n a_n x^{n-1} = -\sum n a_n x^n$. 代入：
+          $$\sum_{n=2}^\infty n(n-1) a_n x^{n-2} - \sum_{n=1}^\infty n a_n x^n + 4\sum_{n=0}^\infty a_n x^n = 0.$$
+          <em>Step 3.</em> Shift 第一个 sum: $\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n$. 第二个 sum 从 $n=1$ 开始但本来 $n=0$ 项 $-0 \cdot a_0 = 0$，所以补到 $n=0$ 不影响。合并：
+          $$\sum_{n=0}^\infty \bigl[(n+2)(n+1) a_{n+2} - n a_n + 4 a_n\bigr] x^n = 0.$$
+          <em>Step 4.</em> 系数为零：
+          $$(n+2)(n+1) a_{n+2} + (4 - n) a_n = 0 \;\;\Longrightarrow\;\; \boxed{\;a_{n+2} = \frac{(n-4)\,a_n}{(n+2)(n+1)}\;}.$$
+          注意当 $n = 4$ 时分子为 0，所以 $a_6 = 0$，进而 $a_8, a_{10}, \ldots$ 都为零——<em>偶数链在 $a_4$ 后 terminate</em>！代入：
+          $$\begin{aligned}
+            n=0:\;& a_2 = \frac{-4 a_0}{2 \cdot 1} = -2 a_0 \\
+            n=1:\;& a_3 = \frac{-3 a_1}{3 \cdot 2} = -\frac{a_1}{2} \\
+            n=2:\;& a_4 = \frac{-2 a_2}{4 \cdot 3} = \frac{a_0}{3} \\
+            n=3:\;& a_5 = \frac{-a_3}{5 \cdot 4} = \frac{a_1}{40} \\
+            n=4:\;& a_6 = 0 \\
+            n=5:\;& a_7 = \frac{a_5}{7 \cdot 6} = \frac{a_1}{1680}
+          \end{aligned}$$
+          <em>Step 5.</em>
+          $$y(x) = a_0 + a_1 x - 2 a_0 x^2 - \tfrac{a_1}{2} x^3 + \tfrac{a_0}{3} x^4 + \tfrac{a_1}{40} x^5 + 0 \cdot x^6 + \tfrac{a_1}{1680} x^7 + \cdots.$$
+          分别拎出 $a_0$ 和 $a_1$ 的部分得：
+          $$y_1(x) = 1 - 2 x^2 + \tfrac{1}{3} x^4, \qquad y_2(x) = x - \tfrac{1}{2} x^3 + \tfrac{1}{40} x^5 + \tfrac{1}{1680} x^7 + \cdots.$$
+          $y_1$ 是<strong>多项式</strong>（只有 3 项就终止了），$y_2$ 仍是无限级数。
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Terminating series 和"特殊函数家族"</p>
+        <p>
+          为什么 $y'' - xy' + 4y = 0$ 会出现<em>偶数链 terminate</em> 的现象？因为 recurrence 里有个 $(n - 4)$ 因子，恰好在 $n = 4$ 时把 $a_6$ 锁死为 0。一般地，方程 $y'' - xy' + \lambda y = 0$ 当 $\lambda = $ 非负偶数 $2m$ 时，<em>偶 or 奇</em>那一支级数会在 $x^m$ 处 terminate，给出 degree $m$ 的多项式解。这就是 <strong>Hermite polynomials</strong> 的由来：$\lambda = 2m$ 对应 $H_m(x)$（在物理里描述量子谐振子的能级）。<br><br>
+          类似地：Legendre equation $(1 - x^2)y'' - 2x y' + \lambda y = 0$ 在 $\lambda = n(n+1)$ 时给出 Legendre 多项式 $P_n(x)$（处理球坐标里的 PDE 时常用）。Series method 是发现这些"特殊函数家族"的统一工具。
+        </p>
+      </div>
+
+      <h3 id="grouping-techniques">Techniques for grouping sums</h3>
+
+      <p>Prof 在 5.2 notes 末尾把"凑系数时的两类常见问题"总结成下面这张表，是做题时的速查清单：</p>
+
+      <table class="data-table">
+        <tr>
+          <th>问题</th>
+          <th>Fix</th>
+          <th>例子</th>
+        </tr>
+        <tr>
+          <td>① Different powers of $x$ across sums</td>
+          <td>Sum 上调 ↔ 公式（index 出现处）下调；反之亦然</td>
+          <td>$\sum_{n=1}^\infty n a_n x^{n-1} = \sum_{n=0}^\infty (n+1) a_{n+1} x^n$</td>
+        </tr>
+        <tr>
+          <td>② Sum 起点不对，power 已经对</td>
+          <td>把"漏掉的几项"手动拎出来加 ± 项</td>
+          <td>$\sum_{n=0}^\infty (n+1) a_{n+1} x^n = a_1 + \sum_{n=1}^\infty (n+1) a_{n+1} x^n$</td>
+        </tr>
+      </table>
+
+      <p>实战中往往 ① 先做（把所有 power 统一为 $x^n$），② 后做（把所有 sum 起点统一到同一个 $n$）。这两步做完才能合并系数。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="convergence-and-analytic-forcing">5.3 Series solutions near an ordinary point (Part II)</h2>
+
+      <h3 id="existence-and-radius-theorem">Existence theorem + radius of convergence</h3>
+
+      <p>5.2 给出 series solution 的<em>计算方法</em>，但没保证两件事：（a）这样得到的 series 真的收敛吗？（b）它的 radius of convergence 有多大？5.3 的核心定理把这两个问题一次性解决：</p>
+
+      <div class="thm">
+        <span class="thm-label">Theorem (Existence and radius of convergence).</span>
+        若 $x_0$ 是 standard form ODE $y'' + p(x)y' + q(x)y = 0$ 的 ordinary point，则 general solution 为
+        $$y(x) = \sum_{n=0}^\infty a_n (x - x_0)^n = a_0 y_1(x) + a_1 y_2(x),$$
+        其中 $a_0, a_1$ 是 arbitrary，$y_1, y_2$ 是 linearly independent power series solutions，analytic at $x_0$，构成 fundamental set。<strong>$y_1, y_2$ 的 radius of convergence 至少等于 $x_0$ 到 $p, q$ 在 complex plane 上最近 singular point 的距离。</strong>
+      </div>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么是 complex distance，不是 real distance</p>
+        <p>
+          初学者常觉得诡异：ODE 是实变量的，为什么要去复平面上找 singular points 算距离？答：power series 在 complex 平面上的收敛域是一个 disc（圆盘）。即使 $p, q$ 的分母在实轴上不为 0，它在复平面上也可能有零点——比如 $\dfrac{1}{1 + x^2}$ 在 $x \in \mathbb{R}$ 上看起来很 smooth，但在 $x = \pm i$ 处分母为 0。这两个 complex singular points 限制了 power series 的收敛半径。<br><br>
+          物理上的解释：power series $\sum a_n x^n$ 的 radius of convergence 由它在 complex 平面上离 $0$ 最近的"奇点"决定，与这个奇点是 real 还是 complex 无关——complex analysis 这门课会严格证明这点。<br><br>
+          实用口诀：找 $p, q$ 分母的<em>所有</em>零点（包括 complex 的），用 $|a + bi| = \sqrt{a^2 + b^2}$ 算距离。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.3.1 — Lower bound for $5y'' - x^2 y + xy = 0$ about $x_0 = 1$</p>
+        <p>
+          <strong>Solution.</strong> 化标准形：$y'' - \dfrac{x^2}{5} y + \dfrac{x}{5} y = 0$，即 $p(x) = 0$（这里 $y'$ 系数为 0）、$q(x) = -\dfrac{x^2}{5} + \dfrac{x}{5}$. 都是 polynomial，analytic everywhere on $\mathbb{R}$ <em>and</em> $\mathbb{C}$ —— 没有任何 singular point。<br><br>
+          所以 $\boxed{\rho = \infty}$，series solution 对所有 $x$ 收敛。
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.3.2 — Lower bound for $(1 - x^2)y'' + y' + 4xy = 0$ about $x_0 = 0$</p>
+        <p>
+          <strong>Solution.</strong> 化标准形：$p(x) = \dfrac{1}{1 - x^2}$, $q(x) = \dfrac{4x}{1 - x^2}$. 分母 $1 - x^2 = (1-x)(1+x)$ 在 $x = \pm 1$ 为 0，且分子在那里非零，所以 singular points 就是 $x = \pm 1$.<br><br>
+          距离 $x_0 = 0$ 最近的是 $\pm 1$，距离都是 $1$. 所以 $\boxed{\rho \ge 1}$.
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.3.3 — Lower bound for $(1 + x^2)y'' + 5xy' - 2y = 0$ about $x_0 = 0$ and $x_0 = 2$</p>
+        <p>
+          <strong>Solution.</strong> 化标准形：$p(x) = \dfrac{5x}{1 + x^2}$, $q(x) = -\dfrac{2}{1 + x^2}$. 分母 $1 + x^2 = 0 \Rightarrow x^2 = -1 \Rightarrow x = \pm i$ —— singular points 在 complex 平面上！<br><br>
+          About $x_0 = 0$：距离 $|0 \pm i| = \sqrt{0^2 + 1^2} = 1$. 所以 $\boxed{\rho \ge 1}$ about $x_0 = 0$.<br><br>
+          About $x_0 = 2$：距离 $|2 \pm i| = \sqrt{2^2 + 1^2} = \sqrt{5}$. 所以 $\boxed{\rho \ge \sqrt{5}}$ about $x_0 = 2$.<br><br>
+          <em>Remark.</em> 这就是 complex distance 的实战例子。同一个 ODE 在不同展开点的 $\rho$ 不同，是因为离最近 singular point 的距离不同。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 定理只给 lower bound，不给 exact radius</p>
+        <p>
+          注意定理说"radius 至少等于 distance to nearest singular point"，是 <strong>下界</strong>，不是精确值。有些情况下实际 $\rho$ 比下界还要大（比如 series 恰好 terminate 成多项式时，$\rho = \infty$）。但下界总是对的，做题时报 lower bound 就够了。
+        </p>
+      </div>
+
+      <h3 id="analytic-forcing-example">Worked example with analytic coefficients</h3>
+
+      <p>5.2 的例子里 $p, q$ 都是 polynomial，比较简单。5.3 的例子升级到 $p, q$ 是 general analytic functions（比如 $e^t, \sin t, 1 + t^2$）——这时必须把它们的 power series 也代入，再 group like terms。流程一样，但代数复杂度高。</p>
+
+      <div class="box example">
+        <p class="box-title">📝 Example 5.3.4 — First 4 nonzero terms of $y'' + e^t y' + (1 + t^2)y = 0$ about $t = 0$</p>
+        <p>
+          <strong>Solution.</strong>
+          <em>Step 1.</em> $p(t) = e^t$, $q(t) = 1 + t^2$，都 analytic everywhere。$t_0 = 0$ 是 ordinary point。<br><br>
+          <em>Step 2.</em> 令 $y = \sum_{n=0}^\infty a_n t^n$. 同时把 $p, q$ 的级数展开代入（只保留前几项，因为只要前 4 个 nonzero terms）：
+          $$e^t = 1 + t + \frac{t^2}{2!} + \frac{t^3}{3!} + \cdots, \qquad 1 + t^2.$$
+          代入 $y'' + e^t y' + (1 + t^2)y = 0$，每个 term 展开到 $t^2$ 阶：
+          $$\begin{aligned}
+            y'' &= 2 a_2 + 6 a_3 t + 12 a_4 t^2 + 20 a_5 t^3 + \cdots, \\
+            e^t y' &= \bigl(1 + t + \tfrac{t^2}{2} + \cdots\bigr)\bigl(a_1 + 2 a_2 t + 3 a_3 t^2 + \cdots\bigr), \\
+            (1 + t^2) y &= \bigl(a_0 + a_1 t + a_2 t^2 + a_3 t^3 + \cdots\bigr) + t^2\bigl(a_0 + a_1 t + \cdots\bigr).
+          \end{aligned}$$
+          <em>Step 3 (group like terms).</em> 算 constant 项 ($t^0$)：
+          $$2 a_2 + a_1 + a_0 = 0 \;\;\Longrightarrow\;\; a_2 = -\tfrac{1}{2} a_0 - \tfrac{1}{2} a_1.$$
+          算 linear 项 ($t^1$)：$y''$ 贡献 $6 a_3$；$e^t y'$ 贡献 $a_1 \cdot t + 2 a_2 \cdot 1 = 2 a_2 + a_1$；$(1 + t^2)y$ 贡献 $a_1$. 总和：
+          $$6 a_3 + 2 a_2 + a_1 + a_1 = 0 \;\;\Longrightarrow\;\; 6 a_3 = -2 a_2 - 2 a_1.$$
+          代入 $a_2$：$6 a_3 = -2\bigl(-\tfrac{1}{2} a_0 - \tfrac{1}{2} a_1\bigr) - 2 a_1 = a_0 + a_1 - 2 a_1 = a_0 - a_1$. 所以
+          $$a_3 = \tfrac{1}{6} a_0 - \tfrac{1}{6} a_1.$$
+          算 quadratic 项 ($t^2$)：$y''$ 贡献 $12 a_4$；$e^t y'$ 贡献 $3 a_3 + 2 a_2 + \tfrac{a_1}{2}$；$(1 + t^2)y$ 贡献 $a_2 + a_0$. 总和：
+          $$12 a_4 + 3 a_3 + 2 a_2 + \tfrac{a_1}{2} + a_2 + a_0 = 0.$$
+          代入 $a_2 = -\tfrac{1}{2}a_0 - \tfrac{1}{2}a_1$, $a_3 = \tfrac{1}{6}a_0 - \tfrac{1}{6}a_1$（注意 $3 a_3 = \tfrac{1}{2}a_0 - \tfrac{1}{2}a_1$, $3 a_2 = -\tfrac{3}{2}a_0 - \tfrac{3}{2}a_1$）：
+          $$12 a_4 + \bigl(\tfrac{1}{2}a_0 - \tfrac{1}{2}a_1\bigr) + \bigl(-\tfrac{3}{2}a_0 - \tfrac{3}{2}a_1\bigr) + \tfrac{1}{2}a_1 + a_0 = 0$$
+          $$12 a_4 + (a_0)\bigl(\tfrac{1}{2} - \tfrac{3}{2} + 1\bigr) + (a_1)\bigl(-\tfrac{1}{2} - \tfrac{3}{2} + \tfrac{1}{2}\bigr) = 0$$
+          $$12 a_4 + 0 \cdot a_0 + (-\tfrac{3}{2}) a_1 = 0 \;\;\Longrightarrow\;\; a_4 = \tfrac{1}{8} a_1.$$
+          <em>Step 4 (construct $y_1, y_2$).</em> 把 $a_0$ 的项 group 起来给 $y_1$；$a_1$ 的项 group 起来给 $y_2$：
+          $$y_1(t) = 1 - \tfrac{1}{2} t^2 + \tfrac{1}{6} t^3 + 0 \cdot t^4 + \cdots,$$
+          $$y_2(t) = t - \tfrac{1}{2} t^2 - \tfrac{1}{6} t^3 + \tfrac{1}{8} t^4 + \cdots.$$
+          <em>(b) Linear independence.</em> $y_1(0) = 1, y_1'(0) = 0; y_2(0) = 0, y_2'(0) = 1$，所以
+          $$W[y_1, y_2](0) = \begin{vmatrix} 1 & 0 \\ 0 & 1 \end{vmatrix} = 1 \ne 0,$$
+          $\{y_1, y_2\}$ form a fundamental set.<br><br>
+          <em>(c) IC application.</em> 若给定 $y(0) = 2, y'(0) = 5$，则 $a_0 = 2, a_1 = 5$，所以
+          $$\boxed{\;y(t) = 2 y_1(t) + 5 y_2(t) = 2\bigl(1 - \tfrac{1}{2}t^2 + \tfrac{1}{6}t^3 + \cdots\bigr) + 5\bigl(t - \tfrac{1}{2}t^2 - \tfrac{1}{6}t^3 + \tfrac{1}{8}t^4 + \cdots\bigr).\;}$$
+        </p>
+      </div>
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — 为什么 $y_1(0) = 1, y_1'(0) = 0, y_2(0) = 0, y_2'(0) = 1$ 总是成立</p>
+        <p>
+          这是 series method 的内置便利性。从 $y(x) = a_0 + a_1(x - x_0) + a_2(x - x_0)^2 + \cdots$ 可知 $y(x_0) = a_0$, $y'(x_0) = a_1$. 所以把 $a_0 = 1, a_1 = 0$ 代入定义出来的 $y_1$ 自动满足 $y_1(x_0) = 1, y_1'(x_0) = 0$；类似 $y_2$ 满足 $y_2(x_0) = 0, y_2'(x_0) = 1$. 由此 Wronskian 自动是 $\begin{vmatrix}1 & 0 \\ 0 & 1\end{vmatrix} = 1$，不必再验证 linear independence。<br><br>
+          这种"$\{y_1, y_2\}$ 天然形成 unit basis"的性质让 series solutions 在数值上特别好用——给定任意 IC $(y_0, y_1')$，解就是 $y(x) = y_0 \cdot y_1(x) + y_1' \cdot y_2(x)$，无需再解 $\{c_1, c_2\}$ 这套代数。
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 当 $p(x)$ 或 $q(x)$ 不是 polynomial 时</p>
+        <p>
+          5.2 的例子里 $p, q$ 都是 polynomial 或常数，所以 recurrence relation 只是把 $a_{n+2}$ 连到有限几个前面的 $a_k$，非常清爽。但当 $p = e^t$ 这种情形，$e^t y'$ 是<em>两个无穷级数的乘积</em>（Cauchy product），系数公式涉及 convolution-style 求和。<br><br>
+          实战建议：除非题目特别要求 general term $a_n$，否则不必尝试找 closed-form recurrence——直接按上面 Example 5.3.4 的方法<strong>逐阶</strong>展开到所需 power（题目通常要"first 4 nonzero terms"或 "first 5 terms"）。这是 prof 在 quiz / midterm 上的标准做法。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">Summary</h2>
+
+      <h3 id="key-points">本节要点</h3>
+
+      <p>Ch 5 系列从两个角度扩展了我们解 ODE 的能力：第一，<strong>变系数</strong> linear ODE 不再仰赖 characteristic equation（File 03/04 那一套只对常系数有效）；第二，<strong>非 elementary 解</strong>（Airy / Hermite / Legendre 等）有了系统的"无穷次多项式"表示。下表是 Ch 5 三节最值得带进期末考场的内容：</p>
+
+      <table class="data-table">
+        <tr>
+          <th>章节</th>
+          <th>核心概念</th>
+          <th>主要工具</th>
+        </tr>
+        <tr>
+          <td>5.1 Power series review</td>
+          <td>Power series, radius of convergence, analytic function, index shifting</td>
+          <td>Ratio test, Taylor series, 常用 $\sin / \cos / e^x$ 展开</td>
+        </tr>
+        <tr>
+          <td>5.2 Series solutions (Part I)</td>
+          <td>Ordinary point, singular point, recurrence relation</td>
+          <td>4-step procedure, 分离 $a_0, a_1$ 两支链得 $y_1, y_2$</td>
+        </tr>
+        <tr>
+          <td>5.3 Series solutions (Part II)</td>
+          <td>Existence theorem, radius lower bound, analytic coefficients</td>
+          <td>Distance to nearest singular point (complex!), group like terms</td>
+        </tr>
+      </table>
+
+      <ul>
+        <li>
+          <strong>Standard form</strong>：$y'' + p(x)y' + q(x)y = 0$，其中 $p = a_1/a_2$, $q = a_0/a_2$。判定 ordinary / singular point 都基于标准形——化标准形<em>之前</em>看 $a_2(x) = 0$ 哪些点是错的（约分可能 cancel 掉一些表面的奇点）。
+        </li>
+        <li>
+          <strong>4-step procedure</strong>：
+          <ol>
+            <li>Check $x_0$ ordinary（$p, q$ analytic at $x_0$）。</li>
+            <li>令 $y = \sum a_n (x-x_0)^n$ 代入。</li>
+            <li>Shift indices 让 power 统一为 $(x-x_0)^n$, group like terms。</li>
+            <li>每个 power 系数为 0，得 recurrence relation；由 $a_0, a_1$ 递推所有其它 $a_n$。</li>
+          </ol>
+        </li>
+        <li>
+          <strong>两支解的来源</strong>：$a_0$ 自由 → 给一支 $y_1$；$a_1$ 自由 → 给另一支 $y_2$。$\{y_1, y_2\}$ 自动满足 $W[y_1, y_2](x_0) = 1$，所以是 fundamental set。这意味着对任意 IC $y(x_0) = \alpha$, $y'(x_0) = \beta$，解就是 $y = \alpha y_1 + \beta y_2$，不必再解联立。
+        </li>
+        <li>
+          <strong>Radius of convergence 下界</strong>：等于 $x_0$ 到 $p, q$ 在 <em>complex 平面</em> 最近 singular point 的距离。Complex 是关键——$\dfrac{1}{1 + x^2}$ 在实轴 smooth 但在 $\pm i$ 有奇点。距离用 $|a + bi| = \sqrt{a^2 + b^2}$ 算。
+        </li>
+        <li>
+          <strong>当 $p, q$ 是 analytic 但非 polynomial</strong>（如 $e^t$, $\sin t$）：把它们的 Taylor series 也代入，每一阶 power 单独 group like terms 凑系数。一般不追求 closed-form recurrence，按题目要求逐阶展开到需要的项数。
+        </li>
+        <li>
+          <strong>Terminating series</strong> 现象：某些 recurrence 当 $a_n$ 含因子 $(n - N) = 0$ 时会 terminate 成多项式（如 $y'' - xy' + 4y = 0$ 时 $y_1$ 是 4 次多项式）。这是 Hermite / Legendre / Chebyshev 等特殊多项式家族的产生机制——指定 $\lambda$ 让 series 在某 degree 处 terminate。
+        </li>
+        <li>
+          <strong>做题 checklist</strong>：
+          <ol>
+            <li>化 standard form $y'' + py' + qy = 0$；判定 $p, q$ 是否在 $x_0$ analytic。</li>
+            <li>找 $p, q$ 分母的所有 complex 零点；离 $x_0$ 最近的就是 radius lower bound。</li>
+            <li>代入 $y = \sum a_n (x - x_0)^n$，分别求 $y', y''$，把 $p, q$ 也按需展开。</li>
+            <li>所有 sum 的 power 通过 index shifting 统一成 $(x - x_0)^n$，起点也补齐。</li>
+            <li>系数对齐，每个 power 的系数为 0；写出 recurrence。</li>
+            <li>分 $a_0$ 链和 $a_1$ 链算前几项；写出 $y_1, y_2$。</li>
+            <li>若题目给 IC，直接 $y(x) = y(x_0) \cdot y_1 + y'(x_0) \cdot y_2$.</li>
+          </ol>
+        </li>
+      </ul>
+
+      <h3 id="looking-ahead">Looking Ahead</h3>
+
+      <p>
+        到这里，整个 MATH 20D 主线内容（Ch 1, 2, 3, 5, 6, 7）都已经覆盖。从 File 01 的 first-order 分类、direction field、integrating factor 起步，经历了：
+      </p>
+      <ul>
+        <li><strong>File 02</strong> first-order ODEs 的五种方法（separable, exact, linear, substitution, autonomous）</li>
+        <li><strong>File 03 / 04</strong> second-order linear ODEs（characteristic equation, Wronskian, undetermined coefficients, variation of parameters）</li>
+        <li><strong>File 05 / 06</strong> systems of first-order ODEs（matrix methods, eigenvalue/eigenvector）</li>
+        <li><strong>File 07 / 08</strong> Laplace transform 及其在 discontinuous / impulsive / convolution forcing 下的应用</li>
+        <li><strong>File 09</strong>（本文件）series solutions for variable-coefficient ODEs</li>
+      </ul>
+
+      <p>
+        Final exam 覆盖<strong>全部</strong>这些内容。Series solutions 在 final 上的题型主要是：（a）判定 ordinary / singular point；（b）给一个具体 ODE 用 4-step procedure 求前 N 个 nonzero terms 的两个 linearly independent solutions；（c）算 radius of convergence 下界（涉及 complex distance）。本文件的三个大例子 5.2.2（$y'' + y = 0$，已知答案做 sanity check）、5.2.3（$y'' - xy' + 4y = 0$，terminating series）、5.3.4（$y'' + e^t y' + (1 + t^2)y = 0$，analytic forcing）覆盖了这三类题型。
+      </p>
+
+      <p>
+        最后值得一提：series methods 在更高阶课程里有自然的延伸。MATH 20E / MATH 110 系列会回到本章遗留的"singular point 怎么办"问题——Boyce textbook Sec 5.4–5.7 处理 <em>regular singular points</em>，引入 <strong>Frobenius method</strong>（解形如 $y(x) = x^r \sum a_n x^n$，$r$ 可以是非整数）；这正是 Bessel equation $x^2 y'' + xy' + (x^2 - \nu^2)y = 0$ 的解 $J_\nu(x)$ 被发现的途径。Bessel functions 在 PDE（圆柱坐标下的 heat equation、wave equation）里大量出现。本课程不要求这些，但若以后做物理 / 工程方向，Frobenius method 是绕不开的下一站。
+      </p>
+
+      <p>
+        到此为止本 walkthrough 全部内容完结。复习节奏建议：File 01 → 02 是 first-order 基本功；03 → 04 是 second-order linear；05 → 06 是 systems；07 → 08 是 Laplace；09 是 series。每个文件的 Summary 是 30 分钟复习的核心；Examples 是熟练度的来源。Practice exams 在 <a href="mt2-04-practice.html">mt2-04-practice</a> 和 <a href="mt2-05-drills.html">mt2-05-drills</a> 已经放好；final 之前建议至少把每个 file 的"做题 checklist"过一遍。祝考试顺利！
+      </p>
+
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

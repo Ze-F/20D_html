@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW9 · Sec 6.6, 5.1, 5.2, 5.3 · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <!-- Order matters: nav.js first (injects DOM), then KaTeX auto-render -->
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">HW9 · 6.6 (Convolution) + Ch 5 (Series Solutions)</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>HW9 讲解 — Convolution + Series Solutions</h1>
+    <p class="note">Section 6.6 (1a, 4, 5, 7, 8, 13) · 5.1 (1, 2, 7, 14, 18, 20, 22) · 5.2 (2, 3, 6, 9, 11) · 5.3 (7, 9, 10, 11 — <em>not handed in</em>) &nbsp;·&nbsp; UCSD MATH 20D Spring 2026 &nbsp;·&nbsp; 概念见 <a href="../08-laplace-discontinuous.html#convolution">File 08 §6.6</a> 和 <a href="../09-series-solutions.html">File 09</a></p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="overview">本次作业整体思路</h2>
+
+      <p>HW9 是本学期最后一份 HW，涉及<strong>两套完全不同的方法</strong>：</p>
+      <ul>
+        <li><strong>Sec 6.6 Convolution</strong>（6 题）：Laplace transform 工具箱的最后一块。把 $\mathcal{L}\{f * g\} = F(s)G(s)$ 当作"$s$ 域乘法 ↔ 时域 convolution"的字典，用于（i）对 convolution 积分求 Laplace、（ii）当 $Y(s) = F(s)G(s)$ 且 partial fractions 麻烦时反求 inverse、（iii）把 IVP 的解写成 convolution integral 形式。</li>
+        <li><strong>Sec 5.1 / 5.2 / 5.3 Series Solutions</strong>（13 题 + 4 题不交）：用 power series 解 second-order linear ODE。整套流程就 4 步：检查 ordinary point → 代入 $y = \sum a_n (x-x_0)^n$ → shift indices → 解 recurrence relation。5.1 是 power series 复习（ratio test, Taylor series, index shifting），5.2 是<em>计算</em>系列解的方法，5.3 是<em>存在性</em>和 <em>radius of convergence</em> 的理论保证。</li>
+      </ul>
+
+      <p>两套方法在做题流程上几乎没有重叠，所以本 walkthrough 按"先 6.6 后 Ch 5"分两大块写。每题独立可读，可以按需跳转。</p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 五个最容易踩的坑</p>
+        <p>
+          <strong>(1) Convolution 不是普通乘法：</strong>$(f * g)(t) = \int_0^t f(t - \tau)g(\tau)\,d\tau$ —— 第一项是 $f(t - \tau)$，<em>不</em>是 $f(\tau)$。也<em>不</em>等于 $f(t)g(t)$.<br><br>
+          <strong>(2) Convolution 的 identity 是 $\delta$，不是 1：</strong>$f * \delta = f$，但 $f * 1 \ne f$（一般情况下）。<br><br>
+          <strong>(3) 化 standard form 之前不能判 singular point：</strong>$(1-x^2)y'' + \cdots = 0$ 不代表 $x = \pm 1$ 都是 singular point —— 必须先除以 $a_2(x) = 1 - x^2$ 化成 $y'' + py' + qy = 0$，约分后再看分母还在哪里为零。Example 5.2.1 / Problem 5.3.7 都靠这点。<br><br>
+          <strong>(4) Index shifting 后下界必须同步：</strong>$\sum_{n=2}^\infty n(n-1) a_n x^{n-2}$ shift 为 $k = n-2$ 后下界变成 $k=0$，<em>不</em>是 $k=2$. 这是 Sec 5.1 problems 18 / 20 / 22 的核心机械错误源。<br><br>
+          <strong>(5) Radius of convergence 看 complex 距离：</strong>$1/(1+x^2)$ 在实轴上没奇点，但 $x = \pm i$ 是奇点。所以 $(1+x^2)y'' + \cdots$ about $x_0 = 0$ 给出 $\rho \ge 1 = |0 \pm i|$。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 6.6 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-1a">Problem 6.6.1(a)</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.1(a) — Commutative law</p>
+        <p>证明 $f * g = g * f$.</p>
+      </div>
+
+      <h3 id="p6-6-1a-strategy">思路</h3>
+      <p>
+        Convolution 的 commutativity 来自一次<em>变量代换</em>。这是 Sec 6.6 最常考的 short proof 题，记住推导骨架即可——做题时不必额外动脑筋。
+      </p>
+
+      <h3 id="p6-6-1a-solution">解答</h3>
+      <p>
+        由定义 $\displaystyle (f * g)(t) = \int_0^t f(t - \tau)\,g(\tau)\,d\tau$. 做代换 $u = t - \tau$，则 $du = -d\tau$. 当 $\tau = 0$ 时 $u = t$；当 $\tau = t$ 时 $u = 0$. 所以
+      </p>
+      $$\begin{aligned}
+        (f * g)(t) &= \int_{t}^{0} f(u)\,g(t - u)\,(-du) \\
+        &= \int_{0}^{t} g(t - u)\,f(u)\,du \\
+        &= (g * f)(t). \quad \square
+      \end{aligned}$$
+
+      <p>关键观察：代换后<em>外层</em>变量从 $\tau$ 变成 $u$，但因为 dummy variable 名字无所谓，最后的积分形式正好是 $(g * f)$ 的定义。</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — Convolution 的对称性</p>
+        <p>
+          直观上 $(f * g)(t)$ 是"在 $[0, t]$ 上把 $f$ 倒着扫过 $g$"。这个"扫"的过程对 $f$ 和 $g$ 是对称的——谁倒着、谁正着没有本质区别，最终的"重叠积分"一样。所以 commutativity 既是代数恒等式，也是积分几何上的"对称"事实。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-4">Problem 6.6.4</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.4 — Laplace transform of a convolution</p>
+        <p>求 $\mathcal{L}\{f(t)\}$，其中 $\displaystyle f(t) = \int_0^t (t - \tau)^2 \cos(2\tau)\,d\tau$.</p>
+      </div>
+
+      <h3 id="p6-6-4-strategy">思路</h3>
+      <p>
+        看到 $\int_0^t (t - \tau)^2 \cos(2\tau)\,d\tau$ 立刻识别 convolution structure: 这是 $g * h$ 其中 $g(t) = t^2$, $h(t) = \cos 2t$. 由 <a href="../08-laplace-discontinuous.html#convolution-theorem">Convolution Theorem</a> 直接得 $\mathcal{L}\{f\} = G(s) H(s)$，<strong>不</strong>必硬算积分。
+      </p>
+
+      <h3 id="p6-6-4-solution">解答</h3>
+      $$\mathcal{L}\{t^2\} = \frac{2!}{s^3} = \frac{2}{s^3}, \qquad \mathcal{L}\{\cos 2t\} = \frac{s}{s^2 + 4}.$$
+      <p>由 Convolution Theorem：</p>
+      $$\boxed{\;\mathcal{L}\{f(t)\} = \frac{2}{s^3} \cdot \frac{s}{s^2 + 4} = \frac{2}{s^2 (s^2 + 4)}.\;}$$
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-5">Problem 6.6.5</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.5 — Laplace transform of a convolution</p>
+        <p>求 $\mathcal{L}\{f(t)\}$，其中 $\displaystyle f(t) = \int_0^t e^{-(t - \tau)} \sin(\tau)\,d\tau$.</p>
+      </div>
+
+      <h3 id="p6-6-5-strategy">思路</h3>
+      <p>同上：识别 convolution $g * h$，$g(t) = e^{-t}, h(t) = \sin t$. 用表查 $G(s), H(s)$ 直接相乘。</p>
+
+      <h3 id="p6-6-5-solution">解答</h3>
+      $$\mathcal{L}\{e^{-t}\} = \frac{1}{s + 1}, \qquad \mathcal{L}\{\sin t\} = \frac{1}{s^2 + 1}.$$
+      $$\boxed{\;\mathcal{L}\{f(t)\} = \frac{1}{s + 1} \cdot \frac{1}{s^2 + 1} = \frac{1}{(s + 1)(s^2 + 1)}.\;}$$
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Convolution 还是 partial fractions？</p>
+        <p>
+          Problems 6.6.4 和 6.6.5 这种"对一个 convolution 积分求 Laplace transform"的题，convolution theorem<em>必然</em>是最快的——硬算积分需要 integration by parts 多次，而查表 + 相乘三秒搞定。<br><br>
+          反过来对一个 product $F(s)G(s)$ 求 inverse Laplace 时，要在 partial fractions 和 convolution integral 两种方法之间权衡。后面 6.6.7 和 6.6.8 就是这类反方向问题。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-7">Problem 6.6.7</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.7 — Inverse Laplace via convolution</p>
+        <p>求 $\mathcal{L}^{-1}\{F(s)\}$，其中 $F(s) = \dfrac{1}{s^4 (s^2 + 1)}$.</p>
+      </div>
+
+      <h3 id="p6-6-7-strategy">思路</h3>
+      <p>
+        $F(s) = \dfrac{1}{s^4} \cdot \dfrac{1}{s^2 + 1}$. 两个因子 inverse 都简单（$t^3/6$ 和 $\sin t$），但卷起来需要做几次 integration by parts。也可以用 partial fractions 直接展开——两种方法都通，本题示范 convolution 路线（题目要求）。
+      </p>
+
+      <h3 id="p6-6-7-solution">解答</h3>
+      <p>
+        令 $G(s) = \dfrac{1}{s^4}$, $H(s) = \dfrac{1}{s^2+1}$. 则 $g(t) = \dfrac{t^3}{6}$, $h(t) = \sin t$. 由 Convolution Theorem：
+      </p>
+      $$f(t) = (g * h)(t) = \frac{1}{6}\int_0^t (t - \tau)^3 \sin\tau \, d\tau.$$
+      <p>用 integration by parts 三次。先算<em>辅助积分</em>：</p>
+      $$\int_0^t (t - \tau)\sin\tau\,d\tau = \bigl[-(t-\tau)\cos\tau\bigr]_0^t - \int_0^t \cos\tau\,d\tau = t - \sin t.$$
+      <p>由此</p>
+      $$\int_0^t (t - \tau)^2 \cos\tau\,d\tau \;=\; 2 \int_0^t (t - \tau)\sin\tau\,d\tau \;=\; 2t - 2\sin t,$$
+      <p>再一次 integration by parts：</p>
+      $$\int_0^t (t - \tau)^3 \sin\tau\,d\tau \;=\; t^3 - 3\int_0^t (t - \tau)^2 \cos\tau\,d\tau \;=\; t^3 - 6t + 6\sin t.$$
+      <p>所以</p>
+      $$f(t) = \frac{1}{6}\bigl(t^3 - 6t + 6\sin t\bigr) = \boxed{\;\sin t - t + \tfrac{1}{6}t^3.\;}$$
+
+      <p><strong>Sanity check.</strong> 直接算 $\mathcal{L}\{\sin t - t + t^3/6\} = \frac{1}{s^2+1} - \frac{1}{s^2} + \frac{1}{s^4}$. 通分：</p>
+      $$\frac{s^4 - s^2(s^2+1) + (s^2+1)}{s^4 (s^2+1)} = \frac{s^4 - s^4 - s^2 + s^2 + 1}{s^4(s^2+1)} = \frac{1}{s^4(s^2+1)}. \checkmark$$
+
+      <div class="box deeper">
+        <p class="box-title">📖 Deeper — Partial fractions 路线对比</p>
+        <p>
+          也可以做 partial fractions：$\dfrac{1}{s^4(s^2+1)} = \dfrac{A}{s} + \dfrac{B}{s^2} + \dfrac{C}{s^3} + \dfrac{D}{s^4} + \dfrac{Es + F}{s^2 + 1}$. 通分比对得 $A = 0, B = -1, C = 0, D = 1, E = 0, F = 1$，所以 $F(s) = -\dfrac{1}{s^2} + \dfrac{1}{s^4} + \dfrac{1}{s^2 + 1}$. Inverse: $-t + \dfrac{t^3}{6} + \sin t$, 答案完全一致。<br><br>
+          所以 6.6.7 这类题 partial fractions 也能做，且 convolution 反而更慢——除非题目明确要求用 convolution。下题 6.6.8 才是 convolution 真正发挥优势的场合。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-8">Problem 6.6.8</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.8 — Inverse Laplace via convolution</p>
+        <p>求 $\mathcal{L}^{-1}\{F(s)\}$，其中 $F(s) = \dfrac{s}{(s+1)(s^2 + 4)}$.</p>
+      </div>
+
+      <h3 id="p6-6-8-strategy">思路</h3>
+      <p>
+        分母两个 irreducible factor，partial fractions 也不算复杂（一次实根 + 一个 irreducible quadratic）。但题目希望用 convolution：把 $F$ 拆成 $\dfrac{1}{s+1} \cdot \dfrac{s}{s^2 + 4}$，分别 inverse 得 $e^{-t}$ 和 $\cos 2t$，然后卷起来。
+      </p>
+
+      <h3 id="p6-6-8-solution">解答</h3>
+      <p>
+        令 $G(s) = \dfrac{1}{s+1}$, $H(s) = \dfrac{s}{s^2+4}$，则 $g(t) = e^{-t}$, $h(t) = \cos 2t$.
+      </p>
+      $$f(t) = (g * h)(t) = \int_0^t e^{-(t-\tau)}\cos(2\tau)\,d\tau = e^{-t}\int_0^t e^{\tau}\cos(2\tau)\,d\tau.$$
+      <p>用标准公式</p>
+      $$\int e^{\tau}\cos(2\tau)\,d\tau = \frac{e^{\tau}\bigl(\cos 2\tau + 2 \sin 2\tau\bigr)}{1^2 + 2^2} = \frac{e^{\tau}(\cos 2\tau + 2\sin 2\tau)}{5} + C,$$
+      <p>所以</p>
+      $$\int_0^t e^{\tau}\cos(2\tau)\,d\tau = \frac{e^{t}(\cos 2t + 2\sin 2t) - 1}{5}.$$
+      <p>乘上 $e^{-t}$:</p>
+      $$f(t) = \frac{e^{-t}}{5}\bigl[\,e^{t}(\cos 2t + 2\sin 2t) - 1\,\bigr] = \boxed{\;\tfrac{1}{5}\bigl(\cos 2t + 2\sin 2t - e^{-t}\bigr).\;}$$
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — $\int e^{a\tau}\cos(b\tau)\,d\tau$ 的公式记错很多</p>
+        <p>
+          通用公式：
+          $$\int e^{a\tau}\cos(b\tau)\,d\tau = \frac{e^{a\tau}\bigl(a\cos(b\tau) + b\sin(b\tau)\bigr)}{a^2 + b^2} + C.$$
+          这里 $a = 1, b = 2$，所以分子是 $\cos 2\tau + 2\sin 2\tau$，分母 $1 + 4 = 5$. 容易把<em>系数</em>记反（$a$ 配 $\sin$ 还是 $\cos$）。记忆法：对结果直接求导验证——求导后<em>不</em>能有 $\sin$ 的残余，从这点可以反推。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-6-6-13">Problem 6.6.13</h2>
+      <div class="box example">
+        <p class="box-title">📝 Problem 6.6.13 — IVP solution as convolution integral</p>
+        <p>把下列 IVP 的解写成 convolution integral 形式：</p>
+        $$y'' + y' + \tfrac{5}{4} y = 1 - u_\pi(t), \qquad y(0) = 1, \quad y'(0) = -1.$$
+      </div>
+
+      <h3 id="p6-6-13-strategy">思路</h3>
+      <p>
+        题目<em>不</em>要求把积分算出来——只要求"用 convolution integral 表达解"。流程标准：Laplace → 解 $Y(s)$ → 拆成 homogeneous part（由 IC 引出）和 particular part（由 forcing 引出）→ particular part 用 <a href="../08-laplace-discontinuous.html#transfer-function">transfer function</a> $H(s) = 1/(s^2+s+5/4)$ 和 forcing 的 Laplace transform 相乘，然后用 Convolution Theorem 写成 $h * g$. Forcing $g = 1 - u_\pi(t)$ 留在积分里不展开。
+      </p>
+
+      <h3 id="p6-6-13-solution">解答</h3>
+      <p>
+        <strong>Step 1: Laplace transform.</strong> $\mathcal{L}\{1 - u_\pi(t)\} = \dfrac{1}{s} - \dfrac{e^{-\pi s}}{s}$. 用 $\mathcal{L}\{y''\} = s^2 Y - s\,y(0) - y'(0) = s^2 Y - s + 1$, $\mathcal{L}\{y'\} = sY - y(0) = sY - 1$:
+      </p>
+      $$\bigl(s^2 + s + \tfrac{5}{4}\bigr) Y - s + 1 - 1 = \frac{1 - e^{-\pi s}}{s} \;\;\Longrightarrow\;\; \bigl(s^2 + s + \tfrac{5}{4}\bigr) Y = s + \frac{1 - e^{-\pi s}}{s}.$$
+      <p>
+        <strong>Step 2: Completing the square.</strong> $s^2 + s + 5/4 = (s + 1/2)^2 + 1$. 把 $Y(s)$ 拆成两部分：
+      </p>
+      $$Y(s) = \underbrace{\frac{s}{(s + 1/2)^2 + 1}}_{Y_h} + \underbrace{\frac{1}{(s + 1/2)^2 + 1}\cdot\frac{1 - e^{-\pi s}}{s}}_{Y_p}.$$
+      <p>
+        <strong>Step 3: Inverse Laplace for the homogeneous part.</strong> 写成 $\dfrac{(s + 1/2) - 1/2}{(s+1/2)^2 + 1}$, 用 $s$-shifting:
+      </p>
+      $$\mathcal{L}^{-1}\{Y_h\} = e^{-t/2}\cos t - \tfrac{1}{2} e^{-t/2}\sin t.$$
+      <p>
+        <strong>Step 4: Particular part as convolution.</strong> 令 $H(s) = \dfrac{1}{(s + 1/2)^2 + 1}$, 则 $h(t) = e^{-t/2}\sin t$ —— 这是系统的 <strong>impulse response</strong>（如果 forcing 是 $\delta(t)$ 时的零初值响应）。设 $g(t) = 1 - u_\pi(t)$. 由 Convolution Theorem：
+      </p>
+      $$\mathcal{L}^{-1}\{Y_p\} = \mathcal{L}^{-1}\{H(s)G(s)\} = (h * g)(t) = \int_0^t h(t - \tau)\,g(\tau)\,d\tau.$$
+
+      <p><strong>Step 5: 合并。</strong></p>
+      $$\boxed{\;y(t) = e^{-t/2}\cos t - \tfrac{1}{2} e^{-t/2}\sin t + \int_0^t e^{-(t-\tau)/2}\sin(t - \tau)\,\bigl[1 - u_\pi(\tau)\bigr]\,d\tau.\;}$$
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么把积分留着</p>
+        <p>
+          数学上 forcing $1 - u_\pi(\tau)$ 是 piecewise constant，可以分 $\tau < \pi$ 和 $\tau \ge \pi$ 两段拆开积分，<em>能</em>算出 closed form。但 prof 在 6.6 末尾强调："express the solution in terms of a convolution integral"——这是 Sec 6.6 教学目的的核心：让学生<strong>认识到</strong> $y = h * g + \phi$ 的结构本身就是答案，不需要把 forcing $g$ 也具体展开。<br><br>
+          这种"留着不算"的写法在控制工程里极常见——当 $g$ 的形式没确定（比如还是 design variable）时，convolution integral 就是<em>对所有 $g$ 通用</em>的解的表示，比 closed-form 更"general"。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 5.1 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-1">Problems 5.1.1, 2, 7, 14, 18, 20, 22 — Power series review</h2>
+
+      <p>
+        5.1 的 7 道题都是<em>机械化</em>的工具题：4 道关于 radius of convergence（ratio test）或 Taylor series，3 道关于 index shifting。按技术分组讲解。
+      </p>
+
+      <h3 id="p5-1-1-2">Problems 5.1.1, 5.1.2 — Radius of convergence via ratio test</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.1 — $\sum_{n=0}^\infty (x - 3)^n$</p>
+        <p>
+          <strong>Solution.</strong> $a_n = 1$. Ratio test:
+          $$\lim_{n \to \infty}\left|\frac{(x-3)^{n+1}}{(x-3)^n}\right| = |x - 3|.$$
+          收敛当 $|x - 3| < 1$, 发散当 $|x - 3| > 1$. 所以 $\boxed{\rho = 1}$.
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.2 — $\sum_{n=0}^\infty \frac{n}{3^n} x^n$</p>
+        <p>
+          <strong>Solution.</strong>
+          $$\lim_{n\to\infty}\left|\frac{(n+1)/3^{n+1} \cdot x^{n+1}}{n/3^n \cdot x^n}\right| = \lim \frac{n+1}{3n}|x| = \frac{|x|}{3}.$$
+          收敛当 $|x|/3 < 1 \Leftrightarrow |x| < 3$. $\boxed{\rho = 3}$.
+        </p>
+      </div>
+
+      <h3 id="p5-1-7">Problem 5.1.7 — Taylor series of $\sin x$ about $x_0 = 0$</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.7 — $\sin x$ at $x_0 = 0$</p>
+        <p>
+          <strong>Solution.</strong> Maclaurin series:
+          $$\sin x = \sum_{n=0}^\infty \frac{(-1)^n}{(2n+1)!} x^{2n+1} = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \cdots.$$
+          Ratio test on the nonzero terms:
+          $$\lim_{n\to\infty}\left|\frac{x^{2n+3}/(2n+3)!}{x^{2n+1}/(2n+1)!}\right| = \lim \frac{x^2}{(2n+2)(2n+3)} = 0$$
+          对任何 $x$ 成立. 所以 $\boxed{\rho = \infty}$.
+        </p>
+      </div>
+
+      <h3 id="p5-1-14">Problem 5.1.14 — Differentiating a power series</h3>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.14 — $y = \sum_{n=0}^\infty n x^n$</p>
+        <p>
+          <strong>(a)</strong> 注意 $n = 0$ 项 $0 \cdot x^0 = 0$，所以实际上 $y = 0 + x + 2x^2 + 3x^3 + 4x^4 + 5x^5 + \cdots$. 逐项求导：
+          $$y' = \sum_{n=1}^\infty n^2 x^{n-1} = 1 + 4x + 9x^2 + 16x^3 + \cdots.$$
+          <strong>(b)</strong> 再求导：
+          $$y'' = \sum_{n=2}^\infty n^2(n-1) x^{n-2} = 4 + 18x + 48x^2 + 100x^3 + \cdots.$$
+          （$n=2$: $4 \cdot 1 = 4$; $n=3$: $9 \cdot 2 = 18$; $n=4$: $16 \cdot 3 = 48$; $n=5$: $25 \cdot 4 = 100$.）
+        </p>
+      </div>
+
+      <h3 id="p5-1-18-20-22">Problems 5.1.18, 5.1.20, 5.1.22 — Index shifting</h3>
+
+      <p>这三题练同一个核心动作：把 sum 改写成 generic term 为 $x^n$ 的形式。规则是<em>shift sum 时同步 shift 公式</em>，并补齐缺失的起始项。详细规律见 <a href="../09-series-solutions.html#index-shifting">File 09 §index-shifting</a>。</p>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.18 — $\sum_{n=2}^\infty n(n-1) a_n x^{n-2}$</p>
+        <p>
+          <strong>Solution.</strong> 令 $k = n - 2$（即 $n = k + 2$）. 当 $n = 2$ 时 $k = 0$:
+          $$\sum_{n=2}^\infty n(n-1) a_n x^{n-2} = \sum_{k=0}^\infty (k+2)(k+1) a_{k+2} x^k.$$
+          换回 $n$（dummy variable）：
+          $$\boxed{\;\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n.\;}$$
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.20 — $\sum_{m=2}^\infty m(m-1) a_m x^{m-2} + x\sum_{k=1}^\infty k a_k x^{k-1}$</p>
+        <p>
+          <strong>Solution.</strong> 第一个 sum 同 5.1.18 处理：shift $n = m - 2$，得 $\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n$. 第二个 sum 先把 $x$ 吸进去：
+          $$x\sum_{k=1}^\infty k a_k x^{k-1} = \sum_{k=1}^\infty k a_k x^k = \sum_{n=1}^\infty n a_n x^n.$$
+          注意第一个 sum 从 $n=0$ 开始、第二个从 $n=1$ 开始——把第一个的 $n=0$ 项 $2 \cdot 1 \cdot a_2 = 2a_2$ 拎出来：
+          $$\boxed{\;2a_2 + \sum_{n=1}^\infty \bigl[(n+2)(n+1) a_{n+2} + n a_n\bigr] x^n.\;}$$
+        </p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 Problem 5.1.22 — $x \sum_{n=2}^\infty n(n-1) a_n x^{n-2} + \sum_{n=0}^\infty a_n x^n$</p>
+        <p>
+          <strong>Solution.</strong> 第一个 sum 先把 $x$ 吸进去：
+          $$x \sum_{n=2}^\infty n(n-1) a_n x^{n-2} = \sum_{n=2}^\infty n(n-1) a_n x^{n-1}.$$
+          Shift $k = n - 1$:
+          $$= \sum_{k=1}^\infty (k+1)k\, a_{k+1} x^k = \sum_{n=1}^\infty n(n+1) a_{n+1} x^n.$$
+          第二个 sum 的 $n=0$ 项是 $a_0$，要拎出来：
+          $$\boxed{\;a_0 + \sum_{n=1}^\infty \bigl[n(n+1) a_{n+1} + a_n\bigr] x^n.\;}$$
+        </p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — 三个最常见的 shifting 错误</p>
+        <p>
+          <strong>(1) 下界没同步</strong>：shift $k = n - 2$ 后下界<em>必须</em>从 $k = 0$ 开始，不是 $k = 2$.<br><br>
+          <strong>(2) 公式里 $n$ 没改</strong>：原式 $\sum n(n-1) a_n x^{n-2}$ shift 后是 $(k+2)(k+1) a_{k+2} x^k$，所有 $n$ 出现的地方都要换成 $k+2$，不能只改 $x^{n-2}$.<br><br>
+          <strong>(3) 起点不对就硬合并</strong>：两个 sum 起点不同（如 $n=0$ vs $n=1$）时，要把"漏掉的项"手动拎出来，再合并剩下的——不能直接合并不同起点的 sum。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 5.2 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-2-2">Problem 5.2.2 — $y'' + 3y' = 0$, $x_0 = 0$</h2>
+
+      <h3 id="p5-2-2-strategy">思路</h3>
+      <p>
+        $p(x) = 3, q(x) = 0$，都是常数，所以 $x = 0$ ordinary point。代入 $y = \sum a_n x^n$ 后会得到把 $a_{n+2}$ 连到 $a_{n+1}$ 的 recurrence —— 一旦 $a_1 = 0$，整个奇数链立刻 terminate，所以 $y_1 = 1$（常数）成为一个解。
+      </p>
+
+      <h3 id="p5-2-2-solution">解答</h3>
+      <p>
+        代入 $y = \sum a_n x^n$，$y' = \sum n a_n x^{n-1}$，$y'' = \sum n(n-1) a_n x^{n-2}$. Shift 后：
+      </p>
+      $$\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n + 3\sum_{n=0}^\infty (n+1) a_{n+1} x^n = 0.$$
+      <p>合并 → 系数为 0:</p>
+      $$(n+2)(n+1) a_{n+2} + 3(n+1) a_{n+1} = 0 \;\;\Longrightarrow\;\; \boxed{\;a_{n+2} = -\frac{3}{n+2} a_{n+1}, \quad n \ge 0.\;}$$
+      <p>等价于 $a_{m+1} = -\dfrac{3}{m+1} a_m$ for $m \ge 1$. 从 $a_1$ 出发：</p>
+      $$a_2 = -\tfrac{3}{2}a_1,\; a_3 = -\tfrac{3}{3}a_2 = \tfrac{3}{2}a_1,\; a_4 = -\tfrac{3}{4}a_3 = -\tfrac{9}{8}a_1, \ldots$$
+      <p>一般地 $a_n = \dfrac{(-3)^{n-1}}{n!} a_1$ for $n \ge 1$（用归纳法验证）。两个解：</p>
+      <ul>
+        <li><strong>$a_0 = 1, a_1 = 0$:</strong> $\;y_1(x) = 1$ （series terminates 在第一项）。</li>
+        <li><strong>$a_0 = 0, a_1 = 1$:</strong> $\;y_2(x) = x - \tfrac{3}{2}x^2 + \tfrac{3}{2}x^3 - \tfrac{9}{8}x^4 + \cdots = \displaystyle\sum_{n=1}^\infty \dfrac{(-3)^{n-1}}{n!}x^n = \dfrac{1 - e^{-3x}}{3}$.</li>
+      </ul>
+
+      <p>Wronskian at $0$: $W[y_1, y_2](0) = \begin{vmatrix} 1 & 0 \\ 0 & 1 \end{vmatrix} = 1 \ne 0$，fundamental set. ✓</p>
+
+      <p>Sanity check: $y'' + 3y' = 0$ 是常系数 ODE，characteristic equation $r^2 + 3r = 0$，根 $r = 0, -3$，general solution $y = c_1 + c_2 e^{-3x}$. Series 给出的 $\{1, (1-e^{-3x})/3\}$ 张成同一个 solution space. ✓</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-2-3">Problem 5.2.3 — $y'' - xy' - y = 0$, $x_0 = 0$</h2>
+
+      <h3 id="p5-2-3-strategy">思路</h3>
+      <p>
+        $p = -x, q = -1$ 都 polynomial → $x = 0$ ordinary point。Recurrence relation 会把 $a_{n+2}$ 连到 $a_n$（不连 $a_{n+1}$），所以偶/奇链分开。<em>关键的代数事实</em>：得到的 $y_1$ 恰好就是 $e^{x^2/2}$ 的 Taylor 级数——一个意外的 closed form。
+      </p>
+
+      <h3 id="p5-2-3-solution">解答</h3>
+      <p>
+        $-xy' = -\sum_{n=1}^\infty n a_n x^n$. 代入：
+      </p>
+      $$\sum_{n=2}^\infty n(n-1) a_n x^{n-2} - \sum_{n=1}^\infty n a_n x^n - \sum_{n=0}^\infty a_n x^n = 0.$$
+      <p>Shift 第一个 sum，并把后两个 sum 的"起点不同"统一（第二个从 $n=1$，第一个/第三个从 $n=0$；可以把第二个的 $n=0$ 项 $0 \cdot a_0 = 0$ 补上）：</p>
+      $$\sum_{n=0}^\infty \bigl[(n+2)(n+1) a_{n+2} - n a_n - a_n\bigr] x^n = 0.$$
+      <p>系数为 0:</p>
+      $$(n+2)(n+1) a_{n+2} = (n+1) a_n \;\;\Longrightarrow\;\; \boxed{\;a_{n+2} = \frac{a_n}{n+2}, \quad n \ge 0.\;}$$
+      <p>偶链 ($n = 2k$):</p>
+      $$a_2 = \tfrac{a_0}{2}, \; a_4 = \tfrac{a_2}{4} = \tfrac{a_0}{8}, \; a_6 = \tfrac{a_4}{6} = \tfrac{a_0}{48}, \ldots \;\;\Longrightarrow\;\; a_{2k} = \frac{a_0}{2 \cdot 4 \cdot 6 \cdots (2k)} = \frac{a_0}{2^k k!}.$$
+      <p>奇链 ($n = 2k+1$):</p>
+      $$a_3 = \tfrac{a_1}{3}, \; a_5 = \tfrac{a_3}{5} = \tfrac{a_1}{15}, \; a_7 = \tfrac{a_5}{7} = \tfrac{a_1}{105}, \ldots \;\;\Longrightarrow\;\; a_{2k+1} = \frac{a_1}{3 \cdot 5 \cdot 7 \cdots (2k+1)} = \frac{2^k k!}{(2k+1)!} a_1.$$
+      <p>两个解：</p>
+      <ul>
+        <li><strong>$a_0 = 1, a_1 = 0$:</strong> $\;y_1(x) = 1 + \dfrac{x^2}{2} + \dfrac{x^4}{8} + \dfrac{x^6}{48} + \cdots = \displaystyle\sum_{k=0}^\infty \dfrac{x^{2k}}{2^k k!} = e^{x^2/2}$.</li>
+        <li><strong>$a_0 = 0, a_1 = 1$:</strong> $\;y_2(x) = x + \dfrac{x^3}{3} + \dfrac{x^5}{15} + \dfrac{x^7}{105} + \cdots$ (无 closed form).</li>
+      </ul>
+      <p>Wronskian at $0$: $1 \ne 0$，fundamental set.</p>
+
+      <div class="box intuition">
+        <p class="box-title">💡 Intuition — 为什么 $y_1 = e^{x^2/2}$ 这么巧</p>
+        <p>
+          注意原 ODE 可以写成 $(y' - xy)' = 0$，所以 $y' - xy = C$ 常数. 对 $y_1$（满足 $y_1(0)=1, y_1'(0)=0$） $C = 0$，所以 $y_1' = x y_1$. 这是 separable: $\dfrac{dy_1}{y_1} = x\,dx$, 积分 $\ln y_1 = x^2/2 + C'$, $y_1 = e^{x^2/2}$.<br><br>
+          换言之 series method 偶然"发现"了一个其实有 closed form 的解。但对 $y_2$ 没有这种好运——它真的需要 series 表示。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-2-6">Problem 5.2.6 — $(1-x)y'' + y = 0$, $x_0 = 0$</h2>
+
+      <h3 id="p5-2-6-strategy">思路</h3>
+      <p>
+        $a_2(x) = 1 - x$, 在 $x = 1$ 为零；标准形 $p = 0, q = 1/(1-x)$，singular point 是 $x = 1$. 距离 $x_0 = 0$ 是 1，所以 series solution radius $\ge 1$. Recurrence 会涉及 $a_{n+2}, a_{n+1}, a_n$ 三项——比前两题更复杂，且没有 closed-form general term。
+      </p>
+
+      <h3 id="p5-2-6-solution">解答</h3>
+      <p>
+        $(1-x)y'' = y'' - xy''$. 代入：
+      </p>
+      $$\sum_{n=2}^\infty n(n-1) a_n x^{n-2} - \sum_{n=2}^\infty n(n-1) a_n x^{n-1} + \sum_{n=0}^\infty a_n x^n = 0.$$
+      <p>Shift 前两个 sum: 第一个 → $\sum_{n=0}^\infty (n+2)(n+1) a_{n+2} x^n$; 第二个（$k = n-1$）→ $\sum_{n=1}^\infty (n+1) n\, a_{n+1} x^n$. 合并：</p>
+      <p>对 $n = 0$: $2 a_2 + a_0 = 0 \Rightarrow a_2 = -a_0/2$.</p>
+      <p>对 $n \ge 1$:</p>
+      $$(n+2)(n+1) a_{n+2} - n(n+1) a_{n+1} + a_n = 0 \;\;\Longrightarrow\;\; \boxed{\;a_{n+2} = \frac{n(n+1) a_{n+1} - a_n}{(n+2)(n+1)}, \quad n \ge 1.\;}$$
+      <p>这是<em>三项递推</em>——$a_{n+2}$ 同时依赖 $a_{n+1}$ 和 $a_n$. 没有简单的 closed form，只能逐项算。</p>
+
+      <p><strong>$a_0 = 1, a_1 = 0$:</strong></p>
+      $$a_2 = -\tfrac{1}{2}, \;\; a_3 = \tfrac{2 a_2 - a_1}{6} = \tfrac{-1}{6}, \;\; a_4 = \tfrac{6 a_3 - a_2}{12} = \tfrac{-1 + 1/2}{12} = -\tfrac{1}{24}.$$
+      $$y_1(x) = 1 - \tfrac{1}{2} x^2 - \tfrac{1}{6} x^3 - \tfrac{1}{24} x^4 + \cdots.$$
+      <p><strong>$a_0 = 0, a_1 = 1$:</strong></p>
+      $$a_2 = 0, \;\; a_3 = \tfrac{0 - 1}{6} = -\tfrac{1}{6}, \;\; a_4 = \tfrac{6(-1/6) - 0}{12} = -\tfrac{1}{12}, \;\; a_5 = \tfrac{12 a_4 - a_3}{20} = \tfrac{-1 + 1/6}{20} = -\tfrac{1}{24}.$$
+      $$y_2(x) = x - \tfrac{1}{6} x^3 - \tfrac{1}{12} x^4 - \tfrac{1}{24} x^5 + \cdots.$$
+
+      <p>Wronskian at $0$: $1 \ne 0$, fundamental set.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-2-9">Problem 5.2.9 — $(3 - x^2) y'' - 3xy' - y = 0$, $x_0 = 0$</h2>
+
+      <h3 id="p5-2-9-strategy">思路</h3>
+      <p>
+        $a_2 = 3 - x^2$ 在 $x = \pm\sqrt{3}$ 为零；标准形 $p = -3x/(3-x^2), q = -1/(3-x^2)$，singular point 是 $\pm\sqrt{3}$. Series solution about $x_0 = 0$ radius $\ge \sqrt{3}$. Recurrence 把 $a_{n+2}$ 连到 $a_n$（不连 $a_{n+1}$），所以偶/奇链分开，且 recurrence 在化简后形式很简洁。
+      </p>
+
+      <h3 id="p5-2-9-solution">解答</h3>
+      <p>展开 $(3-x^2)y'' = 3y'' - x^2 y''$，代入：</p>
+      $$3\sum_{n=2}^\infty n(n-1) a_n x^{n-2} - \sum_{n=2}^\infty n(n-1) a_n x^n - 3\sum_{n=1}^\infty n a_n x^n - \sum_{n=0}^\infty a_n x^n = 0.$$
+      <p>Shift 第一个 sum，统一其它 sum 起点。对 $x^n$ 系数（$n \ge 0$）：</p>
+      $$3(n+2)(n+1) a_{n+2} - \bigl[n(n-1) + 3n + 1\bigr] a_n = 0.$$
+      <p>注意 $n(n-1) + 3n + 1 = n^2 + 2n + 1 = (n+1)^2$，所以</p>
+      $$\boxed{\;a_{n+2} = \frac{(n+1)^2 a_n}{3(n+2)(n+1)} = \frac{(n+1) a_n}{3(n+2)}, \quad n \ge 0.\;}$$
+      <p>偶链 ($n = 2k$): $a_{2k+2} = \dfrac{(2k+1)}{3(2k+2)} a_{2k}$. 算前几项：</p>
+      $$a_2 = \tfrac{a_0}{6}, \;\; a_4 = \tfrac{3 a_2}{12} = \tfrac{a_0}{24}, \;\; a_6 = \tfrac{5 a_4}{18} = \tfrac{5 a_0}{432}, \ldots$$
+      <p>奇链 ($n = 2k+1$): $a_{2k+3} = \dfrac{(2k+2)}{3(2k+3)} a_{2k+1}$:</p>
+      $$a_3 = \tfrac{2 a_1}{9}, \;\; a_5 = \tfrac{4 a_3}{15} = \tfrac{8 a_1}{135}, \;\; a_7 = \tfrac{6 a_5}{21} = \tfrac{16 a_1}{945}, \ldots$$
+      <p>两个解：</p>
+      $$y_1(x) = 1 + \tfrac{1}{6} x^2 + \tfrac{1}{24} x^4 + \tfrac{5}{432} x^6 + \cdots, \quad y_2(x) = x + \tfrac{2}{9} x^3 + \tfrac{8}{135} x^5 + \tfrac{16}{945} x^7 + \cdots.$$
+      <p>Wronskian at $0$: $1 \ne 0$, fundamental set.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-2-11">Problem 5.2.11 — $2y'' + (x+1)y' + 3y = 0$, $x_0 = 2$</h2>
+
+      <h3 id="p5-2-11-strategy">思路</h3>
+      <p>
+        所有系数都是 polynomial，$x_0 = 2$ ordinary point，$\rho = \infty$. 关键技巧：<em>shift the center</em>——令 $t = x - 2$，把所有 $x$ 换成 $t + 2$，再以 $t = 0$ 为中心展开。这是 5.2 唯一一道<em>非</em> $x_0 = 0$ 的题，专门考"换中心"的代数。
+      </p>
+
+      <h3 id="p5-2-11-solution">解答</h3>
+      <p>令 $t = x - 2$，则 $x + 1 = t + 3$. ODE 变成</p>
+      $$2 y'' + (t + 3) y' + 3 y = 0.$$
+      <p>代入 $y = \sum a_n t^n$，shift 后对 $t^n$ 系数（$n \ge 0$）：</p>
+      <p>$n = 0$: $\;4 a_2 + 3 a_1 + 3 a_0 = 0 \Rightarrow a_2 = -\tfrac{3}{4}(a_0 + a_1)$.</p>
+      <p>$n \ge 1$:</p>
+      $$2(n+2)(n+1) a_{n+2} + n a_n + 3(n+1) a_{n+1} + 3 a_n = 0$$
+      $$\boxed{\;a_{n+2} = -\frac{(n+3) a_n + 3(n+1) a_{n+1}}{2(n+2)(n+1)}, \quad n \ge 1.\;}$$
+      <p><strong>$a_0 = 1, a_1 = 0$:</strong></p>
+      $$a_2 = -\tfrac{3}{4}, \;\; a_3 = -\tfrac{4 a_1 + 6 a_2}{12} = -\tfrac{0 + 6(-3/4)}{12} = \tfrac{3}{8}, \;\; a_4 = -\tfrac{5 a_2 + 9 a_3}{24} = -\tfrac{-15/4 + 27/8}{24} = \tfrac{1}{64}.$$
+      $$y_1(x) = 1 - \tfrac{3}{4} (x-2)^2 + \tfrac{3}{8} (x-2)^3 + \tfrac{1}{64} (x-2)^4 + \cdots.$$
+      <p><strong>$a_0 = 0, a_1 = 1$:</strong></p>
+      $$a_2 = -\tfrac{3}{4}, \;\; a_3 = -\tfrac{4 + 6(-3/4)}{12} = -\tfrac{-1/2}{12} = \tfrac{1}{24}, \;\; a_4 = -\tfrac{5(-3/4) + 9(1/24)}{24} = \tfrac{9}{64}.$$
+      $$y_2(x) = (x-2) - \tfrac{3}{4} (x-2)^2 + \tfrac{1}{24} (x-2)^3 + \tfrac{9}{64} (x-2)^4 + \cdots.$$
+      <p>Wronskian at $x_0 = 2$: $1 \ne 0$, fundamental set.</p>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ Warning — Shift the center 之后才代入系数</p>
+        <p>
+          做题时最常见错误：直接以原 $x$ 为变量、用 $y = \sum a_n (x-2)^n$ 展开后，求导时把 $y' = \sum n a_n (x-2)^{n-1}$ 当成"$x$ 的函数"代入，<em>但忘了把方程里的 $(x+1)$ 也用 $(x-2)$ 表达</em>。所以宁可一开始就<strong>换变量</strong> $t = x - 2$，整个方程也用 $t$ 表达，这样不容易漏。最后答案<em>再</em>把 $t$ 换回 $x - 2$.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ====================== Section 5.3 ======================== -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="p-5-3">Problems 5.3.7, 9, 10, 11 — 自学（not handed in）</h2>
+
+      <p>
+        HW 注明 5.3 不用交，但内容仍是期末考点（5.3 的 existence + radius theorem 和 analytic forcing 的 worked example 是 final 常考的）。这里给四题的解答骨架，详细方法见 <a href="../09-series-solutions.html#convergence-and-analytic-forcing">File 09 §5.3</a>。
+      </p>
+
+      <h3 id="p5-3-7">Problem 5.3.7 — Radius lower bounds for §5.2 Problems 3, 6, 9</h3>
+      <p>5.3 的定理：series solution 的 radius $\ge$ $x_0$ 到 $p, q$ 在<em>复平面</em>上最近 singular point 的距离。所以只需找 singular points 并算距离。</p>
+      <ul>
+        <li>
+          <strong>§5.2 Problem 3</strong>: $y'' - xy' - y = 0$, $x_0 = 0$. $P(x) = 1$ 永不为零；$p = -x, q = -1$ 都 entire。<strong>无 singular point</strong>，所以 $\boxed{\rho = \infty}$.
+        </li>
+        <li>
+          <strong>§5.2 Problem 6</strong>: $(1-x)y'' + y = 0$, $x_0 = 0$. $P(x) = 1 - x$ 在 $x = 1$ 为零。距离 $|0 - 1| = 1$. $\boxed{\rho \ge 1}$.
+        </li>
+        <li>
+          <strong>§5.2 Problem 9</strong>: $(3 - x^2)y'' - 3xy' - y = 0$, $x_0 = 0$. $P(x) = 3 - x^2$ 在 $x = \pm\sqrt{3}$ 为零。距离 $\sqrt{3}$. $\boxed{\rho \ge \sqrt{3}}$.
+        </li>
+      </ul>
+
+      <h3 id="p5-3-9">Problem 5.3.9 — $y'' + (\sin x) y = 0$, $x_0 = 0$</h3>
+      <p>$\sin x$ 是 entire function，$\rho = \infty$. 用 $\sin x = x - x^3/6 + x^5/120 - \cdots$ 展开 $(\sin x) y$，按 power 逐阶 group like terms 解 recurrence。前几个系数：</p>
+      $$a_2 = 0, \;\; a_3 = -\tfrac{a_0}{6}, \;\; a_4 = -\tfrac{a_1}{12}, \;\; a_5 = \tfrac{a_0}{120}, \;\; a_6 = \tfrac{a_0 + a_1}{180}, \ldots$$
+      <ul>
+        <li>$a_0 = 1, a_1 = 0$: $\;y_1(x) = 1 - \tfrac{1}{6} x^3 + \tfrac{1}{120} x^5 + \tfrac{1}{180} x^6 + \cdots$.</li>
+        <li>$a_0 = 0, a_1 = 1$: $\;y_2(x) = x - \tfrac{1}{12} x^4 + \tfrac{1}{180} x^6 + \tfrac{1}{504} x^7 + \cdots$.</li>
+      </ul>
+
+      <h3 id="p5-3-10">Problem 5.3.10 — $e^x y'' + xy = 0$, $x_0 = 0$</h3>
+      <p>除以 $e^x \ne 0$ 化标准形: $y'' + xe^{-x} y = 0$. $xe^{-x}$ entire, $\rho = \infty$. $xe^{-x} = x - x^2 + x^3/2 - \cdots$, 代入 group like terms:</p>
+      $$a_2 = 0, \;\; a_3 = -\tfrac{a_0}{6}, \;\; a_4 = \tfrac{a_0 - a_1}{12}, \;\; a_5 = \tfrac{a_1}{20} - \tfrac{a_0}{40}, \ldots$$
+      <ul>
+        <li>$a_0 = 1, a_1 = 0$: $\;y_1(x) = 1 - \tfrac{1}{6} x^3 + \tfrac{1}{12} x^4 - \tfrac{1}{40} x^5 + \cdots$.</li>
+        <li>$a_0 = 0, a_1 = 1$: $\;y_2(x) = x - \tfrac{1}{12} x^4 + \tfrac{1}{20} x^5 - \tfrac{1}{60} x^6 + \cdots$.</li>
+      </ul>
+
+      <h3 id="p5-3-11">Problem 5.3.11 — $(\cos x)y'' + xy' - 2y = 0$, $x_0 = 0$</h3>
+      <p>$P(x) = \cos x$ 在 $x = \pi/2 + k\pi$ 为零，最近 $x_0 = 0$ 的奇点距离 $\pi/2$. 所以 $\rho \ge \pi/2$. $\cos x = 1 - x^2/2 + x^4/24 - \cdots$, group like terms:</p>
+      $$a_2 = a_0, \;\; a_3 = \tfrac{a_1}{6}, \;\; a_4 = \tfrac{a_0}{12}, \;\; a_5 = \tfrac{a_1}{60}, \;\; a_6 = \tfrac{a_0}{120}, \ldots$$
+      <ul>
+        <li>$a_0 = 1, a_1 = 0$: $\;y_1(x) = 1 + x^2 + \tfrac{1}{12} x^4 + \tfrac{1}{120} x^6 + \cdots$.</li>
+        <li>$a_0 = 0, a_1 = 1$: $\;y_2(x) = x + \tfrac{1}{6} x^3 + \tfrac{1}{60} x^5 + \tfrac{1}{560} x^7 + \cdots$.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="summary">本次 HW 共同模式 + key takeaways</h2>
+
+      <h3 id="pipeline-convolution">Convolution pipeline（§6.6）</h3>
+      <p>HW 中 6.6 的 6 题分三类，每类的标准做法：</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>题型</th><th>触发条件</th><th>做法</th><th>本 HW 例子</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>对 convolution 求 Laplace</td>
+            <td>看到 $\int_0^t f(t-\tau)g(\tau)d\tau$</td>
+            <td>识别为 $f * g$，查表得 $F(s), G(s)$，相乘</td>
+            <td>6.6.4, 6.6.5</td>
+          </tr>
+          <tr>
+            <td>用 convolution 反求 inverse</td>
+            <td>$Y(s) = F(s)G(s)$，partial fractions 麻烦</td>
+            <td>查 $f = \mathcal{L}^{-1}\{F\}, g = \mathcal{L}^{-1}\{G\}$，算 $f * g$（可能要积分技巧）</td>
+            <td>6.6.7, 6.6.8</td>
+          </tr>
+          <tr>
+            <td>IVP 解写成 convolution integral</td>
+            <td>题目说 "express in terms of a convolution integral"</td>
+            <td>Laplace → 拆 $Y = \phi + HG$ → $y = \phi(t) + (h*g)(t)$，<em>不</em>展开积分</td>
+            <td>6.6.13</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="pipeline-series">Series solution pipeline（§5.2, 5.3）</h3>
+      <ol>
+        <li>化 standard form $y'' + p(x)y' + q(x)y = 0$，验证 $x_0$ 是 ordinary point（$p, q$ analytic）。</li>
+        <li>找 $p, q$ 分母在<em>复平面</em>的零点（最近的决定 $\rho$ 下界）。</li>
+        <li>令 $y = \sum_{n=0}^\infty a_n (x - x_0)^n$；代入 ODE。若 $x_0 \ne 0$，先换变量 $t = x - x_0$ 整理整个方程（避免漏）。</li>
+        <li>所有 sum 通过 index shifting 统一成 generic term $(x-x_0)^n$；起点补齐。</li>
+        <li>$x^n$ 系数全为 0，得 recurrence relation；分 $a_0$ 链和 $a_1$ 链算前几项；写出 $y_1, y_2$.</li>
+        <li>Wronskian at $x_0$ 自动 $= 1$（因为 $y_1(x_0)=1, y_1'(x_0)=0, y_2(x_0)=0, y_2'(x_0)=1$），fundamental set ✓.</li>
+        <li>题目给 IC 时直接 $y(x) = y(x_0)\,y_1 + y'(x_0)\,y_2$.</li>
+      </ol>
+
+      <h3 id="key-formulas">核心公式速查</h3>
+      <ul>
+        <li><strong>Convolution Theorem</strong>: $\mathcal{L}\{f * g\} = F(s)G(s)$，其中 $(f*g)(t) = \int_0^t f(t-\tau) g(\tau) d\tau$. → <a href="../08-laplace-discontinuous.html#convolution-theorem">File 08 §convolution-theorem</a></li>
+        <li><strong>Convolution properties</strong>: commutative, distributive, associative; $f * \delta = f$ 但 $f * 1 \ne f$.</li>
+        <li><strong>Transfer function decomposition</strong>: $Y(s) = H(s)G(s) + \phi(s)$，$y(t) = (h*g)(t) + \phi(t)$. → <a href="../08-laplace-discontinuous.html#transfer-function">File 08 §transfer-function</a></li>
+        <li><strong>Derivative series</strong>: $y' = \sum_{n=1}^\infty n a_n x^{n-1}$, $y'' = \sum_{n=2}^\infty n(n-1) a_n x^{n-2}$.</li>
+        <li><strong>Ordinary vs singular</strong>: $x_0$ ordinary $\Leftrightarrow$ $p, q$ analytic at $x_0$ in standard form $y'' + py' + qy = 0$.</li>
+        <li><strong>Radius lower bound</strong>: $\rho \ge$ distance in <em>complex plane</em> from $x_0$ to nearest singular point (即 $p$ 或 $q$ 的分母零点). 用 $|a+bi| = \sqrt{a^2 + b^2}$.</li>
+        <li><strong>常用 Taylor series</strong>: $\sin x, \cos x, e^x, 1/(1-x)$. → <a href="../09-series-solutions.html#analytic-functions">File 09 §analytic-functions</a></li>
+        <li><strong>Index shifting</strong>: shift sum 上调 $\Leftrightarrow$ shift 公式下调；起点必须同步。 → <a href="../09-series-solutions.html#index-shifting">File 09 §index-shifting</a></li>
+      </ul>
+
+      <h3 id="looking-ahead">下一步</h3>
+      <p>
+        HW9 是最后一份 HW，covering 整个 Ch 5 + 6.6. Final exam (Wed 6/10) 范围是 chapters 1, 2, 3, 5, 6, 7 —— 即<strong>全部 lectured material</strong>。复习建议：
+      </p>
+      <ul>
+        <li>所有 file 01–09 的 Summary 是 60 分钟"过完整学期"的核心 condensate。</li>
+        <li>每个 file 的"做题 checklist"（在 Summary 末尾）是高效的"考前手册"。</li>
+        <li>MT2 复习的 <a href="../mt2-04-practice.html">Practice</a> 和 <a href="../mt2-05-drills.html">Drills</a> 仍然适用——这两个文件 cover 大量 partial fractions / completing the square / eigenvalue 计算技巧，是 final 上半部分的硬功夫训练场。</li>
+        <li>本 HW 6.6 的"transfer function decomposition" + Ch 5 的"series method 4-step procedure" 是 final 最后两道大题最可能考的内容。</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>
