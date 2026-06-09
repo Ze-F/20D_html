@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 04 Nonhomog 2nd-Order · MATH 20D Walkthrough</title>
+
+  <!-- Early theme application (prevents flash) -->
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 04 Nonhomog 2nd-Order</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>04 · Nonhomogeneous Second-Order · 考前冲刺</h1>
+    <p class="note">覆盖 §3.5, §3.6 &nbsp;·&nbsp; 来源 podcast 04a, 04b &nbsp;·&nbsp;
+       → <a href="../04-nonhomog-second-order.html">详细讲解</a>
+    </p>
+
+    <section id="04a-undetermined-coefficients">
+      <h2>04a · Method of Undetermined Coefficients</h2>
+      <p class="cram-meta">§3.5 · → <a href="../04-nonhomog-second-order.html#undetermined-coefficients">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — General solution structure</p>
+        <p>Nonhomogeneous 方程 $ay'' + by' + cy = f(t)$ 的 general solution: $y = y_H + y_P$。</p>
+        <ul>
+          <li>$y_H = c_1 y_1 + c_2 y_2$ — 对应 homogeneous 方程的 general solution，含 2 个 arbitrary constants</li>
+          <li>$y_P$ — 任意一个 particular solution，<strong>不含 arbitrary constants</strong></li>
+        </ul>
+        <p><strong>致命陷阱</strong>：initial condition 必须代入到完整的 $y = y_H + y_P$ 上，不能只代 $y_H$。漏 $y_P$ 会让 $c_1, c_2$ 全错。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 三种 Type 对照表</p>
+        <p>适用前提：coefficients $a, b, c$ 必须是常数 &amp; $f(t)$ 属于下表之一。否则用 §3.6。</p>
+        <table class="data-table">
+          <thead><tr><th>Type</th><th>$f(t)$ 形式</th><th>$y_P$ 猜测形式</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>polynomial $P_m(t)$</td><td>$t^s (A_m t^m + \cdots + A_0)$</td></tr>
+            <tr><td>2</td><td>polynomial $\cdot \, e^{\alpha t}$</td><td>$t^s (A_m t^m + \cdots + A_0)\, e^{\alpha t}$</td></tr>
+            <tr><td>3</td><td>polynomial $\cdot \, e^{\alpha t} \cdot \{\sin\beta t \text{ or } \cos\beta t\}$</td><td>$t^s e^{\alpha t} \big[(A_m t^m + \cdots) \cos\beta t + (B_m t^m + \cdots) \sin\beta t\big]$</td></tr>
+          </tbody>
+        </table>
+        <p><strong>关键</strong>：Type 3 即使 $f$ 只含 $\sin$ 或只含 $\cos$，猜测必须同时写 $\sin$ 和 $\cos$ 两个 —— 因为求导互相转化，缺一不可。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Resonance 修正 $s$</p>
+        <p>$s$ 是 forcing 频率恰好是 characteristic root 时的修正因子：</p>
+        <ul>
+          <li>Type 1：检查 $r = 0$ 是否 characteristic root</li>
+          <li>Type 2：检查 $r = \alpha$ 是否 characteristic root</li>
+          <li>Type 3：检查 $r = \alpha + i\beta$ 是否 characteristic root</li>
+        </ul>
+        <p>不是 root → $s=0$；单根 → $s=1$；重根 → $s=2$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 四步算法</p>
+        <ol>
+          <li>求 characteristic equation 的 roots，记下来备查</li>
+          <li>识别 $f(t)$ 的 Type，确定 $\alpha, m, \beta$，判断 resonance 算出 $s$</li>
+          <li>按表写 $y_P$ 猜测形式，<strong>包含 $t^s$ 因子</strong></li>
+          <li>算 $y_P', y_P''$，代入原方程，比较两边同类项系数解出未定常数</li>
+        </ol>
+        <p><strong>Mixed forcing</strong>（如 $f = t + e^t + \sin t$）：利用 linearity，每项单独猜单独求，最后相加。每项 resonance 独立检查。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' + 3y' + 2y = \sin t$</p>
+        <ol>
+          <li>$r^2 + 3r + 2 = (r+1)(r+2) = 0$ → roots $-1, -2$</li>
+          <li>$f$ 是 Type 3：$\alpha=0, \beta=1, m=0$。$\alpha + i\beta = i$ 不是 root（都实根）→ $s=0$</li>
+          <li>猜 $y_P = A \cos t + B \sin t$（sin 和 cos 都要写）</li>
+          <li>求导代入，得 $(A + 3B)\cos t + (B - 3A)\sin t = \sin t$。系数方程 $A+3B=0,\ B-3A=1$，解出 $A = -\tfrac{3}{10},\ B = \tfrac{1}{10}$</li>
+        </ol>
+        <p><strong>Final</strong>: $y_P = -\tfrac{3}{10}\cos t + \tfrac{1}{10}\sin t$.</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Determine the form（最常见题型，只写形式不求系数）</p>
+        <p>方程 $y'' + 3y' = 2t^4$。Characteristic roots: $0, -3$。</p>
+        <p>$f$ 是 Type 1，$m=4$。检查 $r=0$ → 是单根 → $s=1$。</p>
+        <p><strong>猜测</strong>：$y_P = t(A_4 t^4 + A_3 t^3 + A_2 t^2 + A_1 t + A_0)$。</p>
+        <p><strong>注意</strong>：多项式 degree 仍是 $m=4$，$t^s$ 是额外乘上去的，不是 degree 变了。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Double root resonance</p>
+        <p>方程 $y'' - 2y' + y = (\cdots) e^t$。Characteristic $(r-1)^2$，$r=1$ 是 double root。</p>
+        <p>$f$ 是 Type 2，$\alpha=1$ 是 double root → $s=2$，乘 $t^2$。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>忘记检查 resonance，$s$ 直接当 0 → 代入后 $0 = f$ 无法解</li>
+          <li>Type 3 只写 $\sin$ 或只写 $\cos$，导致系数方程矛盾</li>
+          <li>$c = 0$（方程没有 $y$ 项）时 → $0$ 永远是 characteristic root，必须乘 $t$</li>
+          <li>Initial condition 代入到 $y_H$ 上不是完整 $y = y_H + y_P$</li>
+          <li>$f$ 不在 3 种 Type 里时硬猜（如 $\tan t, \ln t, 1/t$）→ 必须用 §3.6 Variation of Parameters</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>看到 $f(t)$ 属于 polynomial / poly·$e^{\alpha t}$ / poly·$e^{\alpha t}$·trig 这 3 种之一 + coefficients 是常数 → Undetermined Coefficients。先检查 resonance 算 $s$，按表猜形式，代入比系数。Midterm 1 / 期末必出 1 道。</p>
+      </div>
+    </section>
+
+    <section id="04b-variation-of-parameters">
+      <h2>04b · Variation of Parameters</h2>
+      <p class="cram-meta">§3.6 · → <a href="../04-nonhomog-second-order.html#variation-of-parameters">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 触发条件</p>
+        <p>必须用 Variation of Parameters 的情况：</p>
+        <ul>
+          <li>$f(t)$ 不属于 Type 1/2/3（如 $\tan t, \sec t, \csc t, \ln t, 1/t^k$）</li>
+          <li>方程 coefficient 不是常数（前提：能用其他方法先找出 $y_1, y_2$）</li>
+        </ul>
+        <p>代价：算 Wronskian + 2 次积分。积分可能很麻烦甚至无 closed form，但理论上对任意 continuous forcing 都给出 $y_P$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 核心公式</p>
+        <p>给定 $ay'' + by' + cy = f(t)$，$y_H = c_1 y_1 + c_2 y_2$。Wronskian: $W = y_1 y_2' - y_2 y_1'$。</p>
+        $$ u_1' = \frac{-f(t)\, y_2}{a\,W}, \qquad u_2' = \frac{f(t)\, y_1}{a\,W} $$
+        <p>然后 $u_1 = \int u_1'\,dt$，$u_2 = \int u_2'\,dt$ — <strong>不加 $+C$</strong>。原因：加 $C$ 等价于把 $y_H$ 重复加进 $y_P$，破坏 "$y_P$ 不含任意常数" 的定义。</p>
+        <p>最终 $y_P = u_1 y_1 + u_2 y_2$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 四步法</p>
+        <ol>
+          <li>求 $y_H$，写出 $y_1, y_2$ 及导数 $y_1', y_2'$</li>
+          <li>算 $W$，代入公式得 $u_1', u_2'$。<strong>先化简被积函数再积分</strong> — 指数三角项常对消</li>
+          <li>$y_P = u_1 y_1 + u_2 y_2$。展开检查有没有和 $y_1$ 或 $y_2$ 成比例的项 — <strong>有就删</strong>（冗余 homogeneous 成分）</li>
+          <li>写完整 general solution $y = c_1 y_1 + c_2 y_2 + y_P$。有 IC 代入解 $c_1, c_2$</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' - y' - 2y = 2e^{-t}$</p>
+        <ol>
+          <li>$r^2 - r - 2 = (r-2)(r+1) = 0$ → roots $2, -1$。$y_1 = e^{2t},\ y_2 = e^{-t}$，$y_1' = 2e^{2t},\ y_2' = -e^{-t}$</li>
+          <li>$W = e^{2t}(-e^{-t}) - e^{-t}(2e^{2t}) = -3e^t$<br>
+              $u_1' = \dfrac{-2e^{-t} \cdot e^{-t}}{-3e^t} = \tfrac{2}{3} e^{-3t}$ &nbsp;→&nbsp; $u_1 = -\tfrac{2}{9} e^{-3t}$<br>
+              $u_2' = \dfrac{2e^{-t} \cdot e^{2t}}{-3e^t} = -\tfrac{2}{3}$ &nbsp;→&nbsp; $u_2 = -\tfrac{2t}{3}$</li>
+          <li>$y_P = -\tfrac{2}{9} e^{-3t} \cdot e^{2t} + (-\tfrac{2t}{3}) e^{-t} = -\tfrac{2}{9} e^{-t} - \tfrac{2t}{3} e^{-t}$<br>
+              前一项 $-\tfrac{2}{9} e^{-t}$ 是 $y_2$ 的常数倍 → <strong>删除</strong>。<br>
+              <strong>Final</strong>: $y_P = -\tfrac{2t}{3} e^{-t}$</li>
+          <li>$y = c_1 e^{2t} + c_2 e^{-t} - \tfrac{2t}{3} e^{-t}$</li>
+        </ol>
+        <p>注：$e^{-t}$ 其实也属于 Type 2，本来也能用 §3.5。这里用 variation of parameters 是为演示流程。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>公式符号错：$u_1'$ 是 <strong>负</strong> $f y_2/(aW)$，$u_2'$ 是 <strong>正</strong> $f y_1/(aW)$</li>
+          <li>分母 $a$ 漏了 — 方程 $ay'' + \cdots = f$，$a \ne 1$ 时必须除 $a$</li>
+          <li>积分加 $+C$ → $y_P$ 混入冗余 homogeneous 成分，形式混乱</li>
+          <li>没删冗余项 → $y_P$ 把 $y_H$ 的成分重复写一遍，$c_1, c_2$ 表面能消但形式不规范</li>
+          <li>$u_1, u_2$ 的积分符号搞错，最后整体符号错</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>方法选择口诀：$f(t)$ 在 Type 1/2/3 表里 → §3.5 Undetermined（快）；不在表里 or coefficient 非常数 → §3.6 Variation（慢但万能）。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

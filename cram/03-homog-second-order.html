@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 03 Homog 2nd-Order · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 03 Homog 2nd-Order</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>03 · Homogeneous Second-Order · 考前冲刺</h1>
+    <p class="note">覆盖 §3.1, §3.2, §3.3, §3.4 &nbsp;·&nbsp; 来源 podcast 03a, 03b, 03c &nbsp;·&nbsp;
+       → <a href="../03-homog-second-order.html">详细讲解</a>
+    </p>
+
+    <section id="03a-framework-wronskian">
+      <h2>03a · Framework, E&amp;U, Wronskian</h2>
+      <p class="cram-meta">§3.1, §3.2 · → <a href="../03-homog-second-order.html#second-order-framework">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Second-order linear ODE 标准形式</p>
+        $$ a(t) y'' + b(t) y' + c(t) y = f(t), \quad a(t) \ne 0 $$
+        <ul>
+          <li>$f \equiv 0$ → homogeneous（File 03 全部）</li>
+          <li>$f \not\equiv 0$ → nonhomogeneous</li>
+        </ul>
+        <p>2 阶需要 <strong>2 个 IC</strong>: $y(t_0) = y_0$, $y'(t_0) = y_1$。General solution 含 2 个 arbitrary constants $c_1, c_2$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — E&amp;U Theorem</p>
+        <p>方程化 standard form: $y'' + p(t) y' + q(t) y = g(t)$（leading coeff = 1）。</p>
+        <p>若 $p, q, g$ 在开区间 $(a, b)$ continuous，$t_0 \in (a,b)$，则对任意 IC，IVP 在<strong>整个 $(a, b)$</strong> 有唯一 solution。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 找最大 interval（必考）</p>
+        <ol>
+          <li><strong>先化 standard form</strong>（除 $a(t)$）— 不化不能用 theorem</li>
+          <li>找 $p, q, g$ 所有不连续点（通常分母为 0）</li>
+          <li>这些点切实轴成若干开区间，含 $t_0$ 的那段就是最大 interval</li>
+        </ol>
+        <p><strong>关键陷阱</strong>：$p, q, g$ 不连续点取<strong>并集</strong>。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $(t^2 - 4t) y'' + ty' + (t^2 + 16) y = 0$, $y(2) = 5$</p>
+        <p>除 $t^2 - 4t = t(t-4)$：$p = \dfrac{1}{t-4}$, $q = \dfrac{t^2+16}{t(t-4)}$。</p>
+        <p>不连续点：$t = 0, 4$。$t_0 = 2 \in (0, 4)$ → 最大 interval = $(0, 4)$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Linear independence &amp; Wronskian</p>
+        <p>$y_1, y_2$ LI: $c_1 y_1 + c_2 y_2 \equiv 0$ <strong>只能</strong>推出 $c_1 = c_2 = 0$。等价：一个不是另一个的常数倍。</p>
+        $$ W(y_1, y_2) = \begin{vmatrix} y_1 & y_2 \\ y_1' & y_2' \end{vmatrix} = y_1 y_2' - y_2 y_1' $$
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Abel + Wronskian 判据</p>
+        <p>对<strong>同一 homogeneous ODE 的 solutions</strong>：$W$ 要么恒为 0，要么永不为 0。等价：</p>
+        <ul>
+          <li>$W(t_0) \ne 0$ 某点 → 全区间 LI → fundamental set</li>
+          <li>$W(t_0) = 0$ 某点 → 全区间 LD</li>
+        </ul>
+        <p><strong>一个点就够</strong> 只对 ODE 的 solutions 成立。一般两个 function 不成立。考试常选 $t_0 = 0$ 最省事。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — General solution structure</p>
+        <p>若 $y_1, y_2$ 是 ODE 的 LI solutions，则 general solution:</p>
+        $$ y(t) = c_1 y_1(t) + c_2 y_2(t) $$
+        <p>覆盖所有 solution。后面三种 case（distinct real / repeated / complex）都套这个框架。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>没化 standard form 就找不连续点 → 漏掉 leading coeff = 0 的点</li>
+          <li>$p, q$ 不连续点只列其一，没取并集</li>
+          <li>Wronskian 符号错 — 是 $y_1 y_2' - y_2 y_1'$，不是加</li>
+          <li>对不是同一 ODE solution 的 functions 套 Wronskian 判据</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>2 阶 linear ODE 框架：standard form + 2 IC + LI fundamental set $\{y_1, y_2\}$ → general solution $c_1 y_1 + c_2 y_2$。Wronskian 某点 $\ne 0$ 是同一 ODE solutions LI 的判据。MT1 必考。</p>
+      </div>
+    </section>
+
+    <section id="03b-distinct-real-roots">
+      <h2>03b · Constant Coefficient: Distinct Real Roots</h2>
+      <p class="cram-meta">§3.1 · → <a href="../03-homog-second-order.html#constant-coeff-distinct">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 触发条件 + characteristic equation</p>
+        <p>$a, b, c$ 都是<strong>常数</strong>（不含 $t$），$ay'' + by' + cy = 0$。猜 $y = e^{rt}$ 代入：</p>
+        $$ ar^2 + br + c = 0 \quad (\text{characteristic equation}) $$
+        <p>写法极其机械：$y'' \to r^2$，$y' \to r$，$y \to 1$，系数不变。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 三步法</p>
+        <ol>
+          <li>写 characteristic equation</li>
+          <li>算判别式 $\Delta = b^2 - 4ac$，求 roots</li>
+          <li>按 roots 类型挑公式（见下方对照表）</li>
+        </ol>
+        <p>本节专攻 $\Delta > 0$ distinct real。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 三种 case 公式对照（最关键背诵点）</p>
+        <table class="data-table">
+          <thead><tr><th>$\Delta$</th><th>Roots</th><th>General solution</th></tr></thead>
+          <tbody>
+            <tr><td>$> 0$</td><td>distinct real $r_1 \ne r_2$</td><td>$y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$</td></tr>
+            <tr><td>$= 0$</td><td>repeated $r$</td><td>$y = (c_1 + c_2 t) e^{rt}$</td></tr>
+            <tr><td>$< 0$</td><td>complex $\lambda \pm i\mu$</td><td>$y = e^{\lambda t}(c_1 \cos\mu t + c_2 \sin\mu t)$</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Constant coefficient 的额外好处</p>
+        <p>$p = b/a$, $q = c/a$ 都是常数，处处 continuous → general solution 在<strong>整个实轴 $(-\infty, \infty)$</strong> 有效。不用担心 interval of existence。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' - 9y' + 9y = 0$</p>
+        <ol>
+          <li>$r^2 - 9r + 9 = 0$</li>
+          <li>$\Delta = 81 - 36 = 45 > 0$ distinct real。$r = \dfrac{9 \pm \sqrt{45}}{2} = \dfrac{9 \pm 3\sqrt{5}}{2}$</li>
+          <li>$y = c_1 e^{(9 + 3\sqrt{5})t/2} + c_2 e^{(9 - 3\sqrt{5})t/2}$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Long-time behavior</p>
+        <ul>
+          <li>两个 $r$ 都 $> 0$: $y \to \pm\infty$</li>
+          <li>两个 $r$ 都 $< 0$: $y \to 0$</li>
+          <li>一正一负：正主导，发散</li>
+        </ul>
+        <p>求根技巧：先试因式分解，不行再求根公式。<strong>先算判别式确定 case</strong>，不要凭直觉判断 roots 是不是实数。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>没先算判别式直接套错 case 的公式（如 distinct real 写成 $c_1 e^{rt} + c_2 t e^{rt}$ — 这是 repeated）</li>
+          <li>求根公式 $b$ 符号错 — $r^2 - 9r + 9$ 里 $b = -9$，$\dfrac{-b \pm \sqrt{\Delta}}{2a}$ 时 $-b = +9$</li>
+          <li>IVP 算 $c_1, c_2$ 时漏 $y'$ 的 $r$ 因子 — $\dfrac{d}{dt}(e^{rt}) = r e^{rt}$</li>
+          <li>Coefficient 含 $t$ 时硬套 characteristic equation。如 $t^2 y'' + ty' + y = 0$ 是 Cauchy-Euler 不是 constant coef</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>看到 coefficients 全数字 + RHS = 0 → 三步法。$\Delta > 0$: $y = c_1 e^{r_1 t} + c_2 e^{r_2 t}$。MT1/Final 必出。</p>
+      </div>
+    </section>
+
+    <section id="03c-complex-repeated-roots">
+      <h2>03c · Complex &amp; Repeated Roots</h2>
+      <p class="cram-meta">§3.3, §3.4 · → <a href="../03-homog-second-order.html#complex-roots">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Repeated root case ($\Delta = 0$)</p>
+        <p>$ar^2 + br + c = 0$ 重根 $r = -b/(2a)$。<strong>致命陷阱</strong>：不能写 $c_1 e^{rt} + c_2 e^{rt}$（只有一个 effective 常数）。</p>
+        $$ \boxed{y = (c_1 + c_2 t) e^{rt} = c_1 e^{rt} + c_2 t e^{rt}} $$
+        <p>重根 → 第二解<strong>多乘一个 $t$</strong>。验证 LI: $W(e^{rt}, t e^{rt}) = e^{2rt} \ne 0$。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' - 2y' + y = 0$, $y(0) = 2$, $y'(0) = 1$</p>
+        <ol>
+          <li>$r^2 - 2r + 1 = (r-1)^2 = 0$ 重根 $r = 1$</li>
+          <li>$y = (c_1 + c_2 t) e^t = c_1 e^t + c_2 t e^t$</li>
+          <li>$y' = c_1 e^t + c_2 e^t + c_2 t e^t = (c_1 + c_2) e^t + c_2 t e^t$<br>
+              <strong>注意 product rule</strong>：$(t e^t)' = e^t + t e^t$ 两项</li>
+          <li>$y(0) = c_1 = 2$。$y'(0) = c_1 + c_2 = 1$ → $c_2 = -1$。<strong>Final</strong>: $y = (2 - t) e^t$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Complex roots case ($\Delta < 0$)</p>
+        <p>Roots $r = \lambda \pm i\mu$，$\lambda = -b/(2a)$，$\mu = \sqrt{4ac - b^2}/(2a) > 0$。</p>
+        $$ \boxed{y = e^{\lambda t}(c_1 \cos\mu t + c_2 \sin\mu t)} $$
+        <p><strong>记忆口诀</strong>：实部 $\lambda$ 进指数（包络），虚部 $\mu$ 进 $\cos/\sin$（频率）。</p>
+        <p>来源 Euler: $e^{(\lambda \pm i\mu)t} = e^{\lambda t}(\cos\mu t \pm i\sin\mu t)$。实部 $e^{\lambda t}\cos\mu t$ 和虚部 $e^{\lambda t}\sin\mu t$ 各自是 real solution，LI。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Complex case 的 long-time behavior</p>
+        <ul>
+          <li>$\lambda > 0$: 振幅指数增长（发散振荡）</li>
+          <li>$\lambda = 0$: 纯振荡，振幅不变</li>
+          <li>$\lambda < 0$: 振幅衰减（收敛振荡）</li>
+        </ul>
+        <p>$\mu$ 控制频率，period $= 2\pi/\mu$。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' + 2y' + 5y = 0$</p>
+        <ol>
+          <li>$r^2 + 2r + 5 = 0$</li>
+          <li>$\Delta = 4 - 20 = -16 < 0$ complex。$r = \dfrac{-2 \pm 4i}{2} = -1 \pm 2i$。$\lambda = -1$, $\mu = 2$</li>
+          <li>$y = e^{-t}(c_1 \cos 2t + c_2 \sin 2t)$（衰减振荡）</li>
+        </ol>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>重根忘乘 $t$，写成 $c_1 e^{rt} + c_2 e^{rt}$ — 丢一半 general solution</li>
+          <li>重根算 $y'$ 时 product rule 漏一项 — $(te^{rt})' = e^{rt} + rt e^{rt}$ 两项</li>
+          <li>Complex roots 把 $\lambda$ 和 $\mu$ 搞混 — <strong>实部进指数，虚部进三角</strong></li>
+          <li>Complex 写成 $c_1 e^{(\lambda + i\mu) t} + c_2 e^{(\lambda - i\mu) t}$（complex form）— 考试要 <strong>real form</strong>，必须用 $\cos, \sin$</li>
+          <li>三种 case 公式背混 — 复习 03b 的对照表</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>$\Delta = 0$ 重根 → $(c_1 + c_2 t)e^{rt}$。$\Delta < 0$ complex $\lambda \pm i\mu$ → $e^{\lambda t}(c_1 \cos\mu t + c_2 \sin\mu t)$。重根乘 $t$、复根分实虚部 — 这是 Ch 3 homog 的全部。MT1 必出 1-2 道。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

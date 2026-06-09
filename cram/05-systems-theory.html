@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 05 Systems Theory · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 05 Systems Theory</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>05 · Systems · Theory · 考前冲刺</h1>
+    <p class="note">覆盖 §7.1, §7.2, §7.3, §7.4 &nbsp;·&nbsp; 来源 podcast 05a, 05b, 05c &nbsp;·&nbsp;
+       → <a href="../05-systems-theory.html">详细讲解</a>
+    </p>
+
+    <section id="05a-systems-intro-reduction">
+      <h2>05a · Systems Intro &amp; Reduction</h2>
+      <p class="cram-meta">§7.1 · → <a href="../05-systems-theory.html#matrix-form">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Matrix form</p>
+        <p>$n$ 维 first-order linear homogeneous system:</p>
+        $$ \mathbf{x}'(t) = A(t)\, \mathbf{x}(t) $$
+        <p>$\mathbf{x}$ 是 $n$ 维列向量，$A$ 是 $n \times n$ matrix。$A$ 常数 → eigenvalue 解法（§7.5, §7.6）；$A$ 依赖 $t$ → 理论框架仍成立但算法不同。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 把方程组写成 matrix form</p>
+        <p>直接读出系数。例：$\dfrac{dx_1}{dt} = 8x_1 - x_2$，$\dfrac{dx_2}{dt} = x_1$。</p>
+        <p>第一行 $(8, -1)$，第二行 $(1, 0)$ → $A = \begin{pmatrix} 8 & -1 \\ 1 & 0 \end{pmatrix}$，$\mathbf{x} = \begin{pmatrix} x_1 \\ x_2 \end{pmatrix}$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 高阶 ODE → first-order system (Reduction)</p>
+        <p>$n$ 阶 ODE 需要 $n$ 个新变量。</p>
+        <ol>
+          <li>定义新变量按导数顺序：$x_1 = y$, $x_2 = y'$, $x_3 = y''$, $\ldots$, $x_n = y^{(n-1)}$</li>
+          <li>写每个 $x_i'$：前 $n-1$ 个递推 $x_i' = x_{i+1}$；最后从原 ODE 解出 $y^{(n)}$，<strong>所有 $y, y', \ldots$ 用新变量替换</strong></li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' + 5y' + 2y = 0$ → system</p>
+        <p>$x_1 = y$, $x_2 = y'$。$x_1' = x_2$，$x_2' = y'' = -5y' - 2y = -5x_2 - 2x_1$。</p>
+        $$ \mathbf{x}' = \begin{pmatrix} 0 & 1 \\ -2 & -5 \end{pmatrix} \mathbf{x} $$
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y^{(4)} - y = 0$ (companion matrix)</p>
+        <p>$x_1, x_2, x_3, x_4$。前三个递推；$x_4' = y^{(4)} = y = x_1$。</p>
+        $$ \mathbf{x}' = \begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ 1 & 0 & 0 & 0 \end{pmatrix} \mathbf{x} $$
+        <p>这种 super-diagonal 全 1 + 最后一行装系数的形状叫 <strong>companion matrix</strong>。原 ODE $y^{(n)} + a_{n-1} y^{(n-1)} + \cdots + a_0 y = 0$ 的最后一行是 $(-a_0, -a_1, \ldots, -a_{n-1})$。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>变量编号搞反 — $x_1 = y$ 不是 $y'$。错把 $x_1$ 当 $y'$ 整个 system 全错</li>
+          <li>最后一行<strong>符号</strong>错 — $y'' + 5y' + 2y = 0$ → $y'' = -5y' - 2y$，负号必须有</li>
+          <li>Leading coefficient 不是 1 时漏除。$2y'' + 5y' + 2y = 0$ 要<strong>先除 2</strong> 再 reduction</li>
+          <li>Nonhomog 时漏掉 forcing term（多一个 $\mathbf{b}(t)$ 向量）</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>整章 paradigm shift：scalar $y(t)$ → vector $\mathbf{x}(t)$ on $\mathbb{R}^n$。高阶 ODE 通过定义 $x_i = y^{(i-1)}$ 必能化成 first-order system。MT2 必考。</p>
+      </div>
+    </section>
+
+    <section id="05b-eigenvalues-eigenvectors">
+      <h2>05b · Eigenvalues &amp; Eigenvectors</h2>
+      <p class="cram-meta">§7.2, §7.3 · → <a href="../05-systems-theory.html#eigenvalues">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Eigenvalue / eigenvector 定义</p>
+        <p>$A$ 是 $n \times n$ constant matrix。若存在 scalar $\lambda$ 和 <strong>nonzero</strong> 向量 $\mathbf{v}$ 使 $A\mathbf{v} = \lambda \mathbf{v}$，则 $\lambda$ 是 eigenvalue，$\mathbf{v}$ 是对应 eigenvector。</p>
+        <p>三点注意：</p>
+        <ol>
+          <li>$\mathbf{v} \ne \mathbf{0}$（零向量对所有 $\lambda$ 都成立，没信息）</li>
+          <li>$\lambda$ 可以是 0、负、或复数（即使 $A$ 全实）</li>
+          <li>Eigenvector 不唯一 — 任何非零 scalar multiple 都是，考试取最简整数形式</li>
+        </ol>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 找 eigenvalue 三步</p>
+        <ol>
+          <li>$A\mathbf{v} = \lambda \mathbf{v}$ → $(A - \lambda I)\mathbf{v} = 0$。要 $\mathbf{v} \ne 0$ → $A - \lambda I$ singular → $\det(A - \lambda I) = 0$（characteristic equation）</li>
+          <li>算 characteristic polynomial $p(\lambda) = \det(A - \lambda I)$，$n$ 次</li>
+          <li>求 $p$ 所有 root</li>
+        </ol>
+        <p><strong>$2 \times 2$ 快速</strong>：$A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}$ → $p(\lambda) = \lambda^2 - (\text{tr})\lambda + \det$，$\text{tr} = a+d$，$\det = ad - bc$。心算用。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 找 eigenvector</p>
+        <p>对每个 $\lambda_k$ 解 $(A - \lambda_k I)\mathbf{v} = 0$：</p>
+        <ol>
+          <li>构造 augmented matrix，row reduce 到 echelon form</li>
+          <li>$\det = 0$ 保证至少一行变全零 → 有 free variable</li>
+          <li>让 free variable = 1，反代求其他分量</li>
+        </ol>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Algebraic vs Geometric multiplicity</p>
+        <ul>
+          <li><strong>Algebraic</strong>: $\lambda$ 作为 char poly root 的重数</li>
+          <li><strong>Geometric</strong>: 对应 linearly independent eigenvector 个数 = $\dim \ker(A - \lambda I)$</li>
+        </ul>
+        <p>永远 geometric $\le$ algebraic。本课假设 <strong>algebraic = geometric</strong>（diagonalizable）；defective case 超纲。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $A = \begin{pmatrix} 2 & -3 \\ 1 & -2 \end{pmatrix}$</p>
+        <p>$\text{tr} = 0$, $\det = -4 - (-3) = -1$。$p(\lambda) = \lambda^2 - 1 = 0$ → $\lambda = 1, -1$。</p>
+        <p>$\lambda = 1$: $A - I = \begin{pmatrix} 1 & -3 \\ 1 & -3 \end{pmatrix}$ → $v_1 - 3v_2 = 0$。令 $v_2 = 1$ → $\mathbf{v} = (3, 1)^T$</p>
+        <p>$\lambda = -1$: $A + I = \begin{pmatrix} 3 & -3 \\ 1 & -1 \end{pmatrix}$ → $v_1 = v_2$。令 $v_2 = 1$ → $\mathbf{v} = (1, 1)^T$</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Eigenvalue 符号预测 solution 行为</p>
+        <ul>
+          <li>$\lambda < 0$: 指数衰减，stable mode</li>
+          <li>$\lambda > 0$: 指数增长，unstable mode</li>
+          <li>$\lambda = 0$: 常数 mode（守恒量方向）</li>
+          <li>$\lambda = \alpha \pm i\beta$: 振荡 $\times$ 包络 $e^{\alpha t}$。$\alpha<0$ stable spiral，$\alpha>0$ unstable，$\alpha=0$ center</li>
+        </ul>
+        <p><strong>全局 stability</strong>：所有 $\text{Re}\,\lambda < 0$ → globally stable；任何 $\text{Re}\,\lambda > 0$ → unstable。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — §7.2 linear independence: 关键警告</p>
+        <p>常数向量：linearly independent ⇔ $\det[\mathbf{v}_1 | \cdots | \mathbf{v}_n] \ne 0$。直接判。</p>
+        <p>Vector-valued <strong>function</strong>：$c_i$ 必须是<strong>与 $t$ 无关的</strong>常数，等式对<strong>整个区间所有 $t$</strong> 成立。</p>
+        <p><strong>关键</strong>：在某点 $t_0$ linearly dependent <strong>不</strong>等于在区间上 linearly dependent。除非它们是<strong>同一 ODE 的 solution</strong>（Abel 定理保证两者等价）。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Char poly 算错 — $\lambda^2 - (\text{tr})\lambda + \det$，trace 前是<strong>负</strong>，det 是<strong>正</strong></li>
+          <li>Row reduce 漏检查 free variable 个数 — 两行全零意味着 geom multiplicity 2</li>
+          <li>Eigenvector 没归一化或符号搞错 — 卷面用最简整数形式</li>
+          <li>Complex eigenvalue 情况算两次 — 只算 $\alpha + i\beta$，另一个直接共轭</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>$\det(A - \lambda I) = 0$ 找 $\lambda$，$(A - \lambda I)\mathbf{v} = 0$ row reduce 找 $\mathbf{v}$。$2\times 2$ 用 $\lambda^2 - \text{tr}\,\lambda + \det = 0$ 心算。后续解 system 一切都建立在这里。MT2/Final 都必考。</p>
+      </div>
+    </section>
+
+    <section id="05c-systems-theory">
+      <h2>05c · Systems Theory (Existence, Wronskian, Fundamental Set)</h2>
+      <p class="cram-meta">§7.4 · → <a href="../05-systems-theory.html#systems-theory">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Existence-Uniqueness for systems</p>
+        <p>若 $A(t)$ entries 在开区间 $(a, b)$ continuous，$t_0 \in (a,b)$，$\mathbf{x}_0 \in \mathbb{R}^n$，则 IVP $\mathbf{x}' = A\mathbf{x}$, $\mathbf{x}(t_0) = \mathbf{x}_0$ 在<strong>整个 $(a,b)$</strong> 上有且仅有一个 solution。</p>
+        <p><strong>关键推论</strong>：solution space 维数 = $n$。需要恰好 $n$ 个 linearly independent solution 构成 fundamental set。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Wronskian for systems</p>
+        <p>$n$ 个 $n$ 维 vector-valued solutions $\mathbf{x}_1, \ldots, \mathbf{x}_n$，把它们 <strong>作为 columns</strong> 并排组成 $n \times n$ matrix，取 det：</p>
+        $$ W(t) = \det[\mathbf{x}_1(t)\, |\, \mathbf{x}_2(t)\, |\, \cdots\, |\, \mathbf{x}_n(t)] $$
+        <p>注意：和 Ch 3 scalar Wronskian（row 是 $y, y'$）<strong>形式不同</strong>，但精神相同。其实 second-order scalar reduce 成 system 后两种 Wronskian 完全一致。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Abel's Theorem for systems</p>
+        <p>若 $\mathbf{x}_1, \ldots, \mathbf{x}_n$ 是 $\mathbf{x}' = A\mathbf{x}$ 的 solutions，$A$ continuous on $(a,b)$，则 $W(t)$ 在 $(a,b)$ 上<strong>要么处处为 0，要么永不为 0</strong>。等价：</p>
+        <ul>
+          <li>$W(t_0) = 0$ 某点 ⇔ $W \equiv 0$ ⇔ linearly dependent</li>
+          <li>$W(t_0) \ne 0$ 某点 ⇔ $W$ 永不为 0 ⇔ linearly independent</li>
+        </ul>
+        <p><strong>推论</strong>：判 solutions 是否 LI，只需在<strong>任一方便点</strong>算 $W$。考试通常取 $t_0 = 0$，指数项全变 1，determinant 直接成数字。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Superposition (homogeneous only)</p>
+        <p>若 $\mathbf{x}_1, \mathbf{x}_2$ 是 $\mathbf{x}' = A\mathbf{x}$ 的 solutions，对任意常数 $c_1, c_2$，$c_1 \mathbf{x}_1 + c_2 \mathbf{x}_2$ 也是 solution。</p>
+        <p>仅对 <strong>homogeneous system</strong> 成立。右边加 $\mathbf{g}(t)$ 的 nonhomog case 不能直接叠加。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Fundamental set &amp; General solution</p>
+        <p>$n$ 个 LI 的 system solutions 构成 fundamental set。General solution:</p>
+        $$ \mathbf{x}(t) = c_1 \mathbf{x}_1(t) + c_2 \mathbf{x}_2(t) + \cdots + c_n \mathbf{x}_n(t) $$
+        <p>每个 solution 都能唯一这样写，$c_i$ 由 IC 唯一定。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 典型 MT2 题型：判断是否 fundamental set</p>
+        <ol>
+          <li>确认每个 $\mathbf{x}_i$ 都是该 system 的 solution（代入验证 $\mathbf{x}_i' = A \mathbf{x}_i$）</li>
+          <li>把它们 columns 并排算 Wronskian。选 $t_0 = 0$ 最省事</li>
+          <li>$W(t_0) \ne 0$ → LI → fundamental set</li>
+          <li>General solution = 它们的 linear combination</li>
+        </ol>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 何时用 Wronskian 何时用定义（重要考点）</p>
+        <ul>
+          <li><strong>同一 ODE 的 solutions</strong>：可以用 Wronskian。Abel 定理保证某点 $\ne 0$ ⇔ 全区间 LI</li>
+          <li><strong>任意 vector functions</strong>（不是同一 ODE 的 solutions）：<strong>不能</strong>用 Wronskian。某点 $= 0$ 推不出 dependent。必须用定义 — 找常数 $c_i$ 看能否让 $\sum c_i \mathbf{x}_i \equiv \mathbf{0}$</li>
+        </ul>
+        <p><strong>关键陷阱</strong>：某点几个 vector 平行 ≠ 作为 function LD，除非是同一 ODE solution。考试题<strong>先确认是不是同一 ODE 的 solution 再判</strong>。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Wronskian 算错 — 记成 row 是 derivative。System Wronskian 是 <strong>solutions 直接作 columns</strong></li>
+          <li>对不是同一 ODE solution 的 vector functions 套 Abel 定理</li>
+          <li>找到 $n$ 个 solution 但没验证 LI 就声称 fundamental set</li>
+          <li>Nonhomog system 套 superposition — 不能叠加</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>Solution space dim $= n$。同一 ODE 的 $n$ 个 solutions LI（Wronskian 某点 $\ne 0$）→ fundamental set → general solution 是它们 linear combination。MT2 必考一道判定题。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

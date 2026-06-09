@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 01 Foundations · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 01 Foundations</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>01 · Foundations · 考前冲刺</h1>
+    <p class="note">覆盖 §1.1, §1.3 &nbsp;·&nbsp; 来源 podcast 01a, 01b, 01c &nbsp;·&nbsp;
+       → <a href="../01-foundations.html">详细讲解</a>
+    </p>
+
+    <section id="01a-concepts-classification">
+      <h2>01a · Classification of DEs</h2>
+      <p class="cram-meta">§1.3 · → <a href="../01-foundations.html#linear-vs-nonlinear">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 三个分类判断（每年期末必考一道）</p>
+        <ol>
+          <li><strong>ODE vs PDE</strong>：unknown 依赖<strong>一个</strong>变量 → ODE；<strong>多个</strong>变量 → PDE。看方程出现 $d$ 还是 $\partial$</li>
+          <li><strong>Order</strong>：方程出现的<strong>最高阶 derivative</strong> 阶数</li>
+          <li><strong>Linear vs Nonlinear</strong>：见下方</li>
+        </ol>
+        <p><strong>Order ≠ Degree</strong>：$(y'')^3 + y = 0$ → order = 2，degree = 3。本课只考 order。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Linear ODE standard form</p>
+        $$ a_n(t) y^{(n)} + a_{n-1}(t) y^{(n-1)} + \cdots + a_1(t) y' + a_0(t) y = F(t) $$
+        <ul>
+          <li>$a_0, \ldots, a_n$ 是 <strong>coefficient</strong>（只含 $t$）</li>
+          <li>$F(t)$ 是 <strong>forcing function</strong>。$F \equiv 0$ → homogeneous，否则 nonhomogeneous</li>
+        </ul>
+        <p><strong>Linear 核心约束</strong>：$y$ 和它的<strong>所有阶 derivative 只能以 1 次方出现</strong>，不能相乘，不能套进 $\sin, \exp, \sqrt{}$ 等 nonlinear function。<strong>Coefficient 含 $t$ 怎么复杂都行</strong>。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Nonlinear 扫描清单</p>
+        <ul>
+          <li>$y^2, y \cdot y', (y')^2$ — nonlinear（$y$ 自乘）</li>
+          <li>$\sin y, e^y, \sqrt{y}$ — nonlinear（$y$ 被 nonlinear function 套）</li>
+          <li>$y$ 和各阶导都<strong>只 1 次方且各自单独出现</strong> — linear</li>
+        </ul>
+        <p><strong>最大陷阱</strong>：$t^2 y''$ 看起来像非线性？<strong>不是</strong>。判 linear 看 $y$，coefficient 含 $t$ 无关。Cauchy-Euler $t^2 y'' + t y' + y = 0$ 是 <strong>linear (variable coefficient)</strong>。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Superposition principle</p>
+        <p>$L$ 是 $n$ 阶 linear differential operator。若 $y_1, y_2$ 都是 <strong>homogeneous</strong> equation $Ly = 0$ 的 solution，则对任意常数 $\alpha, \beta$：</p>
+        $$ \alpha y_1 + \beta y_2 \text{ 也是 } Ly = 0 \text{ 的 solution} $$
+        <p><strong>只对 homogeneous 成立</strong>。Nonhomogeneous 不能直接叠加。</p>
+        <p><strong>深层意义</strong>：homog linear ODE 的 solution 构成 vector space → Ch 3 把 general solution 写成 $c_1 y_1 + c_2 y_2$ 的根本原因。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — 5 个 classification 例子</p>
+        <table class="data-table">
+          <thead><tr><th>方程</th><th>名字</th><th>判断</th></tr></thead>
+          <tbody>
+            <tr><td>$a^2 u_{xx} = u_t$</td><td>Heat eq</td><td>PDE, order 2</td></tr>
+            <tr><td>$\sqrt{1-y}\, y'' + 2x y' = 0$</td><td>Kidder</td><td>ODE, order 2, <strong>nonlinear</strong>（$\sqrt{1-y}$）</td></tr>
+            <tr><td>$R' = -kR$</td><td>Exp decay</td><td>ODE, order 1, <strong>linear homog</strong></td></tr>
+            <tr><td>$\theta'' + (g/L)\sin\theta = 0$</td><td>Pendulum</td><td>ODE, order 2, <strong>nonlinear</strong>（$\sin\theta$）</td></tr>
+            <tr><td>$t^2 y'' + ty' + 9y = (\cdots)$</td><td>Cauchy-Euler</td><td>ODE, order 2, <strong>linear</strong>（系数含 $t$ 没关系）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>看到 $t^2$ coefficient 误判 nonlinear</li>
+          <li>把 Cauchy-Euler 误判 nonlinear（它是 linear variable coefficient）</li>
+          <li>Order 和 degree 混淆</li>
+          <li>$\sin\theta \approx \theta$ 小角近似后认为严格 linear — $\sin\theta$ 严格 nonlinear</li>
+          <li>Superposition 套用到 nonhomogeneous — 错</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>三问：ODE/PDE？Order？Linear？Linear 看 $y$ 是否仅 1 次方且不被 nonlinear function 套，coefficient 含 $t$ 无关。Superposition 仅 homogeneous。期末必考一道分类。</p>
+      </div>
+    </section>
+
+    <section id="01b-solutions">
+      <h2>01b · Solutions &amp; Verification</h2>
+      <p class="cram-meta">§1.3 · → <a href="../01-foundations.html#solutions">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Explicit / Implicit solution 定义</p>
+        <ul>
+          <li><strong>Explicit</strong>: $y$ 明确表示为 $x$ 的 function，$y = \phi(x)$ 直接写出</li>
+          <li><strong>Implicit</strong>: 解写成 $G(x, y) = 0$ relation，$y$ 没单独解出。如 $x^2 + y^2 = 1$。<strong>Implicit 是合法答案</strong>，不需强解 explicit</li>
+        </ul>
+        <p>Solution 总在某个 <strong>open interval $(a, b)$</strong> 上定义。这个 interval 叫 <strong>interval of existence</strong>，可能有限不必全实轴。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Verification 三步（基础送分题）</p>
+        <p>给 candidate function，判断是不是 ODE 的 solution：</p>
+        <ol>
+          <li>算所有需要的 derivative</li>
+          <li>$y$ 和它的 derivative 代入 ODE 左边</li>
+          <li>化简，看是不是<strong>恒等于</strong> RHS（通常 0）</li>
+        </ol>
+        <p><strong>Solving vs Verification</strong>：solving 从无到有找解（需技巧）；verification 仅微分代入化简（纯机械）。Verification 题难度远低于 solving，但易丢分在算导数错或符号错。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — 验证 $y = \cos t$ 是 $y'' + y = 0$ 的 solution</p>
+        <p>$y = \cos t$, $y' = -\sin t$, $y'' = -\cos t$。代入 $y'' + y = -\cos t + \cos t = 0$ ✓ 对所有 $t \in \mathbb{R}$ 成立 → explicit solution，domain $= \mathbb{R}$。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — 验证 $y = e^t$ 是 $y'' - y = 0$ 的 solution</p>
+        <p>$y = y' = y'' = e^t$。代入 $y'' - y = e^t - e^t = 0$ ✓</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — General / Particular / Family</p>
+        <ul>
+          <li><strong>General solution</strong>: 含 arbitrary constants 的最 general 表达式。$n$ 阶 ODE 含 <strong>$n$ 个</strong> arbitrary constants，由 $n$ 个 IC 唯一确定</li>
+          <li><strong>Particular solution</strong>: general solution 代 IC 算出具体常数后的解（不含 arbitrary constants）</li>
+          <li><strong>Family of solutions</strong>: 常数取不同值得不同 solution curve</li>
+        </ul>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — E&amp;U preview</p>
+        <p>任何在 ODE 上引入的概念（如"the solution"）背后都有 E&amp;U theorem 保证。§2.4 完整 statement：linear ODE 在 $p, q, g$ continuous 区间上 unique solution 存在；nonlinear 只保证 local。本课所有 ODE 都满足 E&amp;U hypothesis。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>算 derivative 漏 chain rule — $(\sin 2t)' = 2\cos 2t$ 不是 $\cos 2t$</li>
+          <li>Verification 符号错（$y''$ 是 $\dfrac{d^2 y}{dt^2}$，正负号易错）</li>
+          <li>把 implicit solution 强解 explicit — 不需要</li>
+          <li>忘记 solution 总带 domain — "interval of existence" 不要忽略</li>
+          <li>把 general 和 particular 搞反 — general 含 $C$，particular 是代 IC 后的</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>Solving 找解（需技巧），verification 验证候选（机械微分代入）。$n$ 阶 ODE general solution 含 $n$ 个 $C$，由 $n$ 个 IC 定。Verification 每年期末必出 1 道。</p>
+      </div>
+    </section>
+
+    <section id="01c-geometry-stability">
+      <h2>01c · Direction Field &amp; Equilibrium</h2>
+      <p class="cram-meta">§1.1 · → <a href="../01-foundations.html#direction-fields">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Direction field 定义</p>
+        <p>对 $dy/dx = f(x, y)$，在 $xy$ 平面每点 $(x, y)$ 处画一段小线段，<strong>slope $= f(x, y)$</strong>。所有小线段组成 direction field（slope field）。</p>
+        <p><strong>核心 insight</strong>：ODE 本身就是"斜率地图"。Solution curve 在每点和该处小线段相切，像水流图。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Autonomous ODE</p>
+        <p>右边只依赖 $y$ 不显含 $t$：$y' = f(y)$。</p>
+        <p><strong>关键性质</strong>：direction field 水平平移不变。可压缩成一维 <strong>phase line</strong>（§2.5 工具）。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Equilibrium solution</p>
+        <p>Autonomous ODE 的<strong>常数解</strong> $y \equiv c$（使 $y' \equiv 0$）。求法：令 $f(y) = 0$ 解 $y$。</p>
+        <p><strong>关键陷阱</strong>：equilibrium 是<strong>一条水平线不是点</strong>！$y \equiv 3$ 是 $y(t) = 3$ 对所有 $t$ 的水平线，贯穿整个 $t$ 轴，是<strong>完整 solution curve</strong>。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 稳定性分类（物理比喻）</p>
+        <ul>
+          <li><strong>Stable</strong>：附近 solution 都 converge 到它（小球放碗底）</li>
+          <li><strong>Unstable</strong>：附近 solution 都 diverge 远离（小球放倒扣碗顶）</li>
+          <li><strong>Semistable</strong>：一侧吸引一侧排斥（§2.5 详）</li>
+        </ul>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Reading direction field 三步</p>
+        <ol>
+          <li>令 $f(y) = 0$ 解所有 equilibrium，水平线分 $y$ 轴成区间</li>
+          <li>每区间挑代表点算 $f$ 符号。$+$ 朝上，$-$ 朝下</li>
+          <li>每个 equilibrium 看两侧箭头：都朝向 → stable；都背离 → unstable；一朝一背 → semistable</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y' = (3-y)/2$（stable）</p>
+        <p>Equilibrium: $y = 3$。$y < 3$ 时 $y' > 0$ 朝上；$y > 3$ 时 $y' < 0$ 朝下。两侧朝向 $y=3$ → <strong>stable</strong>。$t \to \infty$ 时 $y(t) \to 3$ 不管初值。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $dy/dt = y - 2 + 1/t^2$（unstable, non-autonomous）</p>
+        <p>含 $1/t^2$ → non-autonomous。$t \to \infty$ 时 $1/t^2 \to 0$，方程渐近 $y' \approx y - 2$。Equilibrium ≈ $y = 2$。$y > 2$ 朝上，$y < 2$ 朝下，两侧背离 → <strong>unstable</strong>。$y(t)$ 远离 2。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>把 equilibrium 当点不当线</li>
+          <li>Autonomous 判错 — 右边<strong>不显含 $t$</strong> 才是 autonomous</li>
+          <li>Stability 只算一侧箭头 — 必须两侧都查</li>
+          <li>Non-autonomous 硬用 autonomous 方法 — 看渐近行为</li>
+          <li>题要求画 direction field 时漏画 equilibrium 水平线 — 先画 equilibrium 再分区间画箭头</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>Direction field = 斜率地图。Autonomous $y' = f(y)$ → 找 $f = 0$ 的 equilibrium（水平线），两侧符号定 stable/unstable/semistable。期末必考定性分析一道。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

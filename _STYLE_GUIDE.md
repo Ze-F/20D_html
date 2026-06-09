@@ -254,3 +254,88 @@ Re-read `01-foundations.html` whenever in doubt. Specific patterns worth observi
 - How a Warning box uses bullet contrast (lines 151–159)
 - How a Theorem block ends with `$\square$` (line 197)
 - How Examples use a `<strong>Solution:</strong>` lead-in within the box body to separate statement from work
+
+---
+
+## Exam Cram pages contract (`cram/*.html`)
+
+This section applies **only** to files under `Note/Walkthrough/cram/`. Where rules conflict with the main style guide above, this section wins.
+
+### Scope override
+
+- **Skip** the `Notation` section (cram pages assume reader has notation from concept pages).
+- **Skip** the `Summary / key-points / looking-ahead` section. Each script section's own `✅ 一句话` box is its local summary.
+
+### Page skeleton
+
+```html
+<h1>NN · Chapter Title · 考前冲刺</h1>
+<p class="note">覆盖 §X.Y, §X.Z &nbsp;·&nbsp; 来源 podcast Na/Nb/Nc &nbsp;·&nbsp;
+   → <a href="../NN-chapter.html">详细讲解</a>
+</p>
+
+<section id="Na-topic-kebab">
+  <h2>Na · Topic Title</h2>
+  <p class="cram-meta">§X.Y · → <a href="../NN-chapter.html#anchor">详细讲解</a></p>
+
+  <div class="box cram-must">...</div>
+  <div class="box cram-method">...</div>
+  <div class="box example">...</div>
+  <div class="box warning">...</div>
+  <div class="box cram-summary">...</div>
+</section>
+```
+
+Note `../assets/style.css`, `../assets/nav.js`, `../assets/katex/...` in `<head>` (one level deeper than root concept pages).
+
+### The 5 box types
+
+| Box | Class | Purpose |
+|---|---|---|
+| 📌 必背 | `box cram-must` | Definitions, standard forms, formula tables, Type-decision tables |
+| 🎛️ 方法 | `box cram-method` | Solving steps (numbered `<ol>`), decision triggers ("看到 X 就用 Y") |
+| 📝 例子骨架 | `box example` (reused) | Stripped worked example — moves only, no narration |
+| ⚠️ 扣分坑 | `box warning` (reused) | Numbered list of common mistakes, ≤1 sentence each |
+| ✅ 一句话 | `box cram-summary` | ≤2 lines distilling the script's exam takeaway. One per `<section>`. |
+
+Markup pattern: `<div class="box TYPE"><p class="box-title">EMOJI Type — subtitle</p>…</div>`. Same as existing boxes.
+
+### Script → boxes conversion rules
+
+| Script phrase pattern | Target box |
+|---|---|
+| `X 定义必背` / `标准形式` / `公式必背` | 📌 cram-must |
+| Type/case 对照表必背 | 📌 cram-must (use `<table class="data-table">` inside) |
+| `求解三步` / `四步算法` / `Step 1…Step N` (algorithm) | 🎛️ cram-method |
+| `核心思路` / `决策触发` / "看到 X 用 Y" | 🎛️ cram-method |
+| `例子: Step 1…Step N` (concrete worked example) | 📝 example |
+| `考试扣分坑` enumerated list | ⚠️ warning |
+| Opening hook + closing distillation | ✅ cram-summary (combined) |
+
+### Edits required (lossy compression)
+
+- **Drop:** "下一集 XXX" lines, oral filler ("OK", "我们来看", "接下来", "这一集"), repeat statements, verbose framing.
+- **Keep verbatim:** Definitions, standard forms, Type tables, step lists, gotcha enumerations.
+- **Compress:** Worked example narration → step-only skeleton (`Step 1: …; Step 2: …`).
+
+### Math conversion (from podcast 中文 narration → KaTeX)
+
+- `y 等于 cosine t` → `$y = \cos t$`
+- `y double prime 加 y 等于 0` → `$y'' + y = 0$`
+- `r 平方加 3 r 加 2` → `$r^2 + 3r + 2$`
+- `alpha 加 i beta` → `$\alpha + i\beta$`
+- `negative 2 over 9 乘 e 的负 t` → `$-\tfrac{2}{9} e^{-t}$`
+- Use `$$...$$` for display, `$...$` for inline.
+- Multi-line: `\begin{aligned}` (NOT `\begin{align}`).
+
+### Backlink resolution
+
+Every `<section>` gets a `cram-meta` breadcrumb with backlink to the closest matching anchor in the main concept page.
+
+1. `grep -oE 'id="[^"]+"' Note/Walkthrough/NN-chapter.html` to list available anchors.
+2. Pick the anchor whose heading text most closely matches the script topic. Prefer `<h2>` IDs over `<h3>` IDs when both exist.
+3. If no anchor matches within ~20% topical overlap, link to the page root (no anchor) and add `<!-- TODO: no exact anchor in concept page -->`.
+
+### Language
+
+Chinese narrative + English technical terms (same convention as §1 of this guide).

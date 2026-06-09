@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 09 Series Solutions · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 09 Series Solutions</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>09 · Series Solutions · 考前冲刺</h1>
+    <p class="note">覆盖 §5.1, §5.2, §5.3 &nbsp;·&nbsp; 来源 podcast 09a, 09b &nbsp;·&nbsp;
+       → <a href="../09-series-solutions.html">详细讲解</a>
+    </p>
+
+    <section id="09a-power-series-method">
+      <h2>09a · Power Series Method at Ordinary Point</h2>
+      <p class="cram-meta">§5.1, §5.2 · → <a href="../09-series-solutions.html#series-method">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 必记 Taylor series</p>
+        <ul>
+          <li>$\sin x = x - \dfrac{x^3}{3!} + \dfrac{x^5}{5!} - \cdots$ — 全实数收敛</li>
+          <li>$\cos x = 1 - \dfrac{x^2}{2!} + \dfrac{x^4}{4!} - \cdots$ — 全实数收敛</li>
+          <li>$e^x = 1 + x + \dfrac{x^2}{2!} + \dfrac{x^3}{3!} + \cdots$ — 全实数收敛</li>
+          <li>$\dfrac{1}{1-x} = 1 + x + x^2 + \cdots$ — 仅 $|x|<1$ 收敛</li>
+        </ul>
+        <p>Ratio test 判 radius：$\rho = \dfrac{1}{\lim |a_{n+1}/a_n|}$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Termwise differentiation 起点上调</p>
+        <p>设 $y = \sum_{n=0}^{\infty} a_n (x - x_0)^n$。则：</p>
+        $$ y' = \sum_{n=1}^{\infty} n\, a_n (x - x_0)^{n-1}, \qquad y'' = \sum_{n=2}^{\infty} n(n-1)\, a_n (x - x_0)^{n-2} $$
+        <p>$n=0$ 项的导数为 0 被吞掉，所以 sum 起始 index 上调。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Ordinary point vs Singular point</p>
+        <p>方程化标准形：$y'' + p(x) y' + q(x) y = 0$。</p>
+        <ul>
+          <li>$x_0$ 是 <strong>ordinary point</strong>：$p, q$ 在 $x_0$ 处 analytic</li>
+          <li>$x_0$ 是 <strong>singular point</strong>：$p$ 或 $q$ 在 $x_0$ 不 analytic（通常分母为 0）</li>
+        </ul>
+        <p><strong>关键陷阱</strong>：判断必须看 <strong>化标准形之后 + 约分之后</strong>的 $p, q$。原方程 $a_2(x) = 0$ 的点可能在约分后消失，变回 ordinary。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Existence theorem at ordinary point</p>
+        <p>若 $x_0$ 是 ordinary point，则 ODE 在 $x_0$ 附近有 <strong>两个 linearly independent analytic solution</strong> $y_1, y_2$，都可写成 power series。$a_0, a_1$ 是自由参数，对应 $y(x_0) = a_0,\ y'(x_0) = a_1$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Series method 四步流程</p>
+        <ol>
+          <li>验证 $x_0$ 是 ordinary point — 化 standard form 看 $p, q$ analytic</li>
+          <li>假设 $y = \sum a_n (x - x_0)^n$，算 $y', y''$，代入 ODE</li>
+          <li><strong>Index shifting</strong>：把所有 sum 的 generic term 化成 $(x - x_0)^n$，合并同类项<br>
+              规律：<strong>sum 起点上调 → 公式里 index 下调</strong>，反之亦然</li>
+          <li>由 power series 唯一性，每个 $(x - x_0)^n$ 系数 $= 0$ → <strong>recurrence relation</strong>。从 $a_0, a_1$ 出发递推，偶链 → $y_1$，奇链 → $y_2$</li>
+        </ol>
+        <p><strong>Index shift 例</strong>：$\sum_{n=2} n(n-1) a_n x^{n-2}$ 令 $k = n-2$ → $\sum_{k=0} (k+2)(k+1) a_{k+2} x^k$。dummy 名换回 $n$ 即可。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' + y = 0$（重新发现 $\sin, \cos$）</p>
+        <ol>
+          <li>$p=0, q=1$ 都 analytic everywhere。$x_0 = 0$ 是 ordinary point</li>
+          <li>$y = \sum a_n x^n$，$y'' = \sum_{n=2} n(n-1) a_n x^{n-2}$。代入：$\sum n(n-1) a_n x^{n-2} + \sum a_n x^n = 0$</li>
+          <li>第一 sum shift $k = n-2$ → $\sum_{n=0} (n+2)(n+1) a_{n+2} x^n$。合并：$\sum [(n+2)(n+1) a_{n+2} + a_n] x^n = 0$</li>
+          <li>系数 $=0$ → recurrence: $\boxed{a_{n+2} = -\dfrac{a_n}{(n+2)(n+1)}}$</li>
+        </ol>
+        <p>偶链：$a_{2k} = \dfrac{(-1)^k}{(2k)!} a_0$。奇链：$a_{2k+1} = \dfrac{(-1)^k}{(2k+1)!} a_1$。</p>
+        <p><strong>Final</strong>: $y = a_0 \cos x + a_1 \sin x$ — series method 重新发现了 $\sin, \cos$。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>没化 standard form 直接看 $a_2(x) = 0$ 的点。必须 <strong>先化 standard，再约分</strong>，最后看 $p, q$ 奇点</li>
+          <li>Index shift 后 <strong>漏改起始 index</strong>。$\sum_{n=2}$ shift 后必须从 $n=0$ 开始</li>
+          <li>$y'$ 的 sum 起点是 $n=1$，$y''$ 起点是 $n=2$。漏改起点丢项</li>
+          <li>Recurrence 算错符号 — 对照原方程多检验一遍</li>
+          <li>混淆 $a_0, a_1$ 的角色 — $a_0$ 给偶数链 $y_1$，$a_1$ 给奇数链 $y_2$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>看到 variable coefficient + ordinary point → series ansatz $y = \sum a_n (x-x_0)^n$。代入、shift、合并、recurrence、递推。Final 必考一道。</p>
+      </div>
+    </section>
+
+    <section id="09b-radius-and-terminating-series">
+      <h2>09b · Radius of Convergence &amp; Terminating Series</h2>
+      <p class="cram-meta">§5.3 · → <a href="../09-series-solutions.html#existence-and-radius-theorem">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Sec 5.3 核心定理：existence + radius 下界</p>
+        <p>若 $x_0$ 是标准形方程 $y'' + p(x) y' + q(x) y = 0$ 的 ordinary point，则 general solution:</p>
+        $$ y = \sum_{n=0}^{\infty} a_n (x - x_0)^n = a_0 y_1 + a_1 y_2 $$
+        <p>其中 $y_1, y_2$ linearly independent power series solution。</p>
+        <p><strong>Radius 下界</strong>：$y_1, y_2$ 的 radius of convergence <strong>至少等于</strong> $x_0$ 到 $p$ 或 $q$ 在 <strong>复平面上最近 singular point</strong> 的距离。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 必须在复平面上找 singular point</p>
+        <p>即使 $p, q$ 分母在实轴上不为 0，复平面上可能有零点。复距离公式 $|a + bi| = \sqrt{a^2 + b^2}$。</p>
+        <p><strong>典型陷阱</strong>：$\dfrac{1}{1+x^2}$ — 实轴上分母恒正无实奇点，但 $x = \pm i$ 时分母 = 0。从 $x_0 = 0$ 到 $\pm i$ 距离都是 1 → radius 至少 1。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 求 radius 下界三步</p>
+        <ol>
+          <li>化方程为 standard form $y'' + p y' + q y = 0$</li>
+          <li>找 $p, q$ 分母在 <strong>复平面上所有零点</strong>（包括复数根），约分后剩下的才算</li>
+          <li>算 $x_0$ 到每个零点的距离，<strong>最小距离</strong>就是 radius 下界。若无奇点 → $\rho = \infty$</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Radius 计算 3 题</p>
+        <p><strong>例 1</strong>: $5y'' - x^2 y + xy = 0$ at $x_0 = 1$。化标准 → $p = 0,\ q = -\tfrac{x^2}{5} + \tfrac{x}{5}$ 都是 polynomial → 全复平面 analytic → $\rho = \infty$。</p>
+        <p><strong>例 2</strong>: $(1-x^2) y'' + y' + 4xy = 0$ at $x_0 = 0$。化标准 → $p = \tfrac{1}{1-x^2},\ q = \tfrac{4x}{1-x^2}$。分母 $1-x^2 = 0$ 在 $x = \pm 1$。从 0 到 $\pm 1$ 距离都是 1 → $\rho \ge 1$。</p>
+        <p><strong>例 3</strong>: $(1+x^2) y'' + \cdots = 0$ at $x_0 = 0$。$1+x^2 = 0$ 在复平面 $x = \pm i$。从 0 到 $\pm i$ 距离都是 1 → $\rho \ge 1$。<strong>注意</strong>实轴上没有奇点也算！</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Terminating series 现象（多项式解）</p>
+        <p>若 recurrence 含 $n - k$ 因子，则当 $n = k$ 时 $a_{n+2} = 0$，<strong>整条链断掉</strong>，给有限多项式解。</p>
+        <p>对应特殊函数：</p>
+        <ul>
+          <li><strong>Hermite</strong>：$y'' - x y' + \lambda y = 0$，$\lambda = 2m$ 时 degree $m$ 多项式 $H_m(x)$（量子谐振子）</li>
+          <li><strong>Legendre</strong>：$(1-x^2) y'' - 2x y' + \lambda y = 0$，$\lambda = n(n+1)$ 时 $P_n(x)$（球坐标 PDE）</li>
+        </ul>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Terminating: $y'' - x y' + 4y = 0$ at $x_0 = 0$</p>
+        <ol>
+          <li>$p = -x, q = 4$ polynomial，$x_0 = 0$ ordinary。$\rho = \infty$</li>
+          <li>代入 series ansatz，shift，整理</li>
+          <li>Recurrence: $\boxed{a_{n+2} = \dfrac{(n - 4) a_n}{(n+2)(n+1)}}$</li>
+          <li>分子 $n - 4$：当 $n = 4$ 时为 0 → $a_6 = 0$，进而 $a_8, a_{10}, \ldots$ 全 0。<strong>偶数链在 $a_4$ 后 terminate</strong></li>
+        </ol>
+        <p>$y_1 = 1 - 2x^2 + \tfrac{1}{3} x^4$（多项式三项，从 $a_0$ 出发）</p>
+        <p>$y_2 = x - \tfrac{1}{2} x^3 + \tfrac{1}{40} x^5 + \tfrac{1}{1680} x^7 + \cdots$（无限级数，从 $a_1$ 出发）</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 四类题型识别</p>
+        <ol>
+          <li><strong>判断 ordinary/singular point</strong>：化 standard form 看 $p, q$ 奇点，注意约分</li>
+          <li><strong>求 radius lower bound</strong>：复平面找 $p, q$ 分母所有零点，算最小距离</li>
+          <li><strong>写 series solution 前几项</strong>：四步法 → recurrence → 算前 5-6 个非零系数</li>
+          <li><strong>判断 terminating</strong>：看 recurrence 是否含 $n - k$ 因子，有则在 $n = k$ 处链断</li>
+        </ol>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li><strong>Radius 只看实奇点，漏复奇点</strong>。$\tfrac{1}{1+x^2}$ 的奇点在 $\pm i$ 不在实轴</li>
+          <li>没 <strong>约分</strong> $p, q$，把可消的 factor 当 singular point。$\tfrac{1-x^2}{1-x} = 1+x$ 约分后 $x = 1$ 不是奇点</li>
+          <li><strong>Index shifting</strong> 算错。先 shift 让所有 sum 起点 + generic term 都统一，再合并</li>
+          <li>Recurrence <strong>系数符号</strong>错 — 和 ODE 项符号必须一致</li>
+          <li>Terminating 时还在写 $a_6, a_8, \ldots$。一旦 $a_k = 0$ 之后整链全零，<strong>直接写出有限和</strong></li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>整门课三类 ODE 求解尺：const coef homog → §3 characteristic；const coef nonhomog → §3 undet/§3.6 variation/§6 Laplace；variable coef analytic → §5 series。Final 加油。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 06 Systems Methods · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 06 Systems Methods</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>06 · Systems · Methods · 考前冲刺</h1>
+    <p class="note">覆盖 §7.5, §7.6 &nbsp;·&nbsp; 来源 podcast 06a, 06b &nbsp;·&nbsp;
+       → <a href="../06-systems-methods.html">详细讲解</a>
+    </p>
+
+    <section id="06a-real-eigenvalues-phase-portrait">
+      <h2>06a · Real Eigenvalues &amp; Phase Portrait</h2>
+      <p class="cram-meta">§7.5 · → <a href="../06-systems-methods.html#real-eigenvalues">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Solution ansatz &amp; general solution</p>
+        <p>猜 $\mathbf{x}(t) = e^{\lambda t} \mathbf{v}$。代入 $\mathbf{x}' = A\mathbf{x}$ → $A\mathbf{v} = \lambda \mathbf{v}$（eigenvalue equation）。</p>
+        <p>若 $A$ 有 $n$ 个 distinct real eigenvalues $\lambda_1, \ldots, \lambda_n$ 对应 eigenvectors $\mathbf{v}_1, \ldots, \mathbf{v}_n$：</p>
+        $$ \mathbf{x}(t) = c_1 e^{\lambda_1 t} \mathbf{v}_1 + c_2 e^{\lambda_2 t} \mathbf{v}_2 + \cdots + c_n e^{\lambda_n t} \mathbf{v}_n $$
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Eigenvalue Method 四步法</p>
+        <ol>
+          <li>算 characteristic polynomial: $\det(A - \lambda I) = 0$。$2 \times 2$ 用 $\lambda^2 - (\text{tr}\,A)\lambda + \det A = 0$ 心算</li>
+          <li>求所有 eigenvalues</li>
+          <li>对每个 $\lambda_i$：解 $(A - \lambda_i I) \mathbf{v} = 0$ → eigenvector。Row reduce 找 free variable，令其 = 1</li>
+          <li>组装 general solution</li>
+        </ol>
+        <p><strong>本课假设</strong>：algebraic multiplicity = geometric multiplicity（matrix diagonalizable）。defective 情况超纲。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — $2 \times 2$ Real Eigenvalue 三种 phase portrait</p>
+        <table class="data-table">
+          <thead><tr><th>Type</th><th>Eigenvalues</th><th>稳定性</th><th>Dominant 方向</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Stable node</strong></td><td>$\lambda_1, \lambda_2 < 0$（同负）</td><td>所有 trajectory → 原点</td><td>$|\lambda|$ 小的（衰减慢）</td></tr>
+            <tr><td><strong>Unstable node</strong></td><td>$\lambda_1, \lambda_2 > 0$（同正）</td><td>所有 trajectory 远离原点</td><td>$|\lambda|$ 大的（增长快）</td></tr>
+            <tr><td><strong>Saddle</strong></td><td>$\lambda_1, \lambda_2$ 异号</td><td>永远 unstable</td><td>$-$: stable manifold；$+$: unstable manifold</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Saddle 关键</strong>：只有 IC 恰好落在 stable manifold（$-$ eigenvalue 对应方向）才能趋原点。任何偏离都被 unstable 方向甩走。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 读 phase portrait 四步</p>
+        <ol>
+          <li><strong>找骨架直线</strong>：$c_2 = 0$ → 沿 $\mathbf{v}_1$ 直线；$c_1 = 0$ → 沿 $\mathbf{v}_2$ 直线</li>
+          <li><strong>判方向</strong>：$\lambda_i < 0$ 朝原点；$\lambda_i > 0$ 远离</li>
+          <li><strong>判 dominant</strong>：$t \to \infty$ 谁衰减最慢/增长最快</li>
+          <li>一般 trajectory：从远处进，被 dominant 方向拉走</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Stable node: $A = \begin{pmatrix} -3 & 2 \\ 2 & -3 \end{pmatrix}$</p>
+        <p>$\text{tr} = -6$, $\det = 5$。$\lambda^2 + 6\lambda + 5 = (\lambda+5)(\lambda+1) = 0$ → $\lambda = -5, -1$。</p>
+        <p>$\lambda = -5$: $A+5I = \begin{pmatrix} 2 & 2 \\ 2 & 2 \end{pmatrix}$ → $\mathbf{v}_1 = (1, -1)^T$</p>
+        <p>$\lambda = -1$: $A+I = \begin{pmatrix} -2 & 2 \\ 2 & -2 \end{pmatrix}$ → $\mathbf{v}_2 = (1, 1)^T$</p>
+        <p>$\mathbf{x}(t) = c_1 e^{-5t} (1, -1)^T + c_2 e^{-t} (1, 1)^T$</p>
+        <p><strong>Phase portrait</strong>：两 $\lambda < 0$ → stable node。$|-1| < |-5|$ → $\mathbf{v}_2 = (1,1)^T$ 是 dominant。骨架 $y = -x$ 和 $y = x$；一般 trajectory 沿 $y = x$ 渐近趋原点。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Saddle: $A = \begin{pmatrix} 0 & 2 \\ 2 & 0 \end{pmatrix}$</p>
+        <p>$\lambda = 2, -2$ 异号 → saddle。$\mathbf{v}_1 = (1,1)^T$（$\lambda=2$），$\mathbf{v}_2 = (1,-1)^T$（$\lambda=-2$）。</p>
+        <p><strong>$y = x$</strong>: unstable manifold（沿此发散）。<strong>$y = -x$</strong>: stable manifold（沿此趋原点）。其他 trajectory 呈双曲线。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Characteristic polynomial 算错 — $\lambda^2 - (\text{tr})\lambda + \det = 0$（trace 前是<strong>负号</strong>，det 是<strong>正号</strong>）</li>
+          <li>Dominant 方向搞反 — stable node 时 $|\lambda|$ <strong>小</strong>的 dominant（衰减慢）；unstable node 时 $|\lambda|$ <strong>大</strong>的 dominant（增长快）</li>
+          <li>Saddle 把 stable / unstable manifold 搞反 — stable manifold 对应 <strong>negative</strong> eigenvalue</li>
+          <li>Repeated eigenvalue 漏检查 geometric multiplicity</li>
+          <li>Eigenvector 算完不验证 $A\mathbf{v} = \lambda \mathbf{v}$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>$\mathbf{x} = e^{\lambda t} \mathbf{v}$ 把 ODE 转线代。$2 \times 2$ real 三种：同负 stable node、同正 unstable node、异号 saddle。Dominant 方向 stable 时看小 $|\lambda|$，unstable 时看大 $|\lambda|$。MT2 必考。</p>
+      </div>
+    </section>
+
+    <section id="06b-complex-eigenvalues-spirals">
+      <h2>06b · Complex Eigenvalues &amp; Spirals</h2>
+      <p class="cram-meta">§7.6 · → <a href="../06-systems-methods.html#complex-eigenvalues">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Complex eigenvalues 必成共轭对</p>
+        <p>Real matrix $A$ 的 complex eigenvalues 必成共轭对：$\lambda = \alpha + i\beta$ 是 eigenvalue ⇔ $\bar\lambda = \alpha - i\beta$ 也是。对应的 eigenvectors 也共轭。</p>
+        <p><strong>省力点</strong>：只算 $\lambda = \alpha + i\beta$ 一个就够，另一个自动给出相同 real solution。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Euler formula 分实虚部得 real solution</p>
+        <p>$e^{\lambda t} \mathbf{v}$ 是 complex-valued。要 real，用 Euler 拆：</p>
+        $$ e^{(\alpha + i\beta) t} (\mathbf{a} + i\mathbf{b}) = e^{\alpha t}(\cos\beta t + i\sin\beta t)(\mathbf{a} + i\mathbf{b}) $$
+        <p>展开收集：</p>
+        $$ \mathbf{u}_1 = e^{\alpha t}(\mathbf{a} \cos\beta t - \mathbf{b} \sin\beta t) \quad (\text{Re}) $$
+        $$ \mathbf{u}_2 = e^{\alpha t}(\mathbf{a} \sin\beta t + \mathbf{b} \cos\beta t) \quad (\text{Im}) $$
+        <p>$\mathbf{u}_1, \mathbf{u}_2$ 都 real，linearly independent。General solution 贡献 $c_1 \mathbf{u}_1 + c_2 \mathbf{u}_2$。</p>
+        <p><strong>建议</strong>：不要背公式，每次直接展开机械乘开收集实虚部，免符号错。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Phase portrait 看 $\text{Re}\,\lambda = \alpha$ 符号</p>
+        <table class="data-table">
+          <thead><tr><th>$\alpha$</th><th>类型</th><th>稳定性</th></tr></thead>
+          <tbody>
+            <tr><td>$\alpha < 0$</td><td><strong>Stable spiral</strong></td><td>螺旋收缩 → 原点（asymptotically stable）</td></tr>
+            <tr><td>$\alpha > 0$</td><td><strong>Unstable spiral</strong></td><td>螺旋远离原点</td></tr>
+            <tr><td>$\alpha = 0$</td><td><strong>Center</strong></td><td>闭合椭圆/圆，循环不衰减不增长（stable but <strong>not</strong> asymptotically stable）</td></tr>
+          </tbody>
+        </table>
+        <p>$\beta$ 不影响稳定性，只影响旋转频率 $\omega = \beta$，period $= 2\pi/\beta$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 旋转方向必须代点验证</p>
+        <p>Clockwise vs counterclockwise <strong>不能</strong>从 $\lambda$ 符号直接读，<strong>必须代点</strong>：</p>
+        <p>取正 $x$ 轴上的点 $(c, 0)^T$，代 $\mathbf{x}' = A\mathbf{x}$，看 $y'$ 分量：</p>
+        <ul>
+          <li>$y' > 0$ → 质点向上 → <strong>counterclockwise</strong>（逆时针）</li>
+          <li>$y' < 0$ → 质点向下 → <strong>clockwise</strong>（顺时针）</li>
+        </ul>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Complex case 四步法</p>
+        <ol>
+          <li>算 eigenvalue。Discriminant $< 0$ → complex pair</li>
+          <li>对 $\lambda = \alpha + i\beta$ 解 $(A - \lambda I)\mathbf{v} = 0$ 求 complex eigenvector $\mathbf{v} = \mathbf{a} + i\mathbf{b}$。复数 row reduce 小心</li>
+          <li>展开 $e^{\lambda t} \mathbf{v}$，分离实部 $\mathbf{u}_1$ 和虚部 $\mathbf{u}_2$</li>
+          <li>这对 complex eigenvalue 贡献 $c_1 \mathbf{u}_1 + c_2 \mathbf{u}_2$。其他 eigenvalue 分别处理</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Unstable spiral: $A = \begin{pmatrix} 1 & 2 \\ -2 & 1 \end{pmatrix}$</p>
+        <p>$\text{tr} = 2$, $\det = 5$。$\lambda^2 - 2\lambda + 5 = 0$，$\Delta = -16$，$\lambda = 1 \pm 2i$。$\alpha = 1 > 0$ → unstable spiral。</p>
+        <p>$\lambda = 1+2i$：$A - (1+2i)I = \begin{pmatrix} -2i & 2 \\ -2 & -2i \end{pmatrix}$。Row reduce → $x_2 = i x_1$。$\mathbf{v} = (1, i)^T = (1, 0)^T + i (0, 1)^T$。所以 $\mathbf{a} = (1,0)^T$, $\mathbf{b} = (0,1)^T$。</p>
+        <p>展开 $e^{(1+2i)t} (1, i)^T = e^t(\cos 2t + i\sin 2t)(1, i)^T$ → </p>
+        <p>$\mathbf{u}_1 = e^t (\cos 2t, -\sin 2t)^T$, $\mathbf{u}_2 = e^t (\sin 2t, \cos 2t)^T$</p>
+        <p><strong>旋转方向</strong>：代 $(1, 0)^T$ → $A (1,0)^T = (1, -2)^T$。$y' = -2 < 0$ → <strong>clockwise</strong>。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — $2 \times 2$ 完整分类表（Final 必考）</p>
+        <p>$\Delta = (\text{tr})^2 - 4\det$。</p>
+        <table class="data-table">
+          <thead><tr><th>$\Delta$</th><th>条件</th><th>类型</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="3">$> 0$<br>(两 distinct real)</td><td>异号</td><td>Saddle (unstable)</td></tr>
+            <tr><td>同正</td><td>Unstable node</td></tr>
+            <tr><td>同负</td><td>Stable node</td></tr>
+            <tr><td rowspan="3">$< 0$<br>(complex pair $\alpha \pm i\beta$)</td><td>$\alpha < 0$（$\text{tr} < 0$）</td><td>Stable spiral</td></tr>
+            <tr><td>$\alpha > 0$（$\text{tr} > 0$）</td><td>Unstable spiral</td></tr>
+            <tr><td>$\alpha = 0$（$\text{tr} = 0$）</td><td>Center</td></tr>
+            <tr><td>$= 0$</td><td>重根</td><td>Degenerate node（本课只考 diagonalizable）</td></tr>
+          </tbody>
+        </table>
+        <p><strong>口诀</strong>：$\Delta$ 正 → node/saddle，看符号；$\Delta$ 负 → spiral/center，看 $\text{tr}$（即 $\alpha = \text{tr}/2$）；$\Delta = 0$ → degenerate。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Complex eigenvector 算错 — 复数 row reduce 易错符号。算完代 $A\mathbf{v} = \lambda \mathbf{v}$ 验证</li>
+          <li>分离实虚部漏 $i$ — $e^{i\beta t} = \cos + i\sin$，$\cos$ 是实 $\sin$ 是虚，$i$ 不能和 $\sin$ 一起算到实部</li>
+          <li>旋转方向想当然 — <strong>必须代点验证</strong></li>
+          <li>Center 稳定性写"unstable"或"asymptotically stable" — center 是 <strong>stable but not asymptotically stable</strong></li>
+          <li>分类记反 — saddle 异号，node 同号，spiral 有虚部 $\ne 0$，center 纯虚（$\text{tr}=0$）</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>Complex → Euler 拆实虚部 $\mathbf{u}_1, \mathbf{u}_2$。Phase portrait 看 $\alpha$：负 stable spiral，正 unstable spiral，零 center。旋转方向必代点。Final 必考一道根据 eigenvalue 判稳定/分类。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

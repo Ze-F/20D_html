@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 08 Laplace Discontinuous · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 08 Laplace Discontinuous</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>08 · Laplace · Discontinuous &amp; Impulse · 考前冲刺</h1>
+    <p class="note">覆盖 §6.3, §6.4, §6.5, §6.6 &nbsp;·&nbsp; 来源 podcast 08a, 08b, 08c &nbsp;·&nbsp;
+       → <a href="../08-laplace-discontinuous.html">详细讲解</a>
+    </p>
+
+    <section id="08a-step-function-translation">
+      <h2>08a · Step Function &amp; Translation Theorem</h2>
+      <p class="cram-meta">§6.3 · → <a href="../08-laplace-discontinuous.html#translation-theorem">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Heaviside step function</p>
+        <p>$u_c(t) = u(t - c)$，定义：$t < c$ 时 $= 0$，$t \ge c$ 时 $= 1$。$c$ 是 step 的起跳时刻。</p>
+        <p><strong>Rectangular window</strong>: $u(t-a) - u(t-b)$ — 在 $[a, b]$ 内为 1，其余为 0。</p>
+        $$ \mathcal{L}\{u(t - a)\} = \frac{e^{-as}}{s}, \quad s > 0 $$
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Translation Theorem (Second Shifting / $t$-shifting)</p>
+        $$ \mathcal{L}\{f(t-a)\, u(t-a)\} = e^{-as} F(s) $$
+        $$ \mathcal{L}^{-1}\{e^{-as} F(s)\} = f(t-a)\, u(t-a) $$
+        <p>时域延迟 $a$ 单位 ↔ s 域乘 $e^{-as}$。</p>
+        <p><strong>关键陷阱</strong>：三处 shift 必须完全匹配 —— $f$ 里的 $t-a$，$u$ 里的 $t-a$，指数里的 $a$。如果题目给 $f(t) \cdot u(t-a)$（$f$ 没 shift），必须先把 $f(t)$ 改写成关于 $t-a$ 的形式。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 两个 Shifting Theorem 对比</p>
+        <table class="data-table">
+          <thead><tr><th>Theorem</th><th>时域 → s 域</th></tr></thead>
+          <tbody>
+            <tr><td>First ($s$-shifting)</td><td>$\mathcal{L}\{e^{at} f(t)\} = F(s - a)$ &nbsp;(时域乘 $e^{at}$ ↔ s 域 $s$ 平移)</td></tr>
+            <tr><td>Second ($t$-shifting)</td><td>$\mathcal{L}\{f(t-a) u(t-a)\} = e^{-as} F(s)$ &nbsp;(时域延迟 ↔ s 域乘 $e^{-as}$)</td></tr>
+          </tbody>
+        </table>
+        <p>两者对偶：modulation ↔ delay。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Piecewise → step function（增量法）</p>
+        <p>三段 piecewise: $t<a$ 时 $A$，$a \le t < b$ 时 $B$，$t \ge b$ 时 $C$。改写：</p>
+        $$ f(t) = A + (B - A)\, u(t-a) + (C - B)\, u(t-b) $$
+        <p>规律：从最早 segment 开始，每过一个 breakpoint，把 <strong>净增量</strong> 乘对应 $u(t - c_i)$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Inverse Laplace with $e^{-as}$（最常考流程）</p>
+        <ol>
+          <li>看到 $e^{-as}$ 因子，<strong>先剥掉</strong></li>
+          <li>对剩余 $F(s)$ 做 inverse（partial fractions / complete the square / 查表）→ 得 $f(t)$</li>
+          <li><strong>把 $f(t)$ 里所有的 $t$ 换成 $t - a$</strong>（最容易漏的步骤！）</li>
+          <li>乘上 $u(t - a)$</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Inverse: $\mathcal{L}^{-1}\{e^{-3s} \cdot s/(s^2+4s+5)\}$</p>
+        <ol>
+          <li>识别 $a = 3$，$F(s) = s/(s^2+4s+5)$</li>
+          <li>Complete the square: $s^2 + 4s + 5 = (s+2)^2 + 1$。凑分子：$F = \dfrac{s+2}{(s+2)^2+1} - \dfrac{2}{(s+2)^2+1}$<br>
+              用 $s$-shifting: $f(t) = e^{-2t} \cos t - 2 e^{-2t} \sin t$</li>
+          <li>$t \to t-3$: $f(t-3) = e^{-2(t-3)} \cos(t-3) - 2 e^{-2(t-3)} \sin(t-3)$</li>
+          <li>$g(t) = u(t-3) \cdot \big[e^{-2(t-3)} \cos(t-3) - 2 e^{-2(t-3)} \sin(t-3)\big]$</li>
+        </ol>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li><strong>漏掉"把 $t$ 换成 $t-a$"</strong>。$\mathcal{L}^{-1}\{e^{-2s}/(s^2+4)\}$ 不能写 $\tfrac{1}{2} u(t-2) \sin 2t$ — 必须是 $\tfrac{1}{2} u(t-2) \sin 2(t-2)$</li>
+          <li>增量法算"净变化"错 — 每分点要看相对前段的差，不是绝对值</li>
+          <li>$s$-shifting 和 $t$-shifting 用反 — 一个对应时域乘 $e^{at}$，一个对应时域延迟</li>
+          <li>Complete the square 算错：$s^2 + 2bs + c = (s+b)^2 + (c - b^2)$，$b$ 是系数一半</li>
+          <li>Type III 凑分子时 $\cos$ 部分应是 $(s-a)$ 整体，$\sin$ 部分应是常数 $\beta$ 整体 — 不能凑 $s$ 配 $\cos$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>看到 $u(t-c)$ 或 piecewise forcing → 用 step function + $t$-shifting。Inverse 时记住"剥 $e^{-as}$ → 算 $f(t)$ → $t$ 换 $t-a$ → 乘 $u(t-a)$"四步。Final 必考。</p>
+      </div>
+    </section>
+
+    <section id="08b-discontinuous-forcing-delta">
+      <h2>08b · Discontinuous Forcing IVP &amp; Dirac Delta</h2>
+      <p class="cram-meta">§6.4, §6.5 · → <a href="../08-laplace-discontinuous.html#method-discontinuous">详细讲解</a></p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — Discontinuous forcing IVP 完整流程（§6.4）</p>
+        <ol>
+          <li>把 piecewise forcing $f(t)$ 用 step function 表达（08a 增量法）</li>
+          <li>整个 ODE 取 Laplace，代入 IC，用 $t$-shifting 处理 step 项</li>
+          <li>解出 $Y(s)$ — 含 $e^{-as}$ 因子的 rational function</li>
+          <li>对 $Y(s)$ 做 inverse — 每个 $e^{-as}$ 项用 $t$-shifting（$t \to t-a$ + 乘 $u(t-a)$）</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' + y = g(t)$, $y(0) = y'(0) = 0$，$g$ 在 $[5, 10]$ 内为 1 其余为 0</p>
+        <ol>
+          <li>$g(t) = u(t-5) - u(t-10)$。$\mathcal{L}\{g\} = \dfrac{e^{-5s} - e^{-10s}}{s}$</li>
+          <li>两边 Laplace: $s^2 Y + Y = \dfrac{e^{-5s} - e^{-10s}}{s}$ → $Y = \dfrac{e^{-5s}}{s(s^2+1)} - \dfrac{e^{-10s}}{s(s^2+1)}$</li>
+          <li>$\mathcal{L}^{-1}\{1/(s(s^2+1))\}$ partial fractions: $\tfrac{1}{s} - \tfrac{s}{s^2+1}$ → $1 - \cos t$</li>
+          <li>应用 $t$-shifting:<br>
+              $y(t) = u(t-5)\,\big[1 - \cos(t-5)\big] - u(t-10)\,\big[1 - \cos(t-10)\big]$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Dirac delta function（§6.5）</p>
+        <p>$\delta(t - t_0)$ 是 distribution（广义函数，<strong>不是普通 function</strong>）。直觉：在 $t_0$ 处"无限高"，他处为 0，积分 = 1。</p>
+        <p><strong>三条 properties</strong>：</p>
+        <ol>
+          <li><strong>归一化</strong>: $\displaystyle\int_{-\infty}^{\infty} \delta(t - t_0)\, dt = 1$</li>
+          <li><strong>Laplace</strong>: $\mathcal{L}\{\delta(t - t_0)\} = e^{-s t_0}$，$t_0 \ge 0$。<strong>比 step 少一个 $1/s$</strong></li>
+          <li><strong>Sifting</strong>: $\displaystyle\int_{-\infty}^{\infty} \delta(t - t_0)\, g(t)\, dt = g(t_0)$（筛出 $g$ 在 $t_0$ 的值）</li>
+        </ol>
+        <p><strong>关系</strong>：$\delta(t-c) = \dfrac{d}{dt} u(t-c)$（distribution 意义下）。$\mathcal{L}\{u\} = e^{-cs}/s$，$\mathcal{L}\{\delta\} = e^{-cs}$ —— s 域多乘 $s$ ↔ 时域求导，一致。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Delta vs Step 的物理差别</p>
+        <ul>
+          <li><strong>$\delta$ forcing</strong>：$y'$ 在 $t_0$ 处 jump — 速度突变（瞬间冲量改变动量）</li>
+          <li><strong>$u$ forcing</strong>：$y''$ 在 $t_0$ 处 jump — 加速度突变；$y'$ 仍连续（力逐渐积累）</li>
+        </ul>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Spring: $y'' + 9y = 3\delta(t - \pi)$, $y(0) = 1$, $y'(0) = 0$</p>
+        <ol>
+          <li>Laplace: $s^2 Y - s + 9Y = 3 e^{-\pi s}$ → $Y = \dfrac{s}{s^2+9} + \dfrac{3 e^{-\pi s}}{s^2+9}$</li>
+          <li>第一项 → $\cos 3t$。第二项 $t$-shifting → $u(t-\pi) \sin 3(t-\pi)$</li>
+          <li>化简 $\sin 3(t-\pi) = \sin(3t - 3\pi) = -\sin 3t$ → $y = \cos 3t - u(t-\pi) \sin 3t$</li>
+        </ol>
+        <p><strong>物理</strong>：$t < \pi$ 自由振荡（freq 3, 振幅 1）；$t = \pi$ 锤击改变动量；$t > \pi$ 继续 freq 3 但振幅/相位变。<strong>$\delta$ 不改频率，只改振幅相位</strong>。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>把 $\delta$ 当普通 function 求值 — "$\delta(t_0) = \infty$" 是直觉说法，真正用要通过 sifting 积分</li>
+          <li>$\mathcal{L}\{\delta(t-t_0)\}$ 写成 $e^{-s t_0}/s$ — <strong>少了 $/s$ 才对</strong>。$\delta$ 的 L 没分母</li>
+          <li>$3 \delta(t - \pi)$ 里的 3 是 impulse 大小，不是"函数值"</li>
+          <li>$\sin 3(t - \pi)$ 化简错 — $\sin$ 周期 $2\pi$，相位 $3\pi \equiv \pi$，等于 $-\sin 3t$</li>
+          <li>Rectangular window 漏掉一个 step 项 — $[5,10]$ 内 = 1 必须 $u(t-5) - u(t-10)$ 两项</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>$\delta$ 的 Laplace $= e^{-s t_0}$（没 $/s$），sifting 筛出 $g(t_0)$，是 step 的"导数"。物理上 $\delta$ 改速度不改频率。Final 必出 1 道含 $\delta$ 的 IVP。</p>
+      </div>
+    </section>
+
+    <section id="08c-convolution-transfer-function">
+      <h2>08c · Convolution &amp; Transfer Function</h2>
+      <p class="cram-meta">§6.6 · → <a href="../08-laplace-discontinuous.html#convolution">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Convolution 定义</p>
+        $$ (f * g)(t) = \int_{0}^{t} f(t - \tau)\, g(\tau)\, d\tau $$
+        <p><strong>关键结构</strong>：$f$ 里是 $t - \tau$，$g$ 里是 $\tau$。这种"反向滑动权重叠加"和普通乘法本质不同。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Convolution Theorem（本节核心）</p>
+        $$ \mathcal{L}\{f * g\} = F(s)\, G(s) $$
+        $$ \mathcal{L}^{-1}\{F(s)\, G(s)\} = (f * g)(t) $$
+        <p>时域 convolution ↔ s 域<strong>乘法</strong>（注意是乘法不是 conv）。</p>
+        <p><strong>两个用途</strong>：</p>
+        <ol>
+          <li>$Y(s) = F(s) G(s)$ 而 partial fractions 麻烦时 → $y = f * g$ 直接积分</li>
+          <li>看到积分形式 $\int_0^t f(t-\tau) g(\tau) d\tau$ → 直接 $F(s) G(s)$，不必硬算</li>
+        </ol>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Convolution 代数性质</p>
+        <ul>
+          <li><strong>Commutative</strong>: $f * g = g * f$ — 两种积分写法等价，<strong>选积分容易的那种</strong></li>
+          <li><strong>Distributive</strong>: $f * (g + h) = f * g + f * h$</li>
+          <li><strong>Associative</strong>: $(f * g) * h = f * (g * h)$</li>
+          <li><strong>Zero</strong>: $f * 0 = 0$</li>
+        </ul>
+        <p><strong>关键陷阱</strong>：$f * 1 \ne f$！如 $\cos t * 1 = \sin t \ne \cos t$。Convolution 的 identity 是 $\delta$：$f * \delta = f$。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $\mathcal{L}^{-1}\{1/(s^2+1)^2\}$ via convolution</p>
+        <p>写成 $\dfrac{1}{s^2+1} \cdot \dfrac{1}{s^2+1}$。$F(s) = G(s) = 1/(s^2+1)$ → $f = g = \sin t$。</p>
+        <p>$\sin * \sin = \displaystyle\int_0^t \sin(t - \tau) \sin\tau\, d\tau$。Product-to-sum: $\sin A \sin B = \tfrac{1}{2}[\cos(A-B) - \cos(A+B)]$。这里 $A - B = t - 2\tau$，$A + B = t$。</p>
+        $$ = \int_0^t \tfrac{1}{2}\cos(t - 2\tau)\, d\tau - \int_0^t \tfrac{1}{2}\cos t\, d\tau = \tfrac{1}{2}\sin t - \tfrac{t}{2}\cos t $$
+        <p><strong>Final</strong>: $\mathcal{L}^{-1}\{1/(s^2+1)^2\} = \tfrac{1}{2}\sin t - \tfrac{t}{2}\cos t$.</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Transfer function &amp; Impulse response</p>
+        <p>Zero IC IVP: $ay'' + by' + cy = f(t)$, $y(0) = y'(0) = 0$。Laplace → $Y(s) = H(s) F(s)$，其中</p>
+        $$ H(s) = \frac{1}{as^2 + bs + c} \quad (\text{transfer function}) $$
+        $$ h(t) = \mathcal{L}^{-1}\{H(s)\} \quad (\text{impulse response}) $$
+        <p>由 convolution theorem: $y(t) = (h * f)(t)$。</p>
+        <p><strong>为什么叫 impulse response</strong>：若 forcing $= \delta(t)$，$\mathcal{L}\{\delta\} = 1$ → $Y = H \cdot 1 = H$ → $y = h$。即 $h$ 是系统对 $\delta$ 输入的响应。</p>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — Transfer function: $y'' + 2y' + 5y = f(t)$, zero IC</p>
+        <p>$H(s) = \dfrac{1}{s^2 + 2s + 5} = \dfrac{1}{(s+1)^2 + 4} = \dfrac{1}{2} \cdot \dfrac{2}{(s+1)^2 + 4}$</p>
+        <p>$h(t) = \tfrac{1}{2} e^{-t} \sin 2t$（impulse response）</p>
+        <p>对任何 $f(t)$: $y(t) = (h * f)(t) = \displaystyle\int_0^t \tfrac{1}{2} e^{-(t-\tau)} \sin 2(t-\tau)\, f(\tau)\, d\tau$</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Convolution 积分上下限错 — 是 $0$ 到 $t$ <strong>不是</strong> $0$ 到 $\infty$</li>
+          <li>记成 $f(t) g(t)$ 直接相乘 — 错。是 $f(t-\tau) g(\tau)$ 然后积分</li>
+          <li>$f * 1 \ne f$ — 别把 conv 当普通乘法。Identity 是 $\delta$ 不是 $1$</li>
+          <li>$H$（s 域）和 $h$（时域）区分 — $h = \mathcal{L}^{-1}\{H\}$</li>
+          <li>方向用反 — 时域 conv ↔ s 域<strong>乘法</strong>（不是 s 域 conv）</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>$Y(s) = F(s) G(s)$ 而 partial fractions 难 → 用 $y = f * g$ 直接积分。Transfer function $H = 1/(\text{characteristic poly})$，impulse response $h$ 完全刻画线性系统。Final 必考一道 convolution。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>

@@ -28,6 +28,15 @@
     { href: 'mt2-03-laplace.html',              label: 'MT2 · Part 3 — Laplace',           section: '6.1–6.4 HW' },
     { href: 'mt2-04-practice.html',             label: "MT2 · Part 4 — Prof's Practice",   section: '15 practice problems' },
     { href: 'mt2-05-drills.html',               label: 'MT2 · Part 5 — Targeted Drills',   section: '§3.6, Laplace signs, complex' },
+    { href: 'cram/01-foundations.html',           label: 'Cram · 01 Foundations',            section: '1.1, 1.3' },
+    { href: 'cram/02-first-order.html',           label: 'Cram · 02 First-Order',            section: '2.1–2.6' },
+    { href: 'cram/03-homog-second-order.html',    label: 'Cram · 03 Homog 2nd-Order',        section: '3.1–3.4' },
+    { href: 'cram/04-nonhomog-second-order.html', label: 'Cram · 04 Nonhomog 2nd-Order',     section: '3.5, 3.6' },
+    { href: 'cram/05-systems-theory.html',        label: 'Cram · 05 Systems Theory',         section: '7.1–7.4' },
+    { href: 'cram/06-systems-methods.html',       label: 'Cram · 06 Systems Methods',        section: '7.5, 7.6' },
+    { href: 'cram/07-laplace-basics.html',        label: 'Cram · 07 Laplace Basics',         section: '6.1, 6.2' },
+    { href: 'cram/08-laplace-discontinuous.html', label: 'Cram · 08 Laplace Discontinuous',  section: '6.3–6.6' },
+    { href: 'cram/09-series-solutions.html',      label: 'Cram · 09 Series Solutions',       section: '5.1–5.3' },
     { href: 'hw/hw1.html',                      label: 'HW · HW1 (Sec 1.1–2.4)',           section: 'Classification · Linear · Separable' },
     { href: 'hw/hw2.html',                      label: 'HW · HW2 (Sec 2.5, 2.6, 3.1)',     section: 'Autonomous · Exact · Constant coeff' },
     { href: 'hw/hw3.html',                      label: 'HW · HW3 (Sec 3.2–3.5)',           section: 'Wronskian · Complex / Repeated · Undet' },
@@ -43,7 +52,7 @@
   // Known subdirectories under the walkthrough root. When the current file
   // lives one level inside one of these, links emitted by injectLeftSidebar()
   // and injectPageNav() need a '../' prefix to reach root-level files.
-  const KNOWN_SUBDIRS = ['hw'];
+  const KNOWN_SUBDIRS = ['hw', 'cram'];
 
   function pathPrefix() {
     const segs = window.location.pathname.split('/').filter(Boolean);

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cram · 07 Laplace Basics · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) { theme = null; }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+
+  <script defer src="../assets/nav.js"></script>
+  <script defer src="../assets/katex/katex.min.js"></script>
+  <script defer src="../assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Cram · 07 Laplace Basics</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>07 · Laplace · Basics · 考前冲刺</h1>
+    <p class="note">覆盖 §6.1, §6.2 &nbsp;·&nbsp; 来源 podcast 07a, 07b &nbsp;·&nbsp;
+       → <a href="../07-laplace-basics.html">详细讲解</a>
+    </p>
+
+    <section id="07a-laplace-definition-existence">
+      <h2>07a · Definition &amp; Existence</h2>
+      <p class="cram-meta">§6.1 · → <a href="../07-laplace-basics.html#definition">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Laplace 定义</p>
+        $$ \mathcal{L}\{f(t)\} = F(s) = \int_{0}^{\infty} e^{-st} f(t)\, dt = \lim_{N \to \infty} \int_0^N e^{-st} f(t)\, dt $$
+        <p>是 improper integral。极限存在 → $F(s)$ 存在。约定：unknown $y(t)$ → $Y(s)$（大小写对应）。</p>
+        <p>下限为 0：处理 IVP，初始时刻 $t=0$，只看 $t \ge 0$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 基本 transform（三个核心）</p>
+        <ul>
+          <li>$\mathcal{L}\{e^{at}\} = \dfrac{1}{s - a}$，$s > a$</li>
+          <li>$\mathcal{L}\{\sin bt\} = \dfrac{b}{s^2 + b^2}$，$s > 0$</li>
+          <li>$\mathcal{L}\{\cos bt\} = \dfrac{s}{s^2 + b^2}$，$s > 0$</li>
+        </ul>
+        <p><strong>必标 convergence condition</strong> — 每次算 Laplace 都必须给出 $s > \alpha$ 这种限制。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Linearity</p>
+        $$ \mathcal{L}\{a f_1 + b f_2\} = a F_1(s) + b F_2(s) $$
+        <p>合并 convergence condition 时取 <strong>最严</strong>（较大 $s$ 下界）。</p>
+        <p>例：$\mathcal{L}\{-e^{2t} + 10 \sin t\} = -\dfrac{1}{s-2} + \dfrac{10}{s^2+1}$，$s > 2$（不是 $s > 0$）。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 存在性：两个充分条件</p>
+        <ol>
+          <li><strong>Piecewise continuous</strong> on $[0, \infty)$：每个分点单侧极限 <strong>finite</strong>。允许 jump，<strong>不允许 infinite discontinuity</strong>（$1/t$ 在 0 处趋无穷 ✗）</li>
+          <li><strong>Exponential order $\alpha$</strong>：存在 $T, M > 0$ 使 $t > T$ 时 $|f(t)| \le M e^{\alpha t}$。直观：充分大 $t$ 之后增长不超过指数</li>
+        </ol>
+        <p><strong>定理</strong>：若 $f$ piecewise continuous + exp order $\alpha$，则对 $s > \alpha$，$\mathcal{L}\{f\}$ 存在。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Exponential order 判断口诀</p>
+        <ul>
+          <li>多项式 $t^n$：exp order 1（任意 $\alpha > 0$ 都行）</li>
+          <li>有界振荡（$\sin, \cos$）：exp order 0</li>
+          <li>$e^{at}$：exp order $a$</li>
+          <li>它们的乘积：exp order = 最大的那个</li>
+          <li><strong>反例</strong> $e^{t^2}$：<strong>不是</strong> exp order — 超指数，没 Laplace</li>
+        </ul>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — 算 $\mathcal{L}\{e^{at}\}$</p>
+        <p>$F(s) = \displaystyle\int_0^{\infty} e^{-st} e^{at}\, dt = \lim_{N \to \infty} \int_0^N e^{(a-s)t} dt = \lim_{N \to \infty} \dfrac{e^{(a-s)N} - 1}{a - s}$</p>
+        <p>当 $s > a$ → $e^{(a-s)N} \to 0$ → $F(s) = \dfrac{1}{s - a}$，$s > a$。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Improper integral 漏写 $\lim_{N \to \infty}$ — 不能直接代 $\infty$</li>
+          <li>Convergence condition $s > a$ 漏标</li>
+          <li>Linearity 合并 convergence 时取最宽松条件（错） — 必须取最严（交集）</li>
+          <li>对 $e^{t^2}$ 这种超指数 function 硬算 Laplace</li>
+          <li>Piecewise continuous 记反 — 允许 jump 不允许 infinite</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>Laplace 是 improper integral $\int_0^\infty e^{-st} f\, dt$。存在条件 = piecewise cont + exp order。三个基本 transform + linearity 是后续一切的 building blocks。</p>
+      </div>
+    </section>
+
+    <section id="07b-derivative-property-ivp-method">
+      <h2>07b · Derivative Property &amp; 3-Step IVP Method</h2>
+      <p class="cram-meta">§6.2 · → <a href="../07-laplace-basics.html#three-step-method">详细讲解</a></p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Derivative property（核心魔法）</p>
+        <p>Laplace 把微分变代数乘法。</p>
+        $$ \mathcal{L}\{f'(t)\} = sF(s) - f(0) $$
+        $$ \mathcal{L}\{f''(t)\} = s^2 F(s) - s f(0) - f'(0) $$
+        $$ \mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0) - s^{n-2} f'(0) - \cdots - f^{(n-1)}(0) $$
+        <p>规律：每多一阶导多乘一个 $s$，多减一项 IC。$s$ 指数从 $n-1$ 降到 0，对应 IC 从 0 阶升到 $n-1$ 阶。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Transform table（考试给但熟悉加速）</p>
+        <table class="data-table">
+          <thead><tr><th>$f(t)$</th><th>$F(s)$</th><th>Condition</th></tr></thead>
+          <tbody>
+            <tr><td>$1$</td><td>$\dfrac{1}{s}$</td><td>$s > 0$</td></tr>
+            <tr><td>$e^{at}$</td><td>$\dfrac{1}{s - a}$</td><td>$s > a$</td></tr>
+            <tr><td>$t^n$</td><td>$\dfrac{n!}{s^{n+1}}$</td><td>$s > 0$</td></tr>
+            <tr><td>$e^{at} t^n$</td><td>$\dfrac{n!}{(s - a)^{n+1}}$</td><td>$s > a$</td></tr>
+            <tr><td>$\sin bt$</td><td>$\dfrac{b}{s^2 + b^2}$</td><td>$s > 0$</td></tr>
+            <tr><td>$\cos bt$</td><td>$\dfrac{s}{s^2 + b^2}$</td><td>$s > 0$</td></tr>
+            <tr><td>$e^{at} \sin bt$</td><td>$\dfrac{b}{(s-a)^2 + b^2}$</td><td>$s > a$</td></tr>
+            <tr><td>$e^{at} \cos bt$</td><td>$\dfrac{s - a}{(s-a)^2 + b^2}$</td><td>$s > a$</td></tr>
+          </tbody>
+        </table>
+        <p>⚠️ 最后一行分子是 <strong>$s - a$ 不是 $s$</strong>，最常错。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — $s$-shifting theorem (First Shifting)</p>
+        $$ \mathcal{L}\{e^{at} f(t)\} = F(s - a) $$
+        <p>时域乘 $e^{at}$ ↔ s 域 $s$ 平移到 $s - a$。证明：$\int e^{-st} e^{at} f\, dt = \int e^{-(s-a)t} f\, dt = F(s-a)$。</p>
+      </div>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法 — 3 步法解 IVP</p>
+        <ol>
+          <li><strong>两边取 Laplace</strong>。用 derivative property 把 $y'', y', y$ 转代数式，<strong>立即代入 IC 数值</strong>。右边 $g(t)$ 也 Laplace 得 $G(s)$。整理出关于 $Y(s)$ 的代数方程</li>
+          <li><strong>解出 $Y(s)$</strong>。普通代数 — 移项、合并、除多项式。$Y$ 是 $s$ 的 rational function</li>
+          <li><strong>反 Laplace</strong>。用 partial fractions 把 $Y$ 拆成查表能识别的形式，逐项 inverse → $y(t)$</li>
+        </ol>
+        <p><strong>替换 cheatsheet</strong>：$y \to Y$，$y' \to sY - y(0)$，$y'' \to s^2 Y - s y(0) - y'(0)$，$g \to G$。</p>
+      </div>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — Partial fractions 三种 case</p>
+        <ol>
+          <li><strong>Nonrepeating linear</strong>：分母 $(s - r_1)(s - r_2) \cdots$。分解 $\dfrac{A_1}{s - r_1} + \dfrac{A_2}{s - r_2} + \cdots$。求 $A_i$ 用 <strong>cover-up</strong>：两边乘 $(s - r_i)$ 然后 $s = r_i$</li>
+          <li><strong>Repeated linear</strong>：分母 $(s - r)^k$。<strong>必须每阶都写</strong>：$\dfrac{A_1}{s - r} + \dfrac{A_2}{(s - r)^2} + \cdots + \dfrac{A_k}{(s - r)^k}$。$\dfrac{1}{(s-r)^j}$ 对应 $\dfrac{t^{j-1}}{(j-1)!} e^{rt}$</li>
+          <li><strong>Irreducible quadratic</strong>：分母 $s^2 + ps + q$ 判别式 $< 0$。先 complete the square → $(s-a)^2 + b^2$。凑分子：$\dfrac{N(s)}{(s-a)^2 + b^2} = A \cdot \dfrac{s-a}{(s-a)^2+b^2} + B \cdot \dfrac{b}{(s-a)^2+b^2}$ → $A e^{at} \cos bt + B e^{at} \sin bt$</li>
+        </ol>
+      </div>
+
+      <div class="box example">
+        <p class="box-title">📝 例子骨架 — $y'' - y = e^{-t}$, $y(0) = 1$, $y'(0) = 0$</p>
+        <ol>
+          <li>Laplace: $s^2 Y - s \cdot 1 - 0 - Y = \dfrac{1}{s+1}$ → $(s^2 - 1) Y = s + \dfrac{1}{s+1}$</li>
+          <li>$Y = \dfrac{s(s+1) + 1}{(s+1)^2 (s-1)} = \dfrac{s^2 + s + 1}{(s-1)(s+1)^2}$</li>
+          <li>Partial fractions: $\dfrac{A}{s-1} + \dfrac{B}{s+1} + \dfrac{C}{(s+1)^2}$。算出 $A, B, C$ → $y(t) = A e^t + B e^{-t} + C\, t e^{-t}$</li>
+        </ol>
+        <p><strong>Sanity check</strong>：代 $t = 0$ 验证 $y(0)$ = 题给 IC。不对 → Step 1 IC 代错 or Step 2 代数错。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 扣分坑</p>
+        <ol>
+          <li>Derivative property 符号错 — $\mathcal{L}\{y''\} = s^2 Y - sy(0) - y'(0)$，三个负号都是减</li>
+          <li>IC 代入数值错 — $y(0) = 2$ 时 $sy(0) = 2s$，<strong>不是 $s$</strong></li>
+          <li>Partial fractions 形式错 — repeated factor 必须每阶都写；irreducible quadratic 分子是 $As + B$ 不是常数</li>
+          <li>Improper rational function（分子 degree $\ge$ 分母 degree）没先做长除法</li>
+          <li>Complete the square 算错 — $s^2 + 2s + 5 = (s+1)^2 + 4$，$a = -1$, $b = 2$</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅</p>
+        <p>3 步法：Laplace 两边 + 代 IC → 解代数 $Y(s)$ → partial fractions + 反查表。Laplace 三大优势：自动嵌入 IC、自然处理 discontinuous forcing（File 08）、不分 $y_H/y_P$。Final 必出至少 1 道 Laplace IVP。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar-right"><!-- injected by nav.js --></aside>
+</div>
+</body>
+</html>
