@@ -28,6 +28,7 @@
     { href: 'mt2-03-laplace.html',              label: 'MT2 · Part 3 — Laplace',           section: '6.1–6.4 HW' },
     { href: 'mt2-04-practice.html',             label: "MT2 · Part 4 — Prof's Practice",   section: '15 practice problems' },
     { href: 'mt2-05-drills.html',               label: 'MT2 · Part 5 — Targeted Drills',   section: '§3.6, Laplace signs, complex' },
+    { href: '10-final-sprint.html',             label: 'Final · 冲刺 Sprint',              section: 'cumulative · 速查 + 25 题' },
     { href: 'cram/01-foundations.html',           label: 'Cram · 01 Foundations',            section: '1.1, 1.3' },
     { href: 'cram/02-first-order.html',           label: 'Cram · 02 First-Order',            section: '2.1–2.6' },
     { href: 'cram/03-homog-second-order.html',    label: 'Cram · 03 Homog 2nd-Order',        section: '3.1–3.4' },

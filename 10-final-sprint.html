@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Sprint — 冲刺复习 · MATH 20D Walkthrough</title>
+
+  <script>
+    (function () {
+      var theme;
+      try {
+        var stored = localStorage.getItem('theme');
+        theme = (stored === 'light' || stored === 'dark') ? stored : null;
+      } catch (e) {
+        theme = null;
+      }
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+
+  <script defer src="assets/nav.js"></script>
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$',  right: '$',  display: false}
+      ],
+      throwOnError: false
+    });"></script>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <span class="course-name">MATH 20D</span>
+    <span class="sep">·</span>
+    <span class="page-title">Final Sprint — 冲刺复习</span>
+    <button class="theme-toggle" type="button">🌙 Dark</button>
+  </header>
+
+  <aside class="sidebar-left"><!-- injected by nav.js --></aside>
+
+  <main class="main">
+    <h1>Final Sprint — 冲刺复习</h1>
+    <p class="note">Final：Wed 6/10，11:30am–2:30pm（3 小时）· Cumulative：Ch 1, 2, 3, 7, 6, 5.1–5.3 · 题目精选自官方 practice problems、两次 midterm、十周 discussion worksheets · 每题先自己做，再展开 提示 → 完整解答</p>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="exam-intel">考前情报 — 考试长什么样</h2>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必读 — 考试结构（由 MT1/MT2 实卷推断）</p>
+        <p>两次 midterm 结构完全一致：<strong>4 大题 × 10 分，50 分钟</strong>。Problem 1 永远是 <strong>4 小题 TRUE/FALSE</strong>（每题 2.5 分，不需要 justification）；Problem 2 是两个 5 分小题（常含一个"只求 form / 只判断"的轻计算题）；Problem 3、4 是完整流程计算题。Final 时长 3 小时（midterm 的 3.6 倍），合理预期 <strong>7–9 道大题、延续同样配方</strong>：一个 T/F block + 若干计算大题。</p>
+        <p>已确认会发 <strong>Laplace transform 表（18 条）+ 3 个常见 power series</strong>（见 <code>Exam/LaplaceTableandPowerSeries.pdf</code>）。<strong>表上没有的、必须自己背的</strong>：convolution theorem（$\mathcal{L}\{f*g\}=F(s)G(s)$）、integrating factor 公式、exactness 判据与 $\mu$ 的构造、characteristic equation 三情形、undetermined coefficients 的 form 规则、variation of parameters 公式、eigenvalue 方法三情形、phase plane 分类、Abel's theorem、E&amp;U 定理的条件。</p>
+      </div>
+
+      <div class="box warning">
+        <p class="box-title">⚠️ 优先级 — 哪些内容"欠考"</p>
+        <p>Cumulative final 必然覆盖 midterm 没碰过的部分，这些是出题概率最高的板块：</p>
+        <p><strong>① Ch 5 series solutions（5.1–5.3）</strong>——整章从未考过，公式表还特意附了 $e^x,\sin x,\cos x$ 的 series，几乎宣告必考；<strong>② 6.6 convolution</strong>——从未考过，且公式不在表上；<strong>③ 6.5 delta function</strong>——没考过但表上给了 $\delta(t-t_0)\to e^{-st_0}$；<strong>④ systems 的 complex / repeated eigenvalues</strong>——MT2 只考了实异号根（saddle），complex（spiral）和 repeated 情形还没露面。复习时间应该向这四块倾斜，Ch 1–3 以过易错点为主。</p>
+      </div>
+
+      <p>本页结构：每个主题先给一个 🎛️ <strong>方法速查</strong>（考场上你脑子里应该有的那张卡片），然后是精选题目（来源标注在标题里：<code>MT1/MT2</code> = midterm 实题，<code>PP</code> = 官方 practice problems，<code>W#</code> = 第 # 周 discussion worksheet）。概念详解见对应章节页面（侧边栏 01–09）。</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="first-order">一、First-Order ODEs（Ch 1–2）</h2>
+      <p class="cram-meta">§1.1–1.3, 2.1–2.6 · → <a href="02-first-order.html">详细讲解</a> · <a href="cram/02-first-order.html">cram 卡片</a></p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法速查 — 拿到 first-order ODE 先问四个问题</p>
+        <ol>
+          <li><strong>Separable？</strong> $y' = g(t)h(y)$ → 分离积分。⚠️ 除以 $h(y)$ 前先记下 $h(y)=0$ 的 <strong>equilibrium solutions</strong>，最后看能否并进任意常数。</li>
+          <li><strong>Linear？</strong> 化 standard form $y' + p(t)y = g(t)$ → integrating factor $\mu = e^{\int p\,dt}$，则 $(\mu y)' = \mu g$。</li>
+          <li><strong>Exact？</strong> $M\,dx + N\,dy = 0$，check $M_y = N_x$ → 求 $F$ 使 $F_x = M$，$F_y = N$，解为 $F = C$。</li>
+          <li><strong>Not exact？</strong> 若 $\dfrac{M_y - N_x}{N}$ 只含 $x$ → $\mu(x) = e^{\int \frac{M_y-N_x}{N}dx}$；若 $\dfrac{N_x - M_y}{M}$ 只含 $y$ → $\mu(y)$。乘上后重走 exact 流程。</li>
+        </ol>
+        <p><strong>E&amp;U 定理（两个版本，T/F 高频）：</strong>Linear：化 standard form，找 $p, g$ 的不连续点，<strong>不用解方程</strong>，interval = 含 $t_0$ 的最大连续开区间。Nonlinear：$f$ 与 $\partial f/\partial y$ 在含 $(t_0,y_0)$ 的矩形上 continuous → 只保证<strong>局部</strong>唯一解；interval of existence 必须<strong>显式解出来才知道</strong>。</p>
+        <p><strong>Phase line（autonomous $y'=f(y)$）：</strong>equilibria = $f$ 的零点；两侧符号 $+\,\to$、$-\,\leftarrow$；箭头指向它 = stable，背离 = unstable，一侧指向一侧背离 = semistable。</p>
+      </div>
+
+      <h3 id="p1-1">题 1.1 — Exact + integrating factor 全流程 <span class="note">[MT1 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>求 $(3xy + y^2) + (x^2 + xy)\,y' = 0$ 的 implicit solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>先 check exactness——不 exact。试 $\frac{M_y - N_x}{N}$，会约出一个只含 $x$ 的函数。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$M = 3xy + y^2$，$N = x^2 + xy$：$M_y = 3x + 2y \neq N_x = 2x + y$，not exact。</p>
+          <p>$$\frac{M_y - N_x}{N} = \frac{x + y}{x(x + y)} = \frac{1}{x} \quad\Rightarrow\quad \mu(x) = e^{\int \frac{1}{x}dx} = x$$</p>
+          <p>乘 $\mu = x$：$\tilde M = 3x^2y + xy^2$，$\tilde N = x^3 + x^2y$，验证 $\tilde M_y = \tilde N_x = 3x^2 + 2xy$ ✓。</p>
+          <p>$$F = \int \tilde M\,dx = x^3 y + \tfrac{1}{2}x^2y^2 + g(y),\qquad F_y = x^3 + x^2 y + g'(y) = \tilde N \Rightarrow g' = 0$$</p>
+          <p><strong>答案：</strong>$x^3 y + \tfrac{1}{2}x^2 y^2 = C$。</p>
+          <p class="note">⚠️ 扣分点：没先验证 exactness 就硬凑；$\mu$ 公式记反（依赖 $x$ 时分母是 $N$，依赖 $y$ 时用 $\frac{N_x-M_y}{M}$）。</p>
+        </details>
+      </div>
+
+      <h3 id="p1-2">题 1.2 — Integrating factor + asymptotic behavior <span class="note">[MT1 #4]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $2y' + 4ty = (t-1)e^{-2t}$，并证明所有解在 $t\to\infty$ 时趋于同一极限，求该极限。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$\mu = e^{t^2}$。积分 $\int \frac{t-1}{2}e^{t^2 - 2t}\,dt$ 需要主动配方：$t^2 - 2t = (t-1)^2 - 1$，再令 $u = (t-1)^2$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>Standard form：$y' + 2ty = \frac{t-1}{2}e^{-2t}$，$\mu = e^{\int 2t\,dt} = e^{t^2}$。</p>
+          <p>$$\left(ye^{t^2}\right)' = \frac{t-1}{2}\,e^{t^2 - 2t} = \frac{t-1}{2}\,e^{(t-1)^2 - 1}$$</p>
+          <p>令 $u = (t-1)^2$，$du = 2(t-1)\,dt$：</p>
+          <p>$$ye^{t^2} = \frac{e^{-1}}{4}\int e^u\,du = \frac{1}{4}e^{(t-1)^2 - 1} + C = \frac{1}{4}e^{t^2 - 2t} + C$$</p>
+          <p><strong>答案：</strong>$y = \dfrac{1}{4}e^{-2t} + Ce^{-t^2}$。两项各自 $\to 0$，与 $C$ 无关，故 $\lim_{t\to\infty} y(t) = 0$（对<strong>所有</strong>解成立）。</p>
+          <p class="note">⚠️ "all solutions" 意味着结论必须不依赖 $C$——答题时要点明这一句。</p>
+        </details>
+      </div>
+
+      <h3 id="p1-3">题 1.3 — Nonlinear IVP 的 interval of existence <span class="note">[PP Ch2 #6]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>求 IVP $y' = 2ty^3,\ y(0) = 1$ 的解与 interval of existence。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Nonlinear → E&amp;U 只给局部存在性，<strong>区间必须解出来才知道</strong>。Separable。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$\int y^{-3}dy = \int 2t\,dt \Rightarrow -\tfrac{1}{2}y^{-2} = t^2 + C$。代 $y(0)=1$：$C = -\tfrac12$，即 $y^{-2} = 1 - 2t^2$。</p>
+          <p><strong>答案：</strong>$y(t) = \dfrac{1}{\sqrt{1 - 2t^2}}$（取 $+$ 支配合 $y(0)=1$），interval of existence $= \left(-\tfrac{1}{\sqrt2},\ \tfrac{1}{\sqrt2}\right)$——含 $t_0 = 0$ 且解有定义的最大开区间。</p>
+          <p class="note">对比 linear 情形（如 MT1 T/F (c)：$(4-t^2)y' + 2ty = 3t^2$，$y(-3)=1$ → 直接读出 $(-\infty,-2)$，不用解）。一题之内分清两种定理是 T/F 的常考缝隙。</p>
+        </details>
+      </div>
+
+      <h3 id="p1-4">题 1.4 — E&amp;U 失效：方程退化 <span class="note">[W2 #1(c)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>IVP $(\ln t)\,y' + y = \sin t,\ y(1) = 0$ 有没有解？</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$t_0 = 1$ 处 $y'$ 的系数 $\ln 1 = 0$——standard form 在这点根本写不出来。代 $t=1$ 进原方程看看会发生什么。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>在 $t = 1$ 处原方程变成 $0\cdot y'(1) + y(1) = \sin 1$，即强制 $y(1) = \sin 1 \approx 0.84 \neq 0$，与初值条件矛盾。<strong>无解。</strong></p>
+          <p class="note">⚠️ E&amp;U 定理的前提是化成 standard form 后 $p, g$ 在含 $t_0$ 的区间上 continuous；leading coefficient 在 $t_0$ 处 vanish 时定理直接不适用——可能无解，而不只是"区间变小"。</p>
+        </details>
+      </div>
+
+      <h3 id="p1-5">题 1.5 — Phase line 三分类 <span class="note">[W2 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>对 autonomous equation $y' = y(1-y)(y-2)$ 画 phase line，分类所有 equilibrium solutions 的稳定性。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Equilibria：$y = 0, 1, 2$。在四个区间上取测试点定 $y'$ 符号。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>符号表：$(-\infty,0)$ 上 $y' &gt; 0$（→），$(0,1)$ 上 $y' &lt; 0$（←），$(1,2)$ 上 $y' &gt; 0$（→），$(2,\infty)$ 上 $y' &lt; 0$（←）。</p>
+          <p><strong>答案：</strong>$y=0$ <strong>stable</strong>（两侧箭头指向它），$y=1$ <strong>unstable</strong>，$y=2$ <strong>stable</strong>。任意初值的解单调趋向相邻的 stable equilibrium。</p>
+          <p class="note">升级版：logistic + harvesting $y' = ry(1-y/K) - h$（W2 #4）——equilibria 存在 iff $h \le rK/4$，临界 $h = rK/4$ 时唯一 equilibrium 是 <strong>semistable</strong>。"semistable" 这个词值得备着。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="second-order">二、Second-Order Linear ODEs（Ch 3）</h2>
+      <p class="cram-meta">§3.1–3.6 · → <a href="03-homog-second-order.html">homogeneous 详解</a> · <a href="04-nonhomog-second-order.html">nonhomogeneous 详解</a></p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法速查 — 二阶常系数三件套</p>
+        <p><strong>① Homogeneous：</strong>$ay'' + by' + cy = 0$，characteristic equation $ar^2 + br + c = 0$：</p>
+        <table class="data-table">
+          <thead><tr><th>根的类型</th><th>General solution</th></tr></thead>
+          <tbody>
+            <tr><td>实异根 $r_1 \neq r_2$</td><td>$c_1 e^{r_1 t} + c_2 e^{r_2 t}$</td></tr>
+            <tr><td>重根 $r$</td><td>$(c_1 + c_2 t)e^{rt}$</td></tr>
+            <tr><td>复根 $\alpha \pm i\beta$</td><td>$e^{\alpha t}(c_1\cos\beta t + c_2\sin\beta t)$</td></tr>
+          </tbody>
+        </table>
+        <p><strong>② Undetermined coefficients（form 规则）：</strong>$g = P_n(t)e^{\alpha t}\cos\beta t$（或 $\sin$）→ guess $t^s\big[(A_nt^n+\cdots+A_0)e^{\alpha t}\cos\beta t + (B_nt^n+\cdots+B_0)e^{\alpha t}\sin\beta t\big]$，其中 <strong>$s$ = $\alpha + i\beta$ 作为 characteristic root 的重数</strong>（0、1 或 2）。三条铁律：sin/cos 必须成对带完整两组；多项式必须写满所有低次项；$g$ 是几项之和就按 superposition 逐项 guess。</p>
+        <p><strong>③ Variation of parameters：</strong>先化 <strong>standard form</strong>（leading coefficient 除掉！$g$ 取除完之后的右端），$y_p = u_1 y_1 + u_2 y_2$：</p>
+        $$u_1' = -\frac{y_2\, g}{W},\qquad u_2' = \frac{y_1\, g}{W},\qquad W = W[y_1, y_2]$$
+        <p><strong>理论件：</strong>superposition 只对 homogeneous 成立（两个 nonhomogeneous 解之和满足 $=2g$；它们的<strong>差</strong>是 homogeneous 解）；Abel：$W = Ce^{-\int p\,dt}$（不解方程就能求 $W$）；linear 二阶 E&amp;U 区间 = standard form 后 $p,q,g$ 连续且含 $t_0$ 的最大区间。</p>
+      </div>
+
+      <h3 id="p2-1">题 2.1 — 只求 form（repeated root 陷阱）<span class="note">[MT1 #2(a)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>写出 $y'' + 4y' + 4y = 7t\sin t + t^2 e^{-2t}$ 的 particular solution 的 <strong>form</strong>（不用解系数）。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Characteristic equation 是完全平方。两个 forcing 项分别对照 form 规则，注意第二项的 $\alpha = -2$ 撞上了什么。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$r^2 + 4r + 4 = (r+2)^2 = 0$，repeated root $r = -2$。</p>
+          <p>$7t\sin t$：$\alpha + i\beta = i$ 不是根，$s = 0$：$(At + B)\sin t + (Ct + D)\cos t$。</p>
+          <p>$t^2 e^{-2t}$：$\alpha = -2$ 是<strong>二重根</strong>，$s = 2$：$t^2(Et^2 + Ft + G)e^{-2t}$。</p>
+          <p><strong>答案：</strong>$y_p = (At+B)\sin t + (Ct+D)\cos t + t^2(Et^2+Ft+G)e^{-2t}$。</p>
+          <p class="note">⚠️ 三个高频扣分点全在这题里：sin 项漏配 cos 组；$t^s$ 忘乘或 $s$ 数错；$t^2$ 多项式只写 $Et^2$ 不写满 $Et^2+Ft+G$。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-2">题 2.2 — $r=0$ 是根：常数项也要乘 $t$ <span class="note">[PP Ch3 #5]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>求 $y'' + 2y' = 4\sin t + 3$ 的 general solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$r = 0, -2$。常数 forcing $3$ 对应 $\alpha = 0$——而 $0$ 是根。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$y_H = c_1 e^{-2t} + c_2$。$\,4\sin t$：$i$ 不是根 → $A\cos t + B\sin t$；常数 $3$：$0$ 是单根 → guess $Ct$（乘了 $t$）。</p>
+          <p>代入：$-A\cos t - B\sin t + 2(-A\sin t + B\cos t) + 2C = 4\sin t + 3$，比对得 $-A + 2B = 0$，$-B - 2A = 4$，$2C = 3$，解出 $A = -\tfrac{8}{5}$，$B = -\tfrac{4}{5}$，$C = \tfrac{3}{2}$。</p>
+          <p><strong>答案：</strong>$y = c_1 e^{-2t} + c_2 - \tfrac{8}{5}\cos t - \tfrac{4}{5}\sin t + \tfrac{3}{2}t$。</p>
+          <p class="note">$y_H$ 里有常数 $c_2$ 就是信号：常数 forcing 必须乘 $t$，否则 guess 被 homogeneous 吃掉。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-3">题 2.3 — Variation of parameters：$\sec t$ <span class="note">[MT2 #2(b)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>用 variation of parameters 求 $y'' + y = \sec t$ 的 general solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$y_1 = \cos t$，$y_2 = \sin t$，$W = 1$。$\int\tan t\,dt$ 的符号是经典坑。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$u_1' = -\dfrac{y_2 g}{W} = -\sin t\sec t = -\tan t \Rightarrow u_1 = \ln|\cos t|$（注意：$\int -\tan t\,dt = \ln|\cos t|$，没有负号）。</p>
+          <p>$u_2' = \dfrac{y_1 g}{W} = \cos t \sec t = 1 \Rightarrow u_2 = t$。</p>
+          <p><strong>答案：</strong>$y = c_1\cos t + c_2\sin t + \cos t\,\ln|\cos t| + t\sin t$。</p>
+          <p class="note">$\sec t,\ \tan t$ 这类 forcing 不在 undetermined coefficients 的菜单上——看到它们就直接上 variation of parameters。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-4">题 2.4 — VoP 的 standard form 陷阱 <span class="note">[W5 #1(b)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$(6t-5)y'' - (18t-9)y' + 18y = (6t-5)^2$，已知 homogeneous solutions $y_1 = 2t-1$，$y_2 = e^{3t}$。求 general solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>公式里的 $g$ 是 standard form 的右端——先除以 $(6t-5)$，所以 $g = 6t-5$，<strong>不是</strong> $(6t-5)^2$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$W[y_1,y_2] = (2t-1)\cdot 3e^{3t} - 2e^{3t} = (6t-5)e^{3t}$。除以 leading coefficient 后 $g = 6t-5$：</p>
+          <p>$$u_1' = -\frac{e^{3t}(6t-5)}{(6t-5)e^{3t}} = -1 \Rightarrow u_1 = -t,\qquad u_2' = \frac{(2t-1)(6t-5)}{(6t-5)e^{3t}} = (2t-1)e^{-3t}$$</p>
+          <p>分部积分：$u_2 = \left(-\tfrac{2t}{3} + \tfrac{1}{9}\right)e^{-3t}$。$y_p = u_1y_1 + u_2y_2 = -2t^2 + \tfrac{t}{3} + \tfrac{1}{9}$（整理后）。</p>
+          <p><strong>答案：</strong>$y = C_1(2t-1) + C_2 e^{3t} - 2t^2 + \tfrac{t}{3} + \tfrac{1}{9}$。</p>
+          <p class="note">⚠️ 这是 variation of parameters 的<strong>第一大扣分点</strong>：变系数方程给的 $y_1, y_2$ 很友好，但 $g$ 必须用除完 leading coefficient 的版本。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-5">题 2.5 — Particular solutions 的 superposition <span class="note">[PP Ch3 #7]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>已知 $y'' + y = \tan t$ 有解 $g(t) = -\cos t\,\ln(\sec t + \tan t)$，$y'' + y = 3t - 1$ 有解 $h(t) = 3t - 1$。(a) 求 $y'' + y = 2\tan t + 5(3t-1)$ 的一个 particular solution；(b) 求 $y'' + y = 4\tan t + 1 - 3t$ 的 general solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Linearity：$L[ag + bh] = a\,L[g] + b\,L[h]$。(b) 里 $1 - 3t = -(3t-1)$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) $y_p = 2g(t) + 5h(t)$。</p>
+          <p>(b) $4\tan t + 1 - 3t = 4\tan t - (3t-1)$，所以 $y_p = 4g(t) - h(t)$，general solution：</p>
+          <p>$$y = c_1\cos t + c_2\sin t + 4g(t) - h(t)$$</p>
+          <p class="note">考点是"白嫖"已知解——不用真的做 variation of parameters。同型 T/F：若 $L[y_{p_1}] = 0$、$L[y_{p_2}] = g$，则 $L[2y_{p_1} + 3y_{p_2}] = 3g$（MT2 T/F (a)，TRUE）。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-6">题 2.6 — Abel's theorem 反向应用 <span class="note">[W3 #4]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>(a) 已知某二阶 linear homogeneous ODE 的两个解 $f, g$ 满足 $W[f,g] = e^{7t}$，且 $f = e^{3t}$，求一个可能的 $g$。<br>(b) 不解方程，求 $t^4 y'' - 2t^3 y' - t^6 y = 0$（$t&gt;0$）的 Wronskian（up to constant）。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>(a) Abel 反推 $p$；把 $f$ 代入方程反推 $q$；解 characteristic equation。(b) 化 standard form 读出 $p(t)$，直接套 $W = Ce^{-\int p\,dt}$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) $W = Ce^{-\int p\,dt} = e^{7t} \Rightarrow p = -7$。方程形如 $y'' - 7y' + qy = 0$；代入 $f = e^{3t}$：$9 - 21 + q = 0 \Rightarrow q = 12$。Characteristic roots：$r^2 - 7r + 12 = 0 \Rightarrow r = 3, 4$。<strong>$g(t) = e^{4t}$</strong>（验证 $W[e^{3t}, e^{4t}] = e^{7t}$ ✓）。</p>
+          <p>(b) Standard form：$y'' - \dfrac{2}{t}y' - t^2 y = 0$，$p = -\dfrac{2}{t}$：</p>
+          <p>$$W = Ce^{-\int p\,dt} = Ce^{2\ln t} = Ct^2$$</p>
+          <p class="note">Abel 的两个用法都不需要解方程——T/F 和小题里性价比极高。</p>
+        </details>
+      </div>
+
+      <h3 id="p2-7">题 2.7 — 调 $\beta$ 控制 asymptotic behavior <span class="note">[PP Ch3 #6]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$4y'' - y = 0$，$y(0) = 2$，$y'(0) = \beta$。(a) 求 $\beta$ 使 $y \to 0$（$t\to\infty$）；(b) 求 $\beta$ 使 $y \to 0$（$t\to-\infty$）。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$r = \pm\tfrac12$。用初值把解写成 $(1+\beta)e^{t/2} + (1-\beta)e^{-t/2}$ 的形式，然后消灭爆炸项。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$4r^2 - 1 = 0 \Rightarrow r = \pm\tfrac12$，$y = c_1 e^{t/2} + c_2 e^{-t/2}$。初值：$c_1 + c_2 = 2$，$\tfrac12 c_1 - \tfrac12 c_2 = \beta$，解得 $c_1 = 1 + \beta$，$c_2 = 1 - \beta$。</p>
+          <p>(a) $t\to\infty$ 时 $e^{t/2}$ 爆炸 → 需 $c_1 = 0$：<strong>$\beta = -1$</strong>。</p>
+          <p>(b) $t\to-\infty$ 时 $e^{-t/2}$ 爆炸 → 需 $c_2 = 0$：<strong>$\beta = 1$</strong>。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="systems">三、Systems of Linear ODEs（Ch 7）</h2>
+      <p class="cram-meta">§7.1–7.6 · → <a href="05-systems-theory.html">理论详解</a> · <a href="06-systems-methods.html">方法详解</a> · ⚠️ complex / repeated eigenvalues 还没在考试露过面</p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法速查 — eigenvalue method 三情形 + phase plane</p>
+        <p>解 $\mathbf{x}' = A\mathbf{x}$：求 $\det(A - \lambda I) = 0$ 的根，按情形组装：</p>
+        <ol>
+          <li><strong>实异根：</strong>$\mathbf{x} = c_1 e^{\lambda_1 t}\mathbf{v}_1 + c_2 e^{\lambda_2 t}\mathbf{v}_2$。</li>
+          <li><strong>复根 $\lambda = \alpha \pm i\beta$：</strong>取一个 eigenvector $\mathbf{v}$，展开 $e^{(\alpha+i\beta)t}\mathbf{v} = e^{\alpha t}(\cos\beta t + i\sin\beta t)\mathbf{v}$，<strong>real part 和 imaginary part 各是一个实解</strong>，二者构成 fundamental set。只需要算一个 eigenvector。</li>
+          <li><strong>重根 $\lambda$（重数 2）：</strong>先看 eigenspace 维数。<strong>Complete</strong>（两个独立 eigenvectors）→ 直接给出两个独立的解；<strong>defective</strong>（只有一个 $\boldsymbol{\xi}$）→ 第二解 $\mathbf{x}_2 = te^{\lambda t}\boldsymbol{\xi} + e^{\lambda t}\boldsymbol{\eta}$，其中 $(A - \lambda I)\boldsymbol{\eta} = \boldsymbol{\xi}$（generalized eigenvector）。</li>
+        </ol>
+        <p><strong>Phase plane 分类（origin 的 critical point）：</strong></p>
+        <table class="data-table">
+          <thead><tr><th>Eigenvalues</th><th>类型</th><th>稳定性</th></tr></thead>
+          <tbody>
+            <tr><td>实数，同负 $\lambda_2 &lt; \lambda_1 &lt; 0$</td><td>node</td><td>asymptotically stable</td></tr>
+            <tr><td>实数，同正</td><td>node</td><td>unstable</td></tr>
+            <tr><td>实数，异号</td><td>saddle</td><td><strong>永远 unstable</strong></td></tr>
+            <tr><td>复 $\alpha \pm i\beta$，$\alpha &lt; 0$</td><td>spiral</td><td>asymptotically stable</td></tr>
+            <tr><td>复，$\alpha &gt; 0$</td><td>spiral</td><td>unstable</td></tr>
+            <tr><td>纯虚 $\pm i\beta$</td><td>center</td><td>stable（not asymptotically）</td></tr>
+          </tbody>
+        </table>
+        <p><strong>理论件（T/F 重灾区）：</strong>① 任意向量函数 $W \equiv 0 \not\Rightarrow$ linearly dependent；只有当它们是<strong>同一个系统 $\mathbf{x}' = A(t)\mathbf{x}$（$A$ continuous）的解</strong>时，$W = 0$ 才推出 dependent。② Abel：fundamental set 的 Wronskian 要么恒零要么处处非零，不会"有时零有时不零"。③ 判 independence 回定义：$c_1\mathbf{v}_1 + c_2\mathbf{v}_2 \equiv \mathbf{0}$ 在不同 $t$ 取值，逼出 $c_1 = c_2 = 0$。</p>
+      </div>
+
+      <h3 id="p3-1">题 3.1 — Saddle + phase portrait <span class="note">[MT2 #2(a) = PP Ch7 #5]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$\mathbf{x}' = \begin{pmatrix} 1 &amp; 3 \\ 3 &amp; 1 \end{pmatrix}\mathbf{x}$。求 general solution，画 phase plane，分类 critical point 并判稳定性。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>对称矩阵，trace $= 2$，det $= -8$。det $&lt; 0$ 直接宣告 saddle。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$\det(A - \lambda I) = (1-\lambda)^2 - 9 = 0 \Rightarrow \lambda = 4, -2$。Eigenvectors：$\lambda = 4$ → $\mathbf{v}_1 = \binom{1}{1}$；$\lambda = -2$ → $\mathbf{v}_2 = \binom{1}{-1}$。</p>
+          <p>$$\mathbf{x}(t) = c_1 e^{4t}\binom{1}{1} + c_2 e^{-2t}\binom{1}{-1}$$</p>
+          <p><strong>分类：</strong>实异号 eigenvalues → <strong>saddle point，unstable</strong>（saddle 永远 unstable）。</p>
+          <p><strong>Phase portrait：</strong>沿 $y = -x$（$\mathbf{v}_2$ 方向）箭头指向原点（衰减），沿 $y = x$（$\mathbf{v}_1$ 方向）箭头背离原点（增长）；一般轨迹从 $\mathbf{v}_2$ 方向进、被 $e^{4t}$ 主导后贴着 $\mathbf{v}_1$ 方向出。</p>
+          <p class="note">⚠️ 题面要求 "showing directions of motion"——不画箭头会扣分。</p>
+        </details>
+      </div>
+
+      <h3 id="p3-2">题 3.2 — Complex eigenvalues → 实值 fundamental set <span class="note">[PP Ch7 #1]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$\mathbf{x}' = \begin{pmatrix} -1 &amp; -1 \\ 2 &amp; -1 \end{pmatrix}\mathbf{x}$。(a) 求一组 real-valued fundamental set；(b) 验证它们 linearly independent。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$\lambda = -1 \pm \sqrt2\,i$。算 $\lambda = -1 + \sqrt2 i$ 的 eigenvector，然后 $e^{\lambda t}\mathbf{v}$ 拆 real/imaginary parts。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$\det(A-\lambda I) = (\lambda+1)^2 + 2 = 0 \Rightarrow \lambda = -1 \pm \sqrt2\,i$。对 $\lambda = -1+\sqrt2 i$：$(A - \lambda I)\mathbf{v} = 0$ 给 $-\sqrt2 i\, v_1 - v_2 = 0$，取 $\mathbf{v} = \binom{1}{-\sqrt2 i}$。</p>
+          <p>$$e^{(-1+\sqrt2 i)t}\binom{1}{-\sqrt2 i} = e^{-t}(\cos\sqrt2 t + i\sin\sqrt2 t)\binom{1}{-\sqrt2 i}$$</p>
+          <p>展开取 real / imaginary parts：</p>
+          <p>$$\mathbf{x}_1 = e^{-t}\binom{\cos\sqrt2 t}{\sqrt2\sin\sqrt2 t},\qquad \mathbf{x}_2 = e^{-t}\binom{\sin\sqrt2 t}{-\sqrt2\cos\sqrt2 t}$$</p>
+          <p>(b) $W[\mathbf{x}_1, \mathbf{x}_2] = e^{-2t}\left(-\sqrt2\cos^2\sqrt2 t - \sqrt2\sin^2\sqrt2 t\right) = -\sqrt2\, e^{-2t} \neq 0$ → linearly independent。</p>
+          <p class="note">顺带分类：$\alpha = -1 &lt; 0$ → <strong>stable spiral</strong>。这正是 midterm 没考过的情形，final 高危。</p>
+        </details>
+      </div>
+
+      <h3 id="p3-3">题 3.3 — Repeated eigenvalue（complete 情形，3×3）<span class="note">[PP Ch7 #2]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $\mathbf{y}' = A\mathbf{y}$，$A = \begin{pmatrix} -2 &amp; 1 &amp; -2 \\ 1 &amp; -2 &amp; 2 \\ 3 &amp; -3 &amp; 5 \end{pmatrix}$，已知 $\lambda = -1$（重数 2）、$\lambda = 3$（重数 1）。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>对 $\lambda = -1$ 行约化 $(A + I)$——若只剩一个约束方程，eigenspace 是二维的（complete），不需要 generalized eigenvector。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$\lambda = 3$：行约化 $(A - 3I)$ 得 $\mathbf{v} = (-1, 1, 3)^T$。</p>
+          <p>$\lambda = -1$：$(A + I)$ 三行都是 $y_1 - y_2 + 2y_3 = 0$ 的倍数 → 两个自由变量，eigenspace 二维：$\mathbf{v}_1 = (1,1,0)^T$，$\mathbf{v}_2 = (-2,0,1)^T$。</p>
+          <p>$$\mathbf{y}(t) = c_1 e^{3t}\begin{pmatrix}-1\\1\\3\end{pmatrix} + c_2 e^{-t}\begin{pmatrix}1\\1\\0\end{pmatrix} + c_3 e^{-t}\begin{pmatrix}-2\\0\\1\end{pmatrix}$$</p>
+          <p class="note">⚠️ 对比 <strong>defective</strong> 情形（如 $A = \begin{pmatrix}2&amp;1\\0&amp;2\end{pmatrix}$，W5 #3(b)：$\lambda = 2$ 重数 2 但 eigenspace 只有一维 $\mathrm{span}\{(1,0)^T\}$）→ 第二解要用 $\mathbf{x}_2 = te^{\lambda t}\boldsymbol{\xi} + e^{\lambda t}\boldsymbol{\eta}$，$(A-\lambda I)\boldsymbol{\eta} = \boldsymbol{\xi}$。官方练习题没有 defective 计算题，这是<strong>盲区</strong>——把公式背牢。</p>
+        </details>
+      </div>
+
+      <h3 id="p3-4">题 3.4 — Wronskian ≡ 0 但 independent（理论题）<span class="note">[MT2 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$\mathbf{v}_1(t) = \begin{pmatrix} te^t \\ t^2 \end{pmatrix}$，$\mathbf{v}_2(t) = \begin{pmatrix} |t|e^t \\ t|t| \end{pmatrix}$。(a) 在 $(-1,1)$ 上是否 linearly independent？(b) 在 $(0,1)$ 上呢？(c) 在哪个区间上它们能构成某个 $\mathbf{x}' = A(t)\mathbf{x}$（$A$ continuous）的 fundamental set？</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>分 $t &gt; 0$ / $t &lt; 0$ 讨论 $\mathbf{v}_2$ 与 $\mathbf{v}_1$ 的关系；(c) 用 Abel's theorem 排除。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) <strong>Independent。</strong>$W \equiv 0$（两列成比例），但这不能推出 dependent——回定义：$t&gt;0$ 时 $\mathbf{v}_2 = \mathbf{v}_1$，要求 $c_1 + c_2 = 0$；$t&lt;0$ 时 $\mathbf{v}_2 = -\mathbf{v}_1$，要求 $c_1 - c_2 = 0$。联立 → $c_1 = c_2 = 0$。</p>
+          <p>(b) <strong>Dependent</strong>：$(0,1)$ 上 $|t| = t$，$\mathbf{v}_2 \equiv \mathbf{v}_1$。</p>
+          <p>(c) <strong>都不行。</strong>$(0,1)$：dependent，排除。$(-1,1)$：虽然 independent，但若它们是某连续系统的解，Abel's theorem 要求 fundamental set 的 Wronskian <strong>处处非零</strong>，而 $W \equiv 0$，矛盾。</p>
+          <p class="note">这题考的就是两个定理缝隙："$W = 0 \not\Rightarrow$ dependent"（除非是系统的解）+ "fundamental set 的 $W$ 不可能恒零"。MT2 整卷最理论的一题，final 完全可能换个皮再来。</p>
+        </details>
+      </div>
+
+      <h3 id="p3-5">题 3.5 — 高阶 ODE 化一阶系统 <span class="note">[PP Ch7 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>把 $y''' + 4y'' - 3y' = 0$ 写成一阶系统 $\mathbf{x}' = A\mathbf{x}$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>令 $x_1 = y$，$x_2 = y'$，$x_3 = y''$；最后一行从原方程解出 $y'''$（注意移项变号）。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$x_1' = x_2$，$x_2' = x_3$，$x_3' = y''' = 3y' - 4y'' = 3x_2 - 4x_3$：</p>
+          <p>$$\mathbf{x}' = \begin{pmatrix} 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ 0 &amp; 3 &amp; -4 \end{pmatrix}\mathbf{x}$$</p>
+          <p class="note">送分题，但移项符号错率惊人。Companion matrix 的最后一行 = 原方程系数取负、按低阶到高阶排。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="laplace">四、Laplace Transforms（Ch 6）</h2>
+      <p class="cram-meta">§6.1–6.6 · → <a href="07-laplace-basics.html">基础详解</a> · <a href="08-laplace-discontinuous.html">step/delta/convolution 详解</a> · 考试发 18 条公式表，convolution <strong>不在表上</strong></p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法速查 — Laplace 解 IVP 流水线</p>
+        <ol>
+          <li><strong>改写 forcing：</strong>piecewise → step functions，口诀"<strong>加新减旧</strong>"：$f = f_1 + u(t-a)(f_2 - f_1) + u(t-b)(f_3 - f_2) + \cdots$</li>
+          <li><strong>取 transform：</strong>$\mathcal{L}\{y''\} = s^2Y - sy(0) - y'(0)$，$\mathcal{L}\{y'\} = sY - y(0)$。⚠️ 初值别丢。</li>
+          <li><strong>解出 $Y(s)$，拆分：</strong>partial fractions；分母不可因式分解 → <strong>complete the square</strong> $(s+\tfrac{b}{2})^2 + k^2$，分子配成 $(s + \tfrac{b}{2})$ 和 $k$ 的组合。</li>
+          <li><strong>逆变换：</strong>$e^{-as}F(s)$ 项 → $f(t-a)\,u(t-a)$（<strong>$f$ 里每个 $t$ 都换成 $t-a$</strong>）。</li>
+        </ol>
+        <p><strong>平移 trick（最大易错点）：</strong>算 $\mathcal{L}\{g(t)\,u(t-a)\}$ 时必须把 $g$ 改写成 $t-a$ 的函数：$t = (t-2) + 2$；$\;e^{3t} = e^{3a}\,e^{3(t-a)}$；或直接用表上的 $\mathcal{L}\{g(t)u(t-a)\} = e^{-as}\mathcal{L}\{g(t+a)\}$。</p>
+        <p><strong>Delta：</strong>$\mathcal{L}\{\delta(t - t_0)\} = e^{-st_0}$ → 解里出现 $u(t-t_0)\,h(t-t_0)$ 形式的"冲击响应"。<strong>Convolution（必背）：</strong>$\mathcal{L}\{f * g\} = F(s)G(s)$，$(f*g)(t) = \int_0^t f(t-\tau)g(\tau)\,d\tau$；解的结构 $Y = H(s)G(s) + \Phi(s) \Rightarrow y = (h*g) + \phi$。forcing 积不出来时，convolution integral 本身就是合法的最终答案。</p>
+        <p><strong>概念（T/F）：</strong>exponential order = 增长不超过某 $Me^{at}$（$e^{t^2}$ <strong>不是</strong>；有界函数如 $\sin(e^{t^8})$ <strong>是</strong>）；piecewise continuous = 有限段 + 每段端点<strong>单侧极限有限</strong>（$\tfrac{1}{t}$ 型发散 → 不是；用 Taylor/L'Hospital 判 $t\to 0$ 行为）。</p>
+      </div>
+
+      <h3 id="p4-1">题 4.1 — Step function IVP 全流程 <span class="note">[MT2 #4 = PP Ch6 #4]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $y'' + 3y' + 4y = u(t-1)$，$y(0) = 0$，$y'(0) = 1$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$s^2 + 3s + 4$ 不可因式分解 → complete the square 出 $\left(s+\tfrac32\right)^2 + \tfrac74$。$e^{-s}$ 项做 partial fractions 后整体平移。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>Transform：$(s^2 + 3s + 4)Y - 1 = \dfrac{e^{-s}}{s}$，故</p>
+          <p>$$Y = \frac{1}{s^2+3s+4} + \frac{e^{-s}}{s(s^2+3s+4)},\qquad s^2+3s+4 = \left(s+\tfrac32\right)^2 + \tfrac74$$</p>
+          <p>第一项：$\dfrac{1}{(s+\frac32)^2 + \frac74} \to \dfrac{2}{\sqrt7}e^{-\frac32 t}\sin\!\big(\tfrac{\sqrt7}{2}t\big)$。</p>
+          <p>第二项 partial fractions：$\dfrac{1}{s(s^2+3s+4)} = \dfrac{1}{4s} - \dfrac{1}{4}\cdot\dfrac{s+3}{s^2+3s+4}$，配方拆分后定义</p>
+          <p>$$h(t) = \tfrac14 - \tfrac14 e^{-\frac32 t}\cos\!\big(\tfrac{\sqrt7}{2}t\big) - \tfrac{3}{4\sqrt7}e^{-\frac32 t}\sin\!\big(\tfrac{\sqrt7}{2}t\big)$$</p>
+          <p>则 $e^{-s}$ 项的逆变换为 $h(t-1)\,u(t-1)$。<strong>答案：</strong></p>
+          <p>$$y(t) = \tfrac{2}{\sqrt7}e^{-\frac32 t}\sin\!\big(\tfrac{\sqrt7}{2}t\big) + u(t-1)\,h(t-1)$$</p>
+          <p class="note">⚠️ 数字丑（$\sqrt7/2$）是<strong>故意的</strong>，不代表做错。Shift 时 $h$ 里每个 $t$ 都要换成 $t-1$；初值 $y'(0)=1$ 产生的 $-1$ 别丢。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-2">题 4.2 — "important trick"：$t\cdot u(t-2)$ 的改写 <span class="note">[PP Ch6 #5]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $y'' - 2y' + y = f(t)$，$y(0)=0$，$y'(0)=1$，其中 $f(t) = t$（$0 &lt; t &lt; 2$），$f(t) = -1$（$t \ge 2$）。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$f = t + (-t-1)\,u(t-2)$。算 $\mathcal{L}\{(-t-1)u(t-2)\}$ 前必须改写 $-t-1 = -(t-2) - 3$。分母是 $(s-1)^2$（repeated root）。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>改写（官方解答标注 "important trick!"）：$-t - 1 = -[(t-2) + 2] - 1 = -(t-2) - 3$，所以</p>
+          <p>$$\mathcal{L}\{f\} = \frac{1}{s^2} - e^{-2s}\left(\frac{1}{s^2} + \frac{3}{s}\right)$$</p>
+          <p>Transform 整理：$(s-1)^2 Y = 1 + \frac{1}{s^2} - e^{-2s}\left(\frac{1}{s^2} + \frac{3}{s}\right)$。两个关键 partial fractions（值得背）：</p>
+          <p>$$\frac{1}{s(s-1)^2} = \frac{1}{s} - \frac{1}{s-1} + \frac{1}{(s-1)^2},\qquad \frac{1}{s^2(s-1)^2} = \frac{2}{s} + \frac{1}{s^2} - \frac{2}{s-1} + \frac{1}{(s-1)^2}$$</p>
+          <p>逆变换并对 $e^{-2s}$ 项整体平移，<strong>答案：</strong></p>
+          <p>$$y(t) = 2 + t - 2e^t + 2te^t - u(t-2)\left[t + 3 - 5e^{t-2} + 4(t-2)e^{t-2}\right]$$</p>
+          <p class="note">同型易错（W8 #1）：遇到 $e^{3t}u(t-1)$ 要写成 $e^{3}\,e^{3(t-1)}u(t-1)$——指数的平移最容易漏系数 $e^{3a}$。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-3">题 4.3 — Delta function IVP <span class="note">[PP Ch6 #6]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $y'' + 2y' + 2y = \delta(t - \pi)$，$y(0) = 1$，$y'(0) = 1$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$\mathcal{L}\{\delta(t-\pi)\} = e^{-\pi s}$；配方 $(s+1)^2 + 1$；分子 $s + 3 = (s+1) + 2$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$(s^2 + 2s + 2)Y - s - 3 = e^{-\pi s}$：</p>
+          <p>$$Y = \frac{(s+1) + 2}{(s+1)^2 + 1} + \frac{e^{-\pi s}}{(s+1)^2+1}$$</p>
+          <p><strong>答案：</strong>$y(t) = e^{-t}\cos t + 2e^{-t}\sin t + u(t-\pi)\,e^{-(t-\pi)}\sin(t - \pi)$。</p>
+          <p class="note">双 delta 版本（W9 #1）：$y''+2y'+2y = \delta(t-1) - \delta(t-3)$，$y(0)=0,y'(0)=1$ → $y = e^{-t}\sin t + u(t-1)e^{-(t-1)}\sin(t-1) - u(t-3)e^{-(t-3)}\sin(t-3)$。每个 impulse 就是叠加一份平移的冲击响应。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-4">题 4.4 — Impulse train：何时完全抵消 <span class="note">[PP Ch6 #8]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>(a) $y'' + y = \sum_{k=1}^{20}\delta(t - k\pi)$，零初值。描述 $t &gt; 20\pi$ 后的行为。(b) 改成 damped：$y'' + 2y' + 2y = \sum_{k=1}^{20}\delta(t-k\pi)$，描述 $t\to\infty$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>(a) 每个 impulse 贡献 $u(t-k\pi)\sin(t-k\pi)$，而 $\sin(t - k\pi) = (-1)^k \sin t$——相邻贡献两两相消。(b) damping 给每项 $e^{-(t-k\pi)}$ 因子。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) $y = \sum_{k=1}^{20} u(t-k\pi)\sin(t-k\pi) = \sin t \sum_{k=1}^{20}(-1)^k u(t-k\pi)$。当 $t &gt; 20\pi$ 时所有 step 都开启，$\sum_{k=1}^{20}(-1)^k = 0$ → <strong>$y \equiv 0$，运动完全停止</strong>（20 为偶数，奇偶对相消）。之前每个区间内交替为 $0$ 或 $-\sin t$ 的"半波"。</p>
+          <p>(b) $y = e^{-t}\sin t\sum_{k=1}^{20}(-1)^k e^{k\pi}u(t-k\pi)$；bound：$|y| \le e^{-t}\cdot 20\,e^{20\pi} \to 0$ → <strong>$\lim_{t\to\infty}y = 0$</strong>（damped 系统冲击后总会衰减，不会精确归零但极限为零）。</p>
+          <p class="note">无 damping + 不相消的版本（W8 #2：$\sum (-1)^k k\,\delta(t-\frac{k\pi}{3})$ 加在 $y''+9y=0$ 上）→ 冲击同相叠加，结局是<strong>永久振动</strong>（amplitude $\sqrt{26}$）。"describe the behavior" 这一问 final 很爱加。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-5">题 4.5 — Convolution theorem 解 IVP <span class="note">[PP Ch6 #9]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>用 convolution theorem（题目指定必须用）解 $y'' + y' = 2t$，$y(0) = y'(0) = 0$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$Y = \dfrac{2}{s^3}\cdot\dfrac{1}{s+1}$，认出 $h(t) = t^2$、$g(t) = e^{-t}$，卷起来。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$(s^2 + s)Y = \dfrac{2}{s^3} \Rightarrow Y = \dfrac{2}{s^3}\cdot\dfrac{1}{s+1} = \mathcal{L}\{t^2\}\cdot\mathcal{L}\{e^{-t}\}$。由 convolution theorem：</p>
+          <p>$$y(t) = (t^2 * e^{-t}) = \int_0^t e^{-(t-\tau)}\tau^2\,d\tau = e^{-t}\int_0^t \tau^2 e^{\tau}d\tau$$</p>
+          <p>两次分部积分：$\int_0^t \tau^2 e^\tau d\tau = (t^2 - 2t + 2)e^t - 2$。<strong>答案：</strong></p>
+          <p>$$y(t) = t^2 - 2t + 2 - 2e^{-t}$$</p>
+          <p class="note">Convolution 公式<strong>不在考试发的表上</strong>，6.6 又从未考过——这题是 final 最该押的题型之一。Forcing 积不出来时（W9 #2：$y''+4y = e^{-t^2}$）直接把答案写成 $y = \cos 2t + \tfrac12\sin 2t + \tfrac12\int_0^t \sin(2(t-\tau))\,e^{-\tau^2}d\tau$——保留 convolution integral 就是最终答案。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-6">题 4.6 — Laplace 视角的共振 <span class="note">[W7 #1(c)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>解 $y'' + 4y = \sin 2t$，$y(0) = 0$，$y'(0) = 1$。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Forcing 频率撞上 natural frequency → $Y$ 里出现 $\dfrac{1}{(s^2+4)^2}$。需要公式 $\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$(s^2+4)Y - 1 = \dfrac{2}{s^2+4} \Rightarrow Y = \dfrac{1}{s^2+4} + \dfrac{2}{(s^2+4)^2}$。</p>
+          <p>第一项 → $\tfrac12\sin 2t$；第二项用上述公式（$a=2$）→ $2\cdot\tfrac{1}{16}(\sin 2t - 2t\cos 2t)$。<strong>答案：</strong></p>
+          <p>$$y = \tfrac58\sin 2t - \tfrac14\, t\cos 2t$$</p>
+          <p class="note">$t\cos 2t$ 项无界增长 = <strong>resonance</strong>。同一现象的 undetermined coefficients 视角（W4 #3(3)：$y''-2y'+y = te^t$，double root 共振 → guess 乘 $t^2$，答案带 $\tfrac16 t^3 e^t$）。两种方法认得同一个现象，T/F 和大题都可能考。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-7">题 4.7 — 概念快打：exponential order 与 piecewise continuity <span class="note">[PP Ch6 #2, #7 / MT2 #1(b)(c)]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>(a) 下列哪些是 exponential order：$\sin(t^3)$，$t^8$，$e^{8t}$，$e^{t^8}$，$\cos t$？<br>
+        (b) $f(t) = \sin(1/t)$（$0 &lt; t \le 1$）是否 piecewise continuous？<br>
+        (c) $r(t) = \dfrac{e^{2t} - 1 - 2t}{t^2}$（$t \neq 0$，$r(0) = 2$）在 $[0,2]$ 上是否 continuous？</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>(a) 只有增长快于一切 $e^{at}$ 的才出局。(b) $t\to 0^+$ 极限存在吗？(c) L'Hospital 或 Taylor 展开。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) $\sin(t^3), t^8, e^{8t}, \cos t$ 都是（有界的、多项式的、单指数的全 OK）；<strong>$e^{t^8}$ 不是</strong>。注意 $\sin(e^{t^8})$ 这种"里面爆炸但整体有界"的函数<strong>是</strong> exponential order（MT2 T/F 的陷阱）。</p>
+          <p>(b) <strong>不是</strong> piecewise continuous：$t\to 0^+$ 时 $\sin(1/t)$ 振荡不收敛，单侧极限不存在。（它在 $(0,1]$ 上处处 continuous——"continuous 但不 piecewise continuous"是合法组合！）</p>
+          <p>(c) <strong>Continuous。</strong>Taylor：$e^{2t} = 1 + 2t + 2t^2 + O(t^3) \Rightarrow r(t) \to 2 = r(0)$。✓</p>
+          <p class="note">MT2 T/F (c) 同款：$\frac{1-e^t}{t^2} \sim \frac{-t}{t^2} \to -\infty$（$t\to0^+$）→ 单侧极限无限 → 不 piecewise continuous。判断工具就是 Taylor 展开前两项。</p>
+        </details>
+      </div>
+
+      <h3 id="p4-8">题 4.8 — Piecewise → step functions 改写 <span class="note">[PP Ch6 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>把 $f(t) = \begin{cases} e^{t^8} &amp; t &lt; 2 \\ 4 - \cos t &amp; 2 \le t &lt; 3 \\ 6 &amp; 3 \le t &lt; 5 \\ \ln t + e^t &amp; t \ge 5 \end{cases}$ 写成 step functions 的组合。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>口诀"加新减旧"：每过一个断点，加上 $u(t-a)\times(\text{新段} - \text{旧段})$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>$$f(t) = e^{t^8} + \big(4 - \cos t - e^{t^8}\big)u(t-2) + \big(2 + \cos t\big)u(t-3) + \big(\ln t + e^t - 6\big)u(t-5)$$</p>
+          <p class="note">中间段差值：$6 - (4 - \cos t) = 2 + \cos t$。机械题，但它是每道 Laplace 大题的第一步，写错全盘皆输。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="series">五、Series Solutions（Ch 5）— 从未考过，必出</h2>
+      <p class="cram-meta">§5.1–5.3 · → <a href="09-series-solutions.html">详细讲解</a> · 公式表附 $e^x, \sin x, \cos x$ 的 series</p>
+
+      <div class="box cram-method">
+        <p class="box-title">🎛️ 方法速查 — power series 解法四步 + radius 判定</p>
+        <ol>
+          <li><strong>判 point 类型：</strong>化 standard form $y'' + p(x)y' + q(x)y = 0$。$p, q$ 在 $x_0$ 处 analytic → <strong>ordinary point</strong>（方法适用）；否则 singular point（Ch 5 范围内方法失效，见 Euler equation）。⚠️ 注意能约分的因子：$(x^3+9x)y''$ 化标准形后 $x$ 约掉，$x = 0$ <strong>不是</strong> singular point。</li>
+          <li><strong>代入：</strong>$y = \sum_{n=0}^\infty a_n (x - x_0)^n$，求导后<strong>shift index</strong> 使各和式的幂次对齐。</li>
+          <li><strong>Recurrence relation：</strong>逐次幂收集系数=0。$a_0, a_1$ 自由（对应 $y(x_0), y'(x_0)$），偶链奇链分开推。两个解的 independence 用 $W(x_0) = \det\begin{pmatrix}1&amp;0\\0&amp;1\end{pmatrix} = 1 \neq 0$。</li>
+          <li><strong>Radius of convergence 下界：</strong>$R \ge$ $x_0$ 到<strong>最近 singular point</strong> 的距离——<strong>复数根也算</strong>，距离按 $\mathbb{C}$ 上算：$|a + bi - x_0| = \sqrt{(a - x_0)^2 + b^2}$。</li>
+        </ol>
+        <p><strong>非多项式系数</strong>（如 $\cos x$）：把系数也展开成 series，乘开后逐次幂收集。<strong>Euler equation</strong> $x^2y'' + \alpha xy' + \beta y = 0$：$x = 0$ 是 singular point，power series 失效；解形如 $x^r$（或重根时 $x^r, x^r\ln|x|$，复根时 $x^\alpha\cos(\beta\ln x)$ 等）。</p>
+      </div>
+
+      <h3 id="p5-1">题 5.1 — Recurrence + 系数通项公式 <span class="note">[PP Ch5 #1]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>求 $2y'' + xy' + y = 0$ 关于 $x = 0$ 的 general solution，给出系数的通项公式。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>Recurrence 会出来 $a_{n+2} = -\dfrac{a_n}{2(n+2)}$，偶链奇链分别累乘找 pattern。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>代入 $y = \sum a_n x^n$：$2\sum_{n\ge2} n(n-1)a_nx^{n-2} + \sum_{n\ge1} na_nx^n + \sum_{n\ge0} a_nx^n = 0$。Shift 第一个和（$n \to n+2$），合并：</p>
+          <p>$$2(n+2)(n+1)a_{n+2} + (n+1)a_n = 0 \quad\Rightarrow\quad a_{n+2} = -\frac{a_n}{2(n+2)}$$</p>
+          <p>偶链：$a_{2n} = \dfrac{(-1)^n a_0}{2^n\cdot 2\cdot4\cdots(2n)}\cdot 2^n$ 整理为 $a_{2n} = \dfrac{(-1)^n a_0}{4^n n!}$ 形式的累乘（按 recurrence 直接累乘：$a_{2n} = \frac{(-1)^n}{2^n (2\cdot 4\cdots 2n)}a_0 = \frac{(-1)^n a_0}{4^n n!}$）。奇链：$a_{2n+1} = \dfrac{(-1)^n a_1}{2^n\,[3\cdot5\cdots(2n+1)]}$。</p>
+          <p><strong>答案：</strong></p>
+          <p>$$y = a_0\sum_{n=0}^\infty \frac{(-1)^n}{4^n\,n!}x^{2n} + a_1\sum_{n=0}^\infty \frac{(-1)^n}{2^n\,[3\cdot5\cdots(2n+1)]}x^{2n+1}$$</p>
+          <p class="note">考试更可能只要"前 N 个非零项"——那就推 recurrence 后直接算 $a_2, a_3, a_4, \ldots$，不用找通项。但 shift index 的功夫是一样的。</p>
+        </details>
+      </div>
+
+      <h3 id="p5-2">题 5.2 — Radius：复数 singular points <span class="note">[PP Ch5 #2]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$(x^3 + 9x)y'' + xy' - 2x^2 y = 0$，关于 $x_0 = 1$ 的 series solution 的 radius of convergence 下界是多少？</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>化 standard form 时整体约掉一个 $x$。剩下的 singular points 在哪？（不在实轴上。）</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>除以 $x(x^2+9)$：$p(x) = \dfrac{1}{x^2+9}$，$q(x) = \dfrac{-2x}{x^2+9}$。<strong>$x = 0$ 约分后不是 singular point</strong>（易错！）；singular points 只有 $x = \pm 3i$。</p>
+          <p>$$R \ge |{\pm}3i - 1| = \sqrt{1^2 + 3^2} = \boxed{\sqrt{10}}$$</p>
+          <p class="note">同型（W10 #1(b)）：$(1 + x + x^2)y'' - 3y = 0$，$x_0 = 1$ → 复根 $x = \frac{-1\pm\sqrt3 i}{2}$，距离 $\sqrt{(\frac32)^2 + (\frac{\sqrt3}{2})^2} = \sqrt3$。口诀：<strong>先约分，再找根（含复根），距离在复平面上量</strong>。</p>
+        </details>
+      </div>
+
+      <h3 id="p5-3">题 5.3 — 非零中心展开 <span class="note">[W10 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$xy'' + y' + xy = 0$，$y(1) = 1$，$y'(1) = 2$。求关于 $x_0 = 1$ 的 series solution 的前五个非零项。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>换元 $z = x - 1$，把系数 $x = 1 + z$ 重写，再按 $z$ 的幂收集。$a_0 = 1$，$a_1 = 2$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>令 $z = x-1$：$(1+z)y'' + y' + (1+z)y = 0$，$y = \sum a_n z^n$。收集低次幂：</p>
+          <p>$z^0$：$2a_2 + a_1 + a_0 = 0 \Rightarrow a_2 = -\tfrac{3}{2}$；</p>
+          <p>一般项：$(n+2)(n+1)a_{n+2} + (n+1)^2 a_{n+1} + a_n + a_{n-1} = 0$，依次解出 $a_3 = \tfrac12$，$a_4 = -\tfrac{5}{12}$。</p>
+          <p><strong>答案：</strong>$y = 1 + 2(x-1) - \tfrac{3}{2}(x-1)^2 + \tfrac{1}{2}(x-1)^3 - \tfrac{5}{12}(x-1)^4 + \cdots$</p>
+          <p class="note">非零中心就是多一步换元，之后流程完全一样。IVP 给的初值直接就是 $a_0 = y(x_0)$，$a_1 = y'(x_0)$。</p>
+        </details>
+      </div>
+
+      <h3 id="p5-4">题 5.4 — Euler equation：power series 为何失效 <span class="note">[W10 #4]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>(a) 试着对 $x^2y'' - 3xy' + 4y = 0$ 在 $x_0 = 0$ 用 power series 方法，会发生什么？(b) 求它的 general solution。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>(a) 代入级数后每项系数变成 $(n-2)^2 a_n = 0$。(b) Euler equation：guess $y = x^r$，或换元 $t = \ln x$。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>(a) 代入得 $\sum [n(n-1) - 3n + 4]a_n x^n = \sum (n-2)^2 a_n x^n = 0$ → 除 $a_2$ 外全部为零，只能得到<strong>一个</strong>解 $y = a_2 x^2$。原因：$x = 0$ 是 <strong>singular point</strong>（standard form 的 $p = -3/x$，$q = 4/x^2$ 在 0 处不 analytic），ordinary-point 方法不保证两个解。</p>
+          <p>(b) Guess $y = x^r$：$r(r-1) - 3r + 4 = (r-2)^2 = 0$，重根 $r = 2$。重根时第二解带 $\ln$：</p>
+          <p>$$y = C_1 x^2 + C_2\, x^2 \ln|x|\qquad (x \neq 0)$$</p>
+          <p class="note">这是"概念+计算"复合题：先解释失效原因（singular point），再给出 Euler 解法。Chebyshev 方程 $(1-x^2)y'' - xy' + k^2y = 0$（W10 #2）是另一个概念素材：recurrence $a_{n+2} = \frac{n^2-k^2}{(n+2)(n+1)}a_n$ 在 $n = k$ 处<strong>截断</strong> → 多项式解。</p>
+        </details>
+      </div>
+
+      <h3 id="p5-5">题 5.5 — 非多项式系数：$(\cos x)y$ <span class="note">[PP Ch5 #3]</span></h3>
+      <div class="box example">
+        <p class="box-title">📝 Problem</p>
+        <p>$y'' + xy' + (\cos x)y = 0$。(a) 求两个 linearly independent series solutions 的前三个非零项；(b) 说明它们 linearly independent；(c) 用 $y(0) = 2$，$y'(0) = -3$ 求 IVP 解的前五个非零项。</p>
+        <details class="solution">
+          <summary>💡 提示</summary>
+          <p>$\cos x = 1 - \frac{x^2}{2} + \frac{x^4}{24} - \cdots$ 乘进 $\sum a_n x^n$，按 $x^0, x^1, x^2, \ldots$ 逐次收集（没有干净的 recurrence，就是体力活）。</p>
+        </details>
+        <details class="solution">
+          <summary>✍️ 完整解答</summary>
+          <p>逐次幂收集得 $a_2 = -\tfrac{a_0}{2}$，$a_3 = -\tfrac{a_1}{3}$，$a_4 = \tfrac{a_0}{6}$（注意 $\cos x$ 的 $-x^2/2$ 项参与），$a_5 = \tfrac{11a_1}{120}$。</p>
+          <p>(a) 取 $(a_0, a_1) = (1, 0)$：$y_1 = 1 - \tfrac{x^2}{2} + \tfrac{x^4}{6} - \cdots$；取 $(0,1)$：$y_2 = x - \tfrac{x^3}{3} + \tfrac{11}{120}x^5 - \cdots$。</p>
+          <p>(b) $W[y_1, y_2](0) = \det\begin{pmatrix}1 &amp; 0\\ 0 &amp; 1\end{pmatrix} = 1 \neq 0$ → independent。</p>
+          <p>(c) $a_0 = 2$，$a_1 = -3$：$y = 2 - 3x - x^2 + x^3 + \tfrac{x^4}{3} + \cdots$（第五个非零项按链条继续）。</p>
+          <p class="note">本套练习题里最重的 series 题。考场策略：表上有 $\cos x$ 的展开，照抄；只展开到题目要求的次数，多展开是白送时间。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="tf-traps">六、T/F 陷阱总清单 — 考前 10 分钟过一遍</h2>
+      <p class="cram-meta">来源：MT1/MT2 Problem 1 + practice problems 概念题 · Final 第一题大概率还是 4 个 T/F</p>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 高频陷阱速查表</p>
+        <table class="data-table">
+          <thead><tr><th>命题</th><th>答案</th><th>一句话理由</th></tr></thead>
+          <tbody>
+            <tr><td>$y' = y^{4/3},\ y(0)=0$ 有 unique solution</td><td><strong>T</strong></td><td>$f_y = \tfrac43 y^{1/3}$ 在 $y=0$ <strong>continuous</strong>（指数 $&gt;1$ 的幂没事；$y^{1/3}, y^{3/4}$ 型才出事）</td></tr>
+            <tr><td>$y' = 4y^{3/4},\ y(0)=0$ 解唯一</td><td><strong>F</strong></td><td>$f_y = 3y^{-1/4}$ 在 $y=0$ 爆炸；$y \equiv 0$ 和 $y = t^4$ 都是解</td></tr>
+            <tr><td>Linear IVP 的 interval 要解方程才知道</td><td><strong>F</strong></td><td>化 standard form 读 $p, g$ 不连续点即可；<strong>nonlinear 才要解出来</strong></td></tr>
+            <tr><td>$y'' + \sin(t+y) = \sin t$ 是 linear</td><td><strong>F</strong></td><td>$y$ 在 $\sin$ 里面</td></tr>
+            <tr><td>两个 $L[y] = g$（$g\neq0$）的解之和还是解</td><td><strong>F</strong></td><td>$L[y_1+y_2] = 2g$；但<strong>差</strong>是 homogeneous 解（T）</td></tr>
+            <tr><td>$L[y_{p_1}] = 0,\ L[y_{p_2}] = g \Rightarrow L[2y_{p_1} + 3y_{p_2}] = 3g$</td><td><strong>T</strong></td><td>Linearity，homogeneous 部分贡献 0</td></tr>
+            <tr><td>$W[y_1,y_2] \equiv 0 \Rightarrow$ linearly dependent</td><td><strong>F</strong></td><td>只有当它们是<strong>同一系统/方程的解</strong>时才成立（$|t|$ 构造反例）</td></tr>
+            <tr><td>某系统两个解的 $W \equiv 0 \Rightarrow$ dependent</td><td><strong>T</strong></td><td>是解时 Wronskian 判据有效（Abel）</td></tr>
+            <tr><td>Fundamental set 的 $W$ 可以在个别点为零</td><td><strong>F</strong></td><td>Abel：$W = Ce^{-\int p}$ 要么恒零要么处处非零</td></tr>
+            <tr><td>$2\cos 2t$ 与 $1 - 2\sin^2 t$ 构成 fundamental set</td><td><strong>F</strong></td><td>倍角恒等式：$1 - 2\sin^2 t = \cos 2t$，成比例，$W \equiv 0$</td></tr>
+            <tr><td>$e^{t^2}$ 是 exponential order</td><td><strong>F</strong></td><td>快过一切 $Me^{at}$；但 $\sin(e^{t^8})$ 有界 → <strong>是</strong></td></tr>
+            <tr><td>$\sin(1/t)$ 在 $(0,1]$ 上 piecewise continuous</td><td><strong>F</strong></td><td>$t\to0^+$ 振荡，单侧极限不存在（虽然处处 continuous！）</td></tr>
+            <tr><td>$\frac{1-e^t}{t^2}$（$t&gt;0$ 段）piecewise continuous</td><td><strong>F</strong></td><td>Taylor：$\sim -1/t \to -\infty$，单侧极限无限</td></tr>
+            <tr><td>$\cos y = 0$ 在 $(1,2)$ 内有解 → $y' = \frac{\cos y}{y^4}$ 有 constant solution</td><td><strong>T</strong></td><td>$y = \pi/2 \approx 1.57$ 是 equilibrium</td></tr>
+            <tr><td>Saddle point 可以是 stable 的</td><td><strong>F</strong></td><td>实异号 eigenvalues → 永远 unstable</td></tr>
+            <tr><td>$R \ge$ 距最近<strong>实</strong> singular point 的距离</td><td><strong>F</strong></td><td>复数 singular points 也算，距离在 $\mathbb{C}$ 上量</td></tr>
+          </tbody>
+        </table>
+        <p class="note">做 T/F 的纪律：<strong>动笔验证，不凭印象</strong>——MT 的 T/F 全是冲着"条件反射答错"设计的。验证 implicit solution 就老实做 implicit differentiation；判断 E&amp;U 就老实算 $f_y$。</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2 id="final-checklist">七、考前最后清单</h2>
+
+      <div class="box cram-must">
+        <p class="box-title">📌 必背 — 表上没有的公式（默写检查）</p>
+        <ol>
+          <li>Convolution：$\mathcal{L}\{f*g\} = F(s)G(s)$，$(f*g)(t) = \int_0^t f(t-\tau)g(\tau)\,d\tau$</li>
+          <li>Integrating factor：$\mu = e^{\int p\,dt}$；exact 判据 $M_y = N_x$；非 exact 时 $\mu(x) = e^{\int\frac{M_y - N_x}{N}dx}$</li>
+          <li>Characteristic equation 三情形（实异/重/复）的 general solution</li>
+          <li>Undetermined coefficients form 规则 + duplication（乘 $t^s$）</li>
+          <li>Variation of parameters：$u_1' = -\frac{y_2 g}{W}$，$u_2' = \frac{y_1 g}{W}$（standard form 的 $g$！）</li>
+          <li>Abel：$W = Ce^{-\int p\,dt}$</li>
+          <li>Generalized eigenvector 解：$\mathbf{x}_2 = te^{\lambda t}\boldsymbol{\xi} + e^{\lambda t}\boldsymbol{\eta}$，$(A-\lambda I)\boldsymbol{\eta} = \boldsymbol{\xi}$</li>
+          <li>Phase plane 分类表（eigenvalues → node/saddle/spiral/center + 稳定性）</li>
+          <li>共振逆变换：$\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$</li>
+          <li>Series：$R \ge$ 到最近 singular point（含复数）的距离；Euler equation $x^r$ 解法</li>
+        </ol>
+      </div>
+
+      <div class="box cram-summary">
+        <p class="box-title">✅ 一句话</p>
+        <p>3 小时 7–9 题：先扫 T/F（动笔验证），把 Ch 5 series 和 convolution 的分稳稳拿住（从未考过 = 必出 = 没有历史题可抄，但流程就是本页 题5.1–5.5 和 题4.5），Laplace 大题按流水线走、数字丑不慌，phase plane 记得画箭头。祝顺利。🎯</p>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
