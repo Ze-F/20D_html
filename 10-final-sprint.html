@@ -382,6 +382,10 @@
           <p>展开取 real / imaginary parts：</p>
           <p>$$\mathbf{x}_1 = e^{-t}\binom{\cos\sqrt2 t}{\sqrt2\sin\sqrt2 t},\qquad \mathbf{x}_2 = e^{-t}\binom{\sin\sqrt2 t}{-\sqrt2\cos\sqrt2 t}$$</p>
           <p>(b) $W[\mathbf{x}_1, \mathbf{x}_2] = e^{-2t}\left(-\sqrt2\cos^2\sqrt2 t - \sqrt2\sin^2\sqrt2 t\right) = -\sqrt2\, e^{-2t} \neq 0$ → linearly independent。</p>
+          <div class="plot-container">
+            <svg id="pp-spiral-svg"></svg>
+            <p class="plot-caption">$\alpha = -1 &lt; 0$ → <strong>stable spiral</strong>（asymptotically stable），轨迹向内收。旋转方向考场速判法：代一个点，如 $\mathbf{x} = (1,0)$ 处 $\mathbf{x}' = A\binom{1}{0} = \binom{-1}{2}$ 指向左上 → <strong>逆时针</strong>（counterclockwise）。Complex eigenvalues 没有实 eigenvector 直线——图上不该画特殊方向线。</p>
+          </div>
           <p class="note">顺带分类：$\alpha = -1 &lt; 0$ → <strong>stable spiral</strong>。这正是 midterm 没考过的情形，final 高危。</p>
         </details>
       </div>
@@ -782,6 +786,17 @@ window.addEventListener('DOMContentLoaded', function () {
       [0, 1.4], [0, 3.4], [0, -1.4], [0, -3.4],
     ],
   }).render();
+
+  // Phase portrait for 题 3.2 (stable spiral, PP Ch7 #1)
+  var svg2 = document.getElementById('pp-spiral-svg');
+  if (svg2) {
+    new PhasePortrait(svg2, {
+      A: [[-1, -1], [2, -1]],
+      range: 4,
+      eigenlines: [],  // complex eigenvalues: no real eigendirections
+      seeds: [[3.5, 0], [-3.5, 0]],
+    }).render();
+  }
 });
 </script>
 </body>
