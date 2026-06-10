@@ -319,6 +319,165 @@
     update();
   }
 
+  /* ============================================================
+     PhasePortrait — 2D linear system x' = Ax phase plane renderer.
+     Draws axes, eigenvector lines with direction arrows, and
+     numerically integrated trajectories (RK4, arc-length stepped).
+
+     API:
+       const pp = new PhasePortrait(svgEl, {
+         A: [[1, 3], [3, 1]],
+         range: 4,                       // world view: [-range, range]^2
+         eigenlines: [
+           { dir: [1, 1],  lambda: 4,  color: '#d97706', label: 'v₁' },
+           { dir: [1, -1], lambda: -2, color: '#138a36', label: 'v₂' },
+         ],
+         seeds: [[1.4, 0], [-1.4, 0]],   // trajectory seed points (world)
+         trajColor: '#c75b9b',
+       });
+       pp.render();
+     ============================================================ */
+  class PhasePortrait {
+    constructor(svgEl, opts = {}) {
+      this.svg = svgEl;
+      this.A = opts.A;
+      this.range = opts.range || 4;
+      this.size = opts.size || 460;
+      this.margin = 14;
+      this.eigenlines = opts.eigenlines || [];
+      this.seeds = opts.seeds || null;
+      this.trajColor = opts.trajColor || '#c75b9b';
+      this.xLabel = opts.xLabel || 'x';
+      this.yLabel = opts.yLabel || 'y';
+      this.axisColor = opts.axisColor || '#8a93a0';
+    }
+
+    _px(x) { return this.margin + (x + this.range) / (2 * this.range) * (this.size - 2 * this.margin); }
+    _py(y) { return this.margin + (this.range - y) / (2 * this.range) * (this.size - 2 * this.margin); }
+
+    _vel(q) {
+      const A = this.A;
+      return [A[0][0] * q[0] + A[0][1] * q[1], A[1][0] * q[0] + A[1][1] * q[1]];
+    }
+
+    // RK4 with arc-length-normalized step: advances ~ds in world distance.
+    _step(q, dirSign, ds) {
+      const f = (p) => {
+        const v = this._vel(p);
+        const n = Math.hypot(v[0], v[1]) || 1e-12;
+        return [dirSign * v[0] / n, dirSign * v[1] / n];
+      };
+      const k1 = f(q);
+      const k2 = f([q[0] + ds / 2 * k1[0], q[1] + ds / 2 * k1[1]]);
+      const k3 = f([q[0] + ds / 2 * k2[0], q[1] + ds / 2 * k2[1]]);
+      const k4 = f([q[0] + ds * k3[0], q[1] + ds * k3[1]]);
+      return [
+        q[0] + ds / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]),
+        q[1] + ds / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]),
+      ];
+    }
+
+    _integrate(seed, dirSign) {
+      const pts = [];
+      const ds = this.range / 220;
+      const bound = this.range * 1.25;
+      let q = seed.slice();
+      for (let i = 0; i < 2200; i++) {
+        q = this._step(q, dirSign, ds);
+        const r = Math.hypot(q[0], q[1]);
+        if (r > bound || r < this.range * 0.01) break;
+        pts.push(q.slice());
+      }
+      return pts;
+    }
+
+    // Small triangle at world point `at`, oriented along world direction `dir`.
+    _arrow(at, dir, color, scale = 1) {
+      const n = Math.hypot(dir[0], dir[1]) || 1;
+      // screen-space direction (y flips)
+      const ux = dir[0] / n, uy = -dir[1] / n;
+      const px = this._px(at[0]), py = this._py(at[1]);
+      const L = 9 * scale, Wd = 5.5 * scale;
+      const tipX = px + ux * L / 2, tipY = py + uy * L / 2;
+      const bx = px - ux * L / 2, by = py - uy * L / 2;
+      const poly = el('polygon', {
+        points: `${tipX},${tipY} ${bx - uy * Wd},${by + ux * Wd} ${bx + uy * Wd},${by - ux * Wd}`,
+        fill: color,
+      });
+      this.svg.appendChild(poly);
+    }
+
+    _polyline(pts, color, width, dash) {
+      if (pts.length < 2) return;
+      let d = `M ${this._px(pts[0][0]).toFixed(1)} ${this._py(pts[0][1]).toFixed(1)} `;
+      for (let i = 1; i < pts.length; i++) {
+        d += `L ${this._px(pts[i][0]).toFixed(1)} ${this._py(pts[i][1]).toFixed(1)} `;
+      }
+      const p = el('path', { d, fill: 'none', stroke: color, 'stroke-width': width });
+      if (dash) p.setAttribute('stroke-dasharray', dash);
+      this.svg.appendChild(p);
+    }
+
+    render() {
+      const S = this.size, r = this.range;
+      this.svg.setAttribute('viewBox', `0 0 ${S} ${S}`);
+      while (this.svg.firstChild) this.svg.removeChild(this.svg.firstChild);
+
+      // Axes
+      this._polyline([[-r, 0], [r, 0]], this.axisColor, 1.2);
+      this._polyline([[0, -r], [0, r]], this.axisColor, 1.2);
+      this._arrow([r * 0.99, 0], [1, 0], this.axisColor);
+      this._arrow([0, r * 0.99], [0, 1], this.axisColor);
+      const xl = el('text', { x: this._px(r) - 16, y: this._py(0) - 8, fill: this.axisColor, 'font-size': '14' });
+      xl.textContent = this.xLabel;
+      const yl = el('text', { x: this._px(0) + 8, y: this._py(r) + 14, fill: this.axisColor, 'font-size': '14' });
+      yl.textContent = this.yLabel;
+      this.svg.appendChild(xl); this.svg.appendChild(yl);
+
+      // Trajectories (under eigenlines): backward path reversed + forward path
+      const seeds = this.seeds || (() => {
+        const out = [];
+        for (let k = 0; k < 8; k++) {
+          const a = k * Math.PI / 4;
+          out.push([0.9 * r * Math.cos(a), 0.9 * r * Math.sin(a)]);
+        }
+        return out;
+      })();
+      for (const seed of seeds) {
+        const back = this._integrate(seed, -1).reverse();
+        const fwd = this._integrate(seed, +1);
+        const pts = back.concat([seed], fwd);
+        this._polyline(pts, this.trajColor, 1.6);
+        // direction arrows at ~40% and ~75% of the path, oriented along flow
+        for (const frac of [0.4, 0.75]) {
+          const i = Math.max(1, Math.floor(pts.length * frac));
+          if (i < pts.length) this._arrow(pts[i], this._vel(pts[i]), this.trajColor, 0.95);
+        }
+      }
+
+      // Eigenvector lines + motion arrows + labels
+      for (const eline of this.eigenlines) {
+        const [a, b] = eline.dir;
+        const n = Math.hypot(a, b), ux = a / n, uy = b / n;
+        this._polyline([[-r * ux, -r * uy], [r * ux, r * uy]], eline.color, 2.2);
+        const sgn = eline.lambda >= 0 ? 1 : -1; // out vs in
+        for (const s of [+1, -1]) {
+          const at = [s * 0.62 * r * ux, s * 0.62 * r * uy];
+          this._arrow(at, [sgn * s * ux, sgn * s * uy], eline.color, 1.25);
+        }
+        if (eline.label) {
+          const lx = this._px(0.88 * r * ux) + (uy >= 0 ? 6 : -34);
+          const ly = this._py(0.88 * r * uy) - 6;
+          const t = el('text', { x: lx, y: ly, fill: eline.color, 'font-size': '14', 'font-weight': '600' });
+          t.textContent = eline.label;
+          this.svg.appendChild(t);
+        }
+      }
+      return this;
+    }
+  }
+
   window.Plot = Plot;
   window.bindSlider = bindSlider;
+  window.PhasePortrait = PhasePortrait;
 })(window);
