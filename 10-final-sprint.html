@@ -557,12 +557,15 @@
         <p>解 $y'' + 4y = \sin 2t$，$y(0) = 0$，$y'(0) = 1$。</p>
         <details class="solution">
           <summary>💡 提示</summary>
-          <p>Forcing 频率撞上 natural frequency → $Y$ 里出现 $\dfrac{1}{(s^2+4)^2}$。需要公式 $\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$。</p>
+          <p>Forcing 频率撞上 natural frequency → $Y$ 里出现 $\dfrac{1}{(s^2+4)^2}$。公式 $\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$ 不在表上，但可以用表上的 $t^nf(t) \to (-1)^n F^{(n)}(s)$ 条目现场推（见解答）。</p>
         </details>
         <details class="solution">
           <summary>✍️ 完整解答</summary>
           <p>$(s^2+4)Y - 1 = \dfrac{2}{s^2+4} \Rightarrow Y = \dfrac{1}{s^2+4} + \dfrac{2}{(s^2+4)^2}$。</p>
-          <p>第一项 → $\tfrac12\sin 2t$；第二项用上述公式（$a=2$）→ $2\cdot\tfrac{1}{16}(\sin 2t - 2t\cos 2t)$。<strong>答案：</strong></p>
+          <p><strong>$\frac{1}{(s^2+4)^2}$ 不在表上、partial fractions 也拆不动（已是 irreducible quadratic 平方的最简项）——用表上的 $t^nf$ 条目现场推：</strong></p>
+          <p>$$\mathcal{L}\{t\cos 2t\} = -\frac{d}{ds}\frac{s}{s^2+4} = \frac{s^2-4}{(s^2+4)^2} = \frac{(s^2+4)-8}{(s^2+4)^2} = \frac{1}{s^2+4} - \frac{8}{(s^2+4)^2}$$</p>
+          <p>移项：$\dfrac{1}{(s^2+4)^2} = \dfrac18\left[\dfrac{1}{s^2+4} - \mathcal{L}\{t\cos 2t\}\right] \Rightarrow \mathcal{L}^{-1} = \dfrac{1}{16}(\sin 2t - 2t\cos 2t)$。</p>
+          <p>第一项 → $\tfrac12\sin 2t$；第二项 → $2\cdot\tfrac{1}{16}(\sin 2t - 2t\cos 2t)$。<strong>答案：</strong></p>
           <p>$$y = \tfrac58\sin 2t - \tfrac14\, t\cos 2t$$</p>
           <p class="note">$t\cos 2t$ 项无界增长 = <strong>resonance</strong>。同一现象的 undetermined coefficients 视角（W4 #3(3)：$y''-2y'+y = te^t$，double root 共振 → guess 乘 $t^2$，答案带 $\tfrac16 t^3 e^t$）。两种方法认得同一个现象，T/F 和大题都可能考。</p>
         </details>
@@ -755,7 +758,7 @@
           <li>Abel：$W = Ce^{-\int p\,dt}$</li>
           <li>Generalized eigenvector 解：$\mathbf{x}_2 = te^{\lambda t}\boldsymbol{\xi} + e^{\lambda t}\boldsymbol{\eta}$，$(A-\lambda I)\boldsymbol{\eta} = \boldsymbol{\xi}$</li>
           <li>Phase plane 分类表（eigenvalues → node/saddle/spiral/center + 稳定性）</li>
-          <li>共振逆变换：$\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$</li>
+          <li>共振逆变换：$\mathcal{L}^{-1}\left\{\frac{1}{(s^2+a^2)^2}\right\} = \frac{1}{2a^3}(\sin at - at\cos at)$——背不下也没关系，可用表上 $t^nf \to (-1)^nF^{(n)}$ 四行现场推（见 题 4.6）</li>
           <li>Series：$R \ge$ 到最近 singular point（含复数）的距离；Euler equation $x^r$ 解法</li>
         </ol>
       </div>
